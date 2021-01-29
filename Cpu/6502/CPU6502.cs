@@ -8,6 +8,14 @@ namespace _6502
     {
         public enum OPCODE
         {
+            ADC_IMMEDIATE = 0x69,
+            ADC_ZERO_PAGE = 0x65,
+            ADC_ZERO_PAGE_X = 0x75,
+            ADC_ABSOLUTE = 0x6D,
+            ADC_ABSOLUTE_X = 0x7D,
+            ADC_ABSOLUTE_Y = 0x79,
+            ADC_INDIRECT_X = 0x61,
+            ADC_INDIRECT_Y = 0x71,
             BCC = 0x90,
             BCS = 0xB0,
             BEQ = 0xF0,
@@ -139,10 +147,15 @@ namespace _6502
             }
 
             // Yuck!
+            OpCodeTable[(int)OPCODE.ADC_IMMEDIATE] = AddWithCarryImmediate;
             OpCodeTable[(int)OPCODE.BCC] = BranchOnCarryClear;
             OpCodeTable[(int)OPCODE.BCS] = BranchOnCarrySet;
+            OpCodeTable[(int)OPCODE.BIT_ZERO_PAGE] = BitTestZeroPage;
+            OpCodeTable[(int)OPCODE.BIT_ABSOLUTE] = BitTestAbsolute;
             OpCodeTable[(int)OPCODE.BEQ] = BranchEquals;
+            OpCodeTable[(int)OPCODE.BMI] = BranchMinus;
             OpCodeTable[(int)OPCODE.BNE] = BranchNotEquals;
+            OpCodeTable[(int)OPCODE.BPL] = BranchPositive;
             OpCodeTable[(int)OPCODE.BRK] = Break;
             OpCodeTable[(int)OPCODE.CLC] = ClearCarryFlag;
             OpCodeTable[(int)OPCODE.CMP_IMMEDIATE] = CompareAccumulatorImmediate;
@@ -240,6 +253,38 @@ namespace _6502
                     }
                 }
             }
+        }
+
+        private void AddWithCarry(byte value)
+        {
+            byte v1 = A;
+            byte v2 = value;
+
+            var total = v1 + v2;
+            
+            if(P.C)
+            {
+                total++;
+            }
+
+            byte result = (byte)(total & 0xff);
+
+            LoadAccumulator(result);
+
+            P.C = (total < -128 || total > 127);
+            var b1 = v1.Bit(7);
+            var b2 = v2.Bit(7);
+            var r = result.Bit(7);
+            
+            P.V = (v1.Bit(7) == v2.Bit(7)) && (v1.Bit(7) != result.Bit(7));
+        }
+
+        private void BitTest(ushort address)
+        {
+            var value = Read(address);
+            P.V = (value & 0x40) == 0x40;
+            P.N = (value & 0x80) == 0x80;
+            P.Z = (value & A) == 0;
         }
 
         private void Branch(sbyte offset)
@@ -362,6 +407,26 @@ namespace _6502
         }
 
         // OpCode Implementation
+        private void AddWithCarryImmediate()
+        {
+            var value = Fetch();
+            LogParams($"#${value:X2}");
+            AddWithCarry(value);
+        }
+
+        private void BitTestAbsolute()
+        {
+            var address = FetchWord();
+            LogParams($"[{address:X4}]");
+            BitTest(address);
+        }
+        private void BitTestZeroPage()
+        {
+            var address = Fetch();
+            LogParams($"[{address:X2}]");
+            BitTest(address);
+        }
+
         private void BranchOnCarryClear()
         {
             var offset = (sbyte)Fetch();
@@ -391,11 +456,30 @@ namespace _6502
                 Branch(offset);
             }
         }
+
+        private void BranchMinus()
+        {
+            var offset = (sbyte)Fetch();
+            LogParams($"{offset}");
+            if(P.N)
+            {
+                Branch(offset);
+            }
+        }
         private void BranchNotEquals()
         {
             var offset = (sbyte)Fetch();
             LogParams($"{offset}");
             if(!P.Z)
+            {
+                Branch(offset);
+            }
+        }
+        private void BranchPositive()
+        {
+            var offset = (sbyte)Fetch();
+            LogParams($"{offset}");
+            if(!P.N)
             {
                 Branch(offset);
             }

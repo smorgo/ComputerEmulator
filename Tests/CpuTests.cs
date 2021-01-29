@@ -29,6 +29,7 @@ namespace Tests
         public void CanReset()
         {
             _cpu.Reset();
+            Assert.Pass();
         }
 
         [Test]
@@ -600,6 +601,78 @@ namespace Tests
         }
 
         [Test]
+        public void CanBranchForwardsOnMinus()
+        {
+            _map.Write(0x8000, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8001, 0x88);
+            _map.Write(0x8002, (byte)CPU6502.OPCODE.BMI);
+            _map.Write(0x8003, 0x3);
+            _map.Write(0x8004, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8005, (byte)'H');
+            _map.Write(0x8006, (byte)CPU6502.OPCODE.BRK);
+            _map.Write(0x8007, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8008, (byte)'e');
+            _map.Write(0x8009, (byte)CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual((byte)'e', _cpu.A);
+        }
+
+        [Test]
+        public void CanBranchBackwardsOnMinus()
+        {
+            _map.Write(0x8000, (byte)CPU6502.OPCODE.JMP_ABSOLUTE);
+            _map.WriteWord(0x8001, 0x8006);
+            _map.Write(0x8003, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8004, (byte)'e');
+            _map.Write(0x8005, (byte)CPU6502.OPCODE.BRK);
+            _map.Write(0x8006, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8007, 0x88);
+            _map.Write(0x8008, (byte)CPU6502.OPCODE.BMI);
+            _map.Write(0x8009, (byte)Convert.ToSByte(-7));
+            _map.Write(0x800A, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x800B, (byte)'H');
+            _map.Write(0x800C, (byte)CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual((byte)'e', _cpu.A);
+        }
+
+        [Test]
+        public void CanBranchForwardsOnPositive()
+        {
+            _map.Write(0x8000, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8001, 0x08);
+            _map.Write(0x8002, (byte)CPU6502.OPCODE.BPL);
+            _map.Write(0x8003, 0x3);
+            _map.Write(0x8004, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8005, (byte)'H');
+            _map.Write(0x8006, (byte)CPU6502.OPCODE.BRK);
+            _map.Write(0x8007, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8008, (byte)'e');
+            _map.Write(0x8009, (byte)CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual((byte)'e', _cpu.A);
+        }
+
+        [Test]
+        public void CanBranchBackwardsOnPositive()
+        {
+            _map.Write(0x8000, (byte)CPU6502.OPCODE.JMP_ABSOLUTE);
+            _map.WriteWord(0x8001, 0x8006);
+            _map.Write(0x8003, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8004, (byte)'e');
+            _map.Write(0x8005, (byte)CPU6502.OPCODE.BRK);
+            _map.Write(0x8006, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8007, 0x08);
+            _map.Write(0x8008, (byte)CPU6502.OPCODE.BPL);
+            _map.Write(0x8009, (byte)Convert.ToSByte(-7));
+            _map.Write(0x800A, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x800B, (byte)'H');
+            _map.Write(0x800C, (byte)CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual((byte)'e', _cpu.A);
+        }
+
+        [Test]
         public void CanCompareImmediateEqual()
         {
             _map.Write(0x8000, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
@@ -763,5 +836,78 @@ namespace Tests
             _cpu.Reset();
             Assert.AreEqual((byte)'Y', _cpu.A);
         }
+
+        [Test]
+        public void CanBitTestAbsoluteAllMasked()
+        {
+            _map.Write(0x1000, 0xF0);
+            _map.Write(0x8000, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8001, 0x0A);
+            _map.Write(0x8002, (byte)CPU6502.OPCODE.BIT_ABSOLUTE);
+            _map.WriteWord(0x8003, 0x1000);
+            _map.Write(0x8005, (byte)CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.IsTrue(_cpu.P.Z);
+        }
+
+        [Test]
+        public void CanBitTestAbsoluteNotAllMasked()
+        {
+            _map.Write(0x1000, 0xF0);
+            _map.Write(0x8000, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8001, 0x1A);
+            _map.Write(0x8002, (byte)CPU6502.OPCODE.BIT_ABSOLUTE);
+            _map.WriteWord(0x8003, 0x1000);
+            _map.Write(0x8005, (byte)CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.Z);
+        }
+
+        [Test]
+        public void CanAddWithCarry()
+        {
+            _map.Write(0x8000, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8001, 0x01);
+            _map.Write(0x8002, (byte)CPU6502.OPCODE.ADC_IMMEDIATE);
+            _map.Write(0x8003, 0x02);
+            _map.Write(0x8005, (byte)CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
+            Assert.AreEqual(0x03, _cpu.A);
+        }
+
+        [Test]
+        public void CanAddWithCarryAll()
+        {
+            const byte NoCarryNoOverflow = 0x00;
+            const byte CarryNoOverflow = 0x01;
+            const byte NoCarryOverflow = 0x40;
+            const byte CarryOverflow = 0x41;
+
+            InnerAddWithCarry(0x50, 0x10, 0x60, NoCarryNoOverflow);
+            InnerAddWithCarry(0x50, 0x50, 0xA0, NoCarryOverflow);
+            InnerAddWithCarry(0x50, 0x90, 0xE0, NoCarryNoOverflow);
+            InnerAddWithCarry(0x50, 0xD0, 0x20, CarryNoOverflow);
+            InnerAddWithCarry(0xD0, 0x10, 0xE0, NoCarryNoOverflow);
+            InnerAddWithCarry(0xD0, 0x50, 0x20, CarryNoOverflow);
+            InnerAddWithCarry(0xD0, 0x90, 0x60, CarryOverflow);
+            InnerAddWithCarry(0xD0, 0xD0, 0xA0, CarryNoOverflow);
+
+        }
+
+        private void InnerAddWithCarry(byte v1, byte v2, byte expected, byte statusMask)
+        {
+            _map.Write(0x8000, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
+            _map.Write(0x8001, v1);
+            _map.Write(0x8002, (byte)CPU6502.OPCODE.ADC_IMMEDIATE);
+            _map.Write(0x8003, v2);
+            _map.Write(0x8004, (byte)CPU6502.OPCODE.BRK);
+
+            _cpu.Reset();
+
+            Assert.AreEqual(expected, _cpu.A);
+            Assert.AreEqual(statusMask, _cpu.P.AsByte() & statusMask);
+        }
+
     }
 }
