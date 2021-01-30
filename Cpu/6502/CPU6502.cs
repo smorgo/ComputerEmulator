@@ -202,6 +202,8 @@ namespace _6502
             OpCodeTable[(int)OPCODE.BVS] = BranchOnOverflowSet;
             OpCodeTable[(int)OPCODE.CLC] = ClearCarryFlag;
             OpCodeTable[(int)OPCODE.CLD] = ClearDecimalFlag;
+            OpCodeTable[(int)OPCODE.CLI] = ClearInterruptDisableFlag;
+            OpCodeTable[(int)OPCODE.CLV] = ClearOverflowFlag;
             OpCodeTable[(int)OPCODE.CMP_IMMEDIATE] = CompareAccumulatorImmediate;
             OpCodeTable[(int)OPCODE.CMP_ZERO_PAGE] = CompareAccumulatorZeroPage;
             OpCodeTable[(int)OPCODE.CMP_ZERO_PAGE_X] = CompareAccumulatorZeroPageX;
@@ -237,6 +239,7 @@ namespace _6502
             OpCodeTable[(int)OPCODE.RTS] = ReturnFromSubroutine;
             OpCodeTable[(int)OPCODE.SEC] = SetCarryFlag;
             OpCodeTable[(int)OPCODE.SED] = SetDecimalFlag;
+            OpCodeTable[(int)OPCODE.SEI] = SetInterruptDisableFlag;
             OpCodeTable[(int)OPCODE.STA_ZERO_PAGE] = StoreAccumulatorZeroPage;
             OpCodeTable[(int)OPCODE.STA_ZERO_PAGE_X] = StoreAccumulatorZeroPageX;
             OpCodeTable[(int)OPCODE.STA_ABSOLUTE] = StoreAccumulatorAbsolute;
@@ -258,7 +261,7 @@ namespace _6502
             OpCodeTable[(int)OPCODE.TYA] = TransferYToAccumulator;
         }
 
-
+        
 
         public void Reset()
         {
@@ -714,6 +717,15 @@ namespace _6502
         {
             P.D = false;
         }
+        private void ClearOverflowFlag()
+        {
+            P.V = false;
+        }
+
+        private void ClearInterruptDisableFlag()
+        {
+            P.I = false;
+        }
         private void CompareAccumulatorImmediate()
         {
             Compare(FetchImmediate(), A);
@@ -868,6 +880,11 @@ namespace _6502
         {
             P.D = true;
         }
+        private void SetInterruptDisableFlag()
+        {
+            P.I = true;
+        }
+
         private void StoreAccumulatorAbsolute()
         {
             Write(FetchAbsoluteAddress(), A);

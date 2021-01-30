@@ -580,6 +580,38 @@ namespace Tests
         }
 
         [Test]
+        public void CanClearOverflow()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x50)
+                .Write(CPU6502.OPCODE.ADC_IMMEDIATE)
+                .Write(0x50)
+                .Write(CPU6502.OPCODE.CLV);
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.V);
+        }
+
+        [Test]
+        public void CanSetInterruptDisable()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.SEI);
+            _cpu.Reset();
+            Assert.IsTrue(_cpu.P.I);
+        }
+
+        [Test]
+        public void CanClearInterruptDisable()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.SEI)
+                .Write(CPU6502.OPCODE.CLI);
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.I);
+        }
+
+        [Test]
         public void CanSetDecimal()
         {
             mem.Load(PROG_START)
