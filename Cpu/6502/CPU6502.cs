@@ -343,6 +343,7 @@ namespace _6502
             OpCodeTable[(int)OPCODE.ROR_ZERO_PAGE_X] = RorZeroPageX;
             OpCodeTable[(int)OPCODE.ROR_ABSOLUTE] = RorAbsolute;
             OpCodeTable[(int)OPCODE.ROR_ABSOLUTE_X] = RorAbsoluteX;
+            OpCodeTable[(int)OPCODE.RTI] = ReturnFromInterrupt;
             OpCodeTable[(int)OPCODE.RTS] = ReturnFromSubroutine;
             OpCodeTable[(int)OPCODE.SBC_IMMEDIATE] = SubtractWithCarryImmediate;
             OpCodeTable[(int)OPCODE.SBC_ZERO_PAGE] = SubtractWithCarryZeroPage;
@@ -518,11 +519,6 @@ namespace _6502
         private void Write(ushort address, byte value)
         {
             _addressMap.Write(address, value);
-        }
-
-        private void WriteWord(ushort address, ushort value)
-        {
-            _addressMap.WriteWord(address, value);
         }
 
         private ushort FetchAbsoluteAddress()
@@ -1265,6 +1261,14 @@ namespace _6502
         {
             P.Set(Pull());
         }
+        private void ReturnFromInterrupt()
+        {
+            var p = Pull();
+            var address = PullWord();
+            P.Set(p);
+            PC = address;
+        }
+        
         private void ReturnFromSubroutine()
         {
             var address = PullWord();

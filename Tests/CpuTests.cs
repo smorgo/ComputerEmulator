@@ -2456,5 +2456,27 @@ namespace Tests
             Assert.IsTrue(_cpu.HaltReason == HaltReason.StackUnderflow);
         }
 
+        [Test]
+        public void CanReturnFromInterrupt()
+        {
+            // Manually push a return address and processor flags to the stack
+            // to simulate an interrupt
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x90)
+                .Write(CPU6502.OPCODE.PHA)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x00)
+                .Write(CPU6502.OPCODE.PHA)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x55)
+                .Write(CPU6502.OPCODE.PHA)
+                .Write(CPU6502.OPCODE.RTI)
+                .Write(0x9000, CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0x9000, _cpu.PC);
+            Assert.AreEqual(0x55, _cpu.P.AsByte());
+        }
+
     }
 }
