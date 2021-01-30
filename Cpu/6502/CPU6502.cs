@@ -64,6 +64,14 @@ namespace _6502
             DEC_ABSOLUTE_X = 0xDE,
             DEX = 0xCA,
             DEY = 0x88,
+            EOR_IMMEDIATE = 0x49,
+            EOR_ZERO_PAGE = 0x45,
+            EOR_ZERO_PAGE_X = 0x55,
+            EOR_ABSOLUTE = 0x4D,
+            EOR_ABSOLUTE_X = 0x5D,
+            EOR_ABSOLUTE_Y  = 0x59,
+            EOR_INDIRECT_X = 0x41,
+            EOR_INDIRECT_Y = 0x51,
             JMP_ABSOLUTE = 0x4C,
             JMP_INDIRECT = 0x6C,
             JSR = 0x20,
@@ -235,6 +243,14 @@ namespace _6502
             OpCodeTable[(int)OPCODE.DEC_ABSOLUTE_X] = DecrementAbsoluteX;
             OpCodeTable[(int)OPCODE.DEX] = DecrementX;
             OpCodeTable[(int)OPCODE.DEY] = DecrementY;
+            OpCodeTable[(int)OPCODE.EOR_IMMEDIATE] = EorImmediate;
+            OpCodeTable[(int)OPCODE.EOR_ZERO_PAGE] = EorZeroPage;
+            OpCodeTable[(int)OPCODE.EOR_ZERO_PAGE_X] = EorZeroPageX;
+            OpCodeTable[(int)OPCODE.EOR_ABSOLUTE] = EorAbsolute;
+            OpCodeTable[(int)OPCODE.EOR_ABSOLUTE_X] = EorAbsoluteX;
+            OpCodeTable[(int)OPCODE.EOR_ABSOLUTE_Y] = EorAbsoluteY;
+            OpCodeTable[(int)OPCODE.EOR_INDIRECT_X] = EorIndirectX;
+            OpCodeTable[(int)OPCODE.EOR_INDIRECT_Y] = EorIndirectY;
             OpCodeTable[(int)OPCODE.JMP_ABSOLUTE] = JumpAbsolute;
             OpCodeTable[(int)OPCODE.JMP_INDIRECT] = JumpIndirect;
             OpCodeTable[(int)OPCODE.JSR] = JumpToSubroutine;
@@ -580,6 +596,10 @@ namespace _6502
             P.N = value.Bit(7) != 0;
         }
 
+        private void EorAccumulator(byte value)
+        {
+            LoadAccumulator((byte)(A ^ value));
+        }
         private byte FetchImmediate()
         {
             var value = Fetch();
@@ -847,6 +867,45 @@ namespace _6502
         private void DecrementY()
         {
             LoadY((byte)(Y-1));
+        }
+        private void EorImmediate()
+        {
+            EorAccumulator(FetchImmediate());
+        }
+
+        private void EorZeroPage()
+        {
+            EorAccumulator(Read(FetchZeroPageAddress()));
+        }
+
+        private void EorZeroPageX()
+        {
+            EorAccumulator(Read(FetchZeroPageAddressX()));
+        }
+
+        private void EorAbsolute()
+        {
+            EorAccumulator(Read(FetchAbsoluteAddress()));
+        }
+
+        private void EorAbsoluteX()
+        {
+            EorAccumulator(Read(FetchAbsoluteAddressX()));
+        }
+
+        private void EorAbsoluteY()
+        {
+            EorAccumulator(Read(FetchAbsoluteAddressY()));
+        }
+
+        private void EorIndirectX()
+        {
+            EorAccumulator(Read(FetchIndexedIndirectAddressX()));
+        }
+
+        private void EorIndirectY()
+        {
+            EorAccumulator(Read(FetchIndirectIndexedAddressY()));
         }
 
         private void JumpAbsolute()

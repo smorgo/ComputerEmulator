@@ -1606,5 +1606,118 @@ namespace Tests
             Assert.IsFalse(_cpu.P.N);
         }
 
+        [Test]
+        public void CanExclusiveOrImmediate()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0xFF)
+                .Write(CPU6502.OPCODE.EOR_IMMEDIATE)
+                .Write(0x55)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0xAA, _cpu.A);
+        }
+
+        [Test]
+        public void CanExclusiveOrZeroPage()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0xFF)
+                .Write(CPU6502.OPCODE.EOR_ZERO_PAGE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x10, 0x55);
+            _cpu.Reset();
+            Assert.AreEqual(0xAA, _cpu.A);
+        }
+
+        [Test]
+        public void CanExclusiveOrZeroPageX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0xFF)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.EOR_ZERO_PAGE_X)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x12, 0x55);
+            _cpu.Reset();
+            Assert.AreEqual(0xAA, _cpu.A);
+        }
+
+        [Test]
+        public void CanExclusiveOrAbsolute()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0xFF)
+                .Write(CPU6502.OPCODE.EOR_ABSOLUTE)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1010, 0x55, "Data")
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0xAA, _cpu.A);
+        }
+
+        [Test]
+        public void CanExclusiveOrAbsoluteX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0xFF)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.EOR_ABSOLUTE_X)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .WriteWord(0x1010, 0xFFFF, "Data")
+                .Write(0x55)
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0xAA, _cpu.A);
+        }
+
+        [Test]
+        public void CanExclusiveOrIndirectX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0xFF)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.EOR_INDIRECT_X)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x9000, 0x55, "Data")
+                .Ref(0x12, "Data")
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0xAA, _cpu.A);
+        }
+
+        [Test]
+        public void CanExclusiveOrIndirectY()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0xFF)
+                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.EOR_INDIRECT_Y)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.BRK)
+                .WriteWord(0x9000, 0xFFFF, "Data")
+                .Write(0x55)
+                .Ref(0x10, "Data")
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0xAA, _cpu.A);
+        }
+
     }
 }
