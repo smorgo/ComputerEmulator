@@ -198,6 +198,8 @@ namespace _6502
             OpCodeTable[(int)OPCODE.BNE] = BranchNotEquals;
             OpCodeTable[(int)OPCODE.BPL] = BranchPositive;
             OpCodeTable[(int)OPCODE.BRK] = Break;
+            OpCodeTable[(int)OPCODE.BVC] = BranchOnOverflowClear;
+            OpCodeTable[(int)OPCODE.BVS] = BranchOnOverflowSet;
             OpCodeTable[(int)OPCODE.CLC] = ClearCarryFlag;
             OpCodeTable[(int)OPCODE.CMP_IMMEDIATE] = CompareAccumulatorImmediate;
             OpCodeTable[(int)OPCODE.CMP_ZERO_PAGE] = CompareAccumulatorZeroPage;
@@ -669,6 +671,15 @@ namespace _6502
         private void BranchOnCarrySet()
         {
             Branch(P.C);
+        }
+        private void BranchOnOverflowClear()
+        {
+            Branch(!P.V);
+        }
+
+        private void BranchOnOverflowSet()
+        {
+            Branch(P.V);
         }
         private void BranchEquals()
         {

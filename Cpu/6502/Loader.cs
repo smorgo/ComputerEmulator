@@ -83,6 +83,12 @@ namespace _6502
             return WriteWord(0xffff);
         }
 
+        public Loader Ref(ushort address, string label)
+        {
+            _labelReferences.Add(address, label);
+            return WriteWord(address, 0xffff);
+        }
+
         private void AddLabel(string label, ushort address)
         {
             if(!string.IsNullOrWhiteSpace(label))

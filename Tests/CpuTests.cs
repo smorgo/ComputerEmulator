@@ -240,9 +240,10 @@ namespace Tests
         {
             mem.Load(PROG_START)
                 .Write(CPU6502.OPCODE.NOP)
-                .Write(CPU6502.OPCODE.NOP);
+                .Write(CPU6502.OPCODE.NOP)
+                .Write(CPU6502.OPCODE.BRK);
             _cpu.Reset();
-            Assert.AreEqual(0x8003, _cpu.PC); // Allow for the unhandled OpCode after the NOPs
+            Assert.AreEqual(PROG_START + 3, _cpu.PC);
         }
 
         [Test]
@@ -253,7 +254,7 @@ namespace Tests
                 .Write(CPU6502.OPCODE.BRK)
                 .Write(CPU6502.OPCODE.NOP);
             _cpu.Reset();
-            Assert.AreEqual(0x8002, _cpu.PC); 
+            Assert.AreEqual(PROG_START + 2, _cpu.PC); 
         }
 
         [Test]
@@ -511,11 +512,12 @@ namespace Tests
                 .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
                 .Write('H')
                 .Write(CPU6502.OPCODE.JMP_INDIRECT)
-                .WriteWord(0x9000)
+                .Ref("Data")
                 .Write(CPU6502.OPCODE.BRK)
                 .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
                 .Write('e')
-                .WriteWord(0x9000, 0x8006);
+                .WriteWord(0x9000, PROG_START + 6, "Data")
+                .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
         }
@@ -650,6 +652,49 @@ namespace Tests
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
         }
+
+        [Test]
+        public void CanBranchOnOverflowClear()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x22)
+                .Write(CPU6502.OPCODE.ADC_IMMEDIATE)
+                .Write(0x23)
+                .Write(CPU6502.OPCODE.ASL_ACCUMULATOR)
+                .Write(CPU6502.OPCODE.BVC)
+                .Write(0x3)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write('H')
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write('e')
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual((byte)'e', _cpu.A);
+        }
+
+        [Test]
+        public void CanBranchOnOverflowSet()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x42)
+                .Write(CPU6502.OPCODE.ADC_IMMEDIATE)
+                .Write(0x43)
+                .Write(CPU6502.OPCODE.ASL_ACCUMULATOR)
+                .Write(CPU6502.OPCODE.BVS)
+                .Write(0x3)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write('H')
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write('e')
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual((byte)'e', _cpu.A);
+        }
+
 
         [Test]
         public void CanBranchForwardsOnMinus()
