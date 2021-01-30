@@ -4,7 +4,7 @@ using System.Diagnostics;
 namespace _6502
 {
 
-    public class CPU6502
+    public partial class CPU6502
     {
         public enum OPCODE
         {
@@ -72,6 +72,12 @@ namespace _6502
             EOR_ABSOLUTE_Y  = 0x59,
             EOR_INDIRECT_X = 0x41,
             EOR_INDIRECT_Y = 0x51,
+            INC_ZERO_PAGE = 0xE6,
+            INC_ZERO_PAGE_X = 0xF6,
+            INC_ABSOLUTE = 0xEE,
+            INC_ABSOLUTE_X = 0xFE,
+            INX = 0xE8,
+            INY = 0xC8,
             JMP_ABSOLUTE = 0x4C,
             JMP_INDIRECT = 0x6C,
             JSR = 0x20,
@@ -92,7 +98,20 @@ namespace _6502
             LDY_ZERO_PAGE_X = 0xB4,
             LDY_ABSOLUTE = 0xAC,
             LDY_ABSOLUTE_X = 0xBC,
+            LSR_ACCUMULATOR = 0x4A,
+            LSR_ZERO_PAGE = 0x46,
+            LSR_ZERO_PAGE_X = 0x56,
+            LSR_ABSOLUTE = 0x4E,
+            LSR_ABSOLUTE_X = 0x5E,
             NOP = 0xEA,
+            ORA_IMMEDIATE = 0x09,
+            ORA_ZERO_PAGE = 0x05,
+            ORA_ZERO_PAGE_X = 0x15,
+            ORA_ABSOLUTE = 0x0D,
+            ORA_ABSOLUTE_X = 0x1D,
+            ORA_ABSOLUTE_Y = 0x19,
+            ORA_INDIRECT_X = 0x01,
+            ORA_INDIRECT_Y = 0x11,
             PHA = 0x48,
             PHP = 0x08,
             PLA = 0x68,
@@ -132,8 +151,8 @@ namespace _6502
         public CpuFlags P = new CpuFlags();
         public DebugLevel DebugLevel {get;set;} = DebugLevel.Errors;
         private AddressMap _addressMap;
-
-        
+        public int EmulationErrorsCount {get; private set;}
+        public HaltReason HaltReason {get; private set;}
         public CPU6502(AddressMap addressMap)
         {
             _addressMap = addressMap;    
@@ -251,6 +270,12 @@ namespace _6502
             OpCodeTable[(int)OPCODE.EOR_ABSOLUTE_Y] = EorAbsoluteY;
             OpCodeTable[(int)OPCODE.EOR_INDIRECT_X] = EorIndirectX;
             OpCodeTable[(int)OPCODE.EOR_INDIRECT_Y] = EorIndirectY;
+            OpCodeTable[(int)OPCODE.INC_ZERO_PAGE] = IncrementZeroPage;
+            OpCodeTable[(int)OPCODE.INC_ZERO_PAGE_X] = IncrementZeroPageX;
+            OpCodeTable[(int)OPCODE.INC_ABSOLUTE] = IncrementAbsolute;
+            OpCodeTable[(int)OPCODE.INC_ABSOLUTE_X] = IncrementAbsoluteX;
+            OpCodeTable[(int)OPCODE.INX] = IncrementX;
+            OpCodeTable[(int)OPCODE.INY] = IncrementY;
             OpCodeTable[(int)OPCODE.JMP_ABSOLUTE] = JumpAbsolute;
             OpCodeTable[(int)OPCODE.JMP_INDIRECT] = JumpIndirect;
             OpCodeTable[(int)OPCODE.JSR] = JumpToSubroutine;
@@ -271,7 +296,20 @@ namespace _6502
             OpCodeTable[(int)OPCODE.LDY_ZERO_PAGE_X] = LoadYZeroPageX;
             OpCodeTable[(int)OPCODE.LDY_ABSOLUTE] = LoadYAbsolute;
             OpCodeTable[(int)OPCODE.LDY_ABSOLUTE_X] = LoadYAbsoluteX;
+            OpCodeTable[(int)OPCODE.LSR_ACCUMULATOR] = LsrAccumulator;
+            OpCodeTable[(int)OPCODE.LSR_ZERO_PAGE] = LsrZeroPage;
+            OpCodeTable[(int)OPCODE.LSR_ZERO_PAGE_X] = LsrZeroPageX;
+            OpCodeTable[(int)OPCODE.LSR_ABSOLUTE] = LsrAbsolute;
+            OpCodeTable[(int)OPCODE.LSR_ABSOLUTE_X] = LsrAbsoluteX;
             OpCodeTable[(int)OPCODE.NOP] = NoOperation;
+            OpCodeTable[(int)OPCODE.ORA_IMMEDIATE] = OrImmediate;
+            OpCodeTable[(int)OPCODE.ORA_ZERO_PAGE] = OrZeroPage;
+            OpCodeTable[(int)OPCODE.ORA_ZERO_PAGE_X] = OrZeroPageX;
+            OpCodeTable[(int)OPCODE.ORA_ABSOLUTE] = OrAbsolute;
+            OpCodeTable[(int)OPCODE.ORA_ABSOLUTE_X] = OrAbsoluteX;
+            OpCodeTable[(int)OPCODE.ORA_ABSOLUTE_Y] = OrAbsoluteY;
+            OpCodeTable[(int)OPCODE.ORA_INDIRECT_X] = OrIndirectX;
+            OpCodeTable[(int)OPCODE.ORA_INDIRECT_Y] = OrIndirectY;
             OpCodeTable[(int)OPCODE.PHA] = PushAccumulator;
             OpCodeTable[(int)OPCODE.PHP] = PushProcessorStatus;
             OpCodeTable[(int)OPCODE.PLA] = PullAccumulator;
@@ -301,7 +339,6 @@ namespace _6502
             OpCodeTable[(int)OPCODE.TYA] = TransferYToAccumulator;
         }
 
-        
         public void Reset()
         {
             Log(DebugLevel.Information, "\r\n6502 CPU Emulator");
@@ -313,6 +350,9 @@ namespace _6502
             X = 0x00;
             Y = 0x00;
             P.Set(0);
+            
+            EmulationErrorsCount = 0;
+            HaltReason = HaltReason.None;
 
             Run();
             Log(DebugLevel.Information, "HALT");
@@ -330,6 +370,7 @@ namespace _6502
                 if(handler == null)
                 {
                     Log(DebugLevel.Warnings, $"OpCode {OpCode} not handled");
+                    EmulationErrorsCount++;
                 }
                 else
                 {
@@ -522,7 +563,7 @@ namespace _6502
             if(SP == 0)
             {
                 Log(DebugLevel.Errors, "STACK OVERFLOW!");
-                Break();
+                Break(HaltReason.StackOverflow);
             }
             SP--;
         }
@@ -537,7 +578,7 @@ namespace _6502
             if(SP == 0xff)
             {
                 Log(DebugLevel.Errors, "STACK UNDERFLOW!");
-                Break();
+                Break(HaltReason.StackUnderflow);
             }
             SP++;
             var value = Read((ushort)(STACK_BASE + SP));
@@ -579,10 +620,23 @@ namespace _6502
             LoadAccumulator(result);
         }
 
+        private void OrAccumulator(byte value)
+        {
+            var result = (byte)(A | value);
+            LoadAccumulator(result);
+        }
+
         private void Asl(byte value)
         {
             var carry = value.Bit(7);
             value = (byte)(value << 1);
+            LoadAccumulator(value);
+            P.C = carry != 0;
+        }
+        private void Lsr(byte value)
+        {
+            var carry = value.Bit(0);
+            value = (byte)(value >> 1);
             LoadAccumulator(value);
             P.C = carry != 0;
         }
@@ -591,6 +645,15 @@ namespace _6502
         {
             var value = Read(address);
             value--;
+            Write(address, value);
+            P.Z = value == 0;
+            P.N = value.Bit(7) != 0;
+        }
+
+        private void IncrementMemory(ushort address)
+        {
+            var value = Read(address);
+            value++;
             Write(address, value);
             P.Z = value == 0;
             P.N = value.Bit(7) != 0;
@@ -606,6 +669,12 @@ namespace _6502
             LogParams($"#${value:X2}");
             return value;
         }
+        private void Break(HaltReason reason)
+        {
+            P.B = true;            
+            HaltReason = reason;
+        }
+
 #endregion
 
         // OpCode Implementation
@@ -758,8 +827,9 @@ namespace _6502
 
         private void Break()
         {
-            P.B = true;            
+            Break(HaltReason.Break);
         }
+
         private void ClearCarryFlag()
         {
             P.C = false;
@@ -908,6 +978,35 @@ namespace _6502
             EorAccumulator(Read(FetchIndirectIndexedAddressY()));
         }
 
+        private void IncrementZeroPage()
+        {
+            IncrementMemory(FetchZeroPageAddress());
+        }
+
+        private void IncrementZeroPageX()
+        {
+            IncrementMemory(FetchZeroPageAddressX());
+        }
+
+        private void IncrementAbsolute()
+        {
+            IncrementMemory(FetchAbsoluteAddress());
+        }
+
+        private void IncrementAbsoluteX()
+        {
+            IncrementMemory(FetchAbsoluteAddressX());
+        }
+
+        private void IncrementX()
+        {
+            LoadX((byte)(X+1));
+        }
+
+        private void IncrementY()
+        {
+            LoadY((byte)(Y+1));
+        }
         private void JumpAbsolute()
         {
             PC = FetchAbsoluteAddress();
@@ -997,9 +1096,72 @@ namespace _6502
         {
             LoadY(Read(FetchAbsoluteAddressX()));
         }
+        private void LsrAbsoluteX()
+        {
+            Lsr(Read(FetchAbsoluteAddressX()));
+        }
+
+        private void LsrAbsolute()
+        {
+            Lsr(Read(FetchAbsoluteAddress()));
+        }
+
+        private void LsrZeroPageX()
+        {
+            Lsr(Read(FetchZeroPageAddressX()));
+        }
+
+        private void LsrZeroPage()
+        {
+            Lsr(Read(FetchZeroPageAddress()));
+        }
+
+        private void LsrAccumulator()
+        {
+            Lsr(A);
+        }
         private void NoOperation()
         {
             // Do nothing
+        }
+        private void OrIndirectY()
+        {
+            OrAccumulator(Read(FetchIndirectIndexedAddressY()));
+        }
+
+        private void OrIndirectX()
+        {
+            OrAccumulator(Read(FetchIndexedIndirectAddressX()));
+        }
+
+        private void OrAbsoluteY()
+        {
+            OrAccumulator(Read(FetchAbsoluteAddressY()));
+        }
+
+        private void OrAbsoluteX()
+        {
+            OrAccumulator(Read(FetchAbsoluteAddressX()));
+        }
+
+        private void OrAbsolute()
+        {
+            OrAccumulator(Read(FetchAbsoluteAddress()));
+        }
+
+        private void OrZeroPageX()
+        {
+            OrAccumulator(Read(FetchZeroPageAddressX()));
+        }
+
+        private void OrZeroPage()
+        {
+            OrAccumulator(Read(FetchZeroPageAddress()));
+        }
+
+        private void OrImmediate()
+        {
+            OrAccumulator(FetchImmediate());
         }
         private void PushAccumulator()
         {

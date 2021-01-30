@@ -34,6 +34,19 @@ namespace Tests
         }
 
         [Test]
+        public void EmulatorReportsInvalidOpcodes()
+        {
+            mem.Load(PROG_START)
+                .Write(0xFF)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(1, _cpu.EmulationErrorsCount);
+            Assert.AreEqual(0x02, _cpu.A);
+        }
+
+        [Test]
         public void CanLoadAccumulatorImmediate()
         {
             mem.Load(PROG_START)
@@ -255,6 +268,36 @@ namespace Tests
                 .Write(CPU6502.OPCODE.NOP);
             _cpu.Reset();
             Assert.AreEqual(PROG_START + 2, _cpu.PC); 
+        }
+
+        [Test]
+        public void CanStoreAccumulatorZeroPage()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write('H')
+                .Write(CPU6502.OPCODE.STA_ZERO_PAGE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.LDY_ZERO_PAGE)
+                .Write(0x10);
+            _cpu.Reset();
+            Assert.AreEqual((byte)'H', _cpu.Y);
+        }
+
+        [Test]
+        public void CanStoreAccumulatorZeroPageX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write('H')
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.STA_ZERO_PAGE_X)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.LDY_ZERO_PAGE)
+                .Write(0x12);
+            _cpu.Reset();
+            Assert.AreEqual((byte)'H', _cpu.Y);
         }
 
         [Test]
@@ -1228,6 +1271,38 @@ namespace Tests
             Assert.AreEqual(statusMask, _cpu.P.AsByte() & statusMask);
         }
 
+        [TestCase(200,100,300)]
+        [TestCase(0,1,1)]
+        [TestCase(65535,2,1)]
+        public void CanAddMultipleBytes(int v1, int v2, int expectedResult)
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.CLC)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x00)
+                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(0x01)
+                .Write(CPU6502.OPCODE.LDA_ABSOLUTE_X)
+                .Ref("V1")
+                .Write(CPU6502.OPCODE.ADC_ABSOLUTE_X)
+                .Ref("V2")
+                .Write(CPU6502.OPCODE.STA_ABSOLUTE_X)
+                .Ref("Result")
+                .Write(CPU6502.OPCODE.INX)
+                .Write(CPU6502.OPCODE.DEY)
+                .Write(CPU6502.OPCODE.BPL)
+                .Write(-13)
+                .Write(CPU6502.OPCODE.BRK)
+                .WriteWord(0x9000, (ushort)v1, "V1" )
+                .WriteWord((ushort)v2, "V2")
+                .WriteWord(0x0000, "Result")
+                .Fixup();
+            _cpu.Reset();
+
+            var result = mem.ReadWord(0x9004);
+
+            Assert.AreEqual(expectedResult, result);
+        }
         [Test]
         public void CanAddWithCarryZeroPage()
         {
@@ -1431,6 +1506,91 @@ namespace Tests
         }
 
         [Test]
+        public void CanOrImmediate()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x0F)
+                .Write(CPU6502.OPCODE.ORA_IMMEDIATE)
+                .Write(0x80)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0x8F, _cpu.A);
+        }
+
+        [Test]
+        public void CanOrZeroPage()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x0F)
+                .Write(CPU6502.OPCODE.ORA_ZERO_PAGE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x10, 0x80);
+            _cpu.Reset();
+            Assert.AreEqual(0x8F, _cpu.A);
+        }
+        [Test]
+        public void CanOrZeroPageX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x0F)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.ORA_ZERO_PAGE_X)
+                .Write(0x00)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x10, 0x80);
+            _cpu.Reset();
+            Assert.AreEqual(0x8F, _cpu.A);
+        }
+        [Test]
+        public void CanOrAbsolute()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x0F)
+                .Write(CPU6502.OPCODE.ORA_ABSOLUTE)
+                .WriteWord(0x1010)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1010, 0x80);
+            _cpu.Reset();
+            Assert.AreEqual(0x8F, _cpu.A);
+        }
+        [Test]
+        public void CanOrAbsoluteX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x0F)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.ORA_ABSOLUTE_X)
+                .WriteWord(0x1000)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1010, 0x80);
+            _cpu.Reset();
+            Assert.AreEqual(0x8F, _cpu.A);
+        }
+        [Test]
+        public void CanOrAbsoluteY()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x0F)
+                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.ORA_ABSOLUTE_Y)
+                .WriteWord(0x1000)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1010, 0x80);
+            _cpu.Reset();
+            Assert.AreEqual(0x8F, _cpu.A);
+        }
+
+        [Test]
         public void CanAslAccumulator()
         {
             mem.Load(PROG_START)
@@ -1499,6 +1659,78 @@ namespace Tests
                 .Fixup();
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanLsrAccumulator()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x11)
+                .Write(CPU6502.OPCODE.LSR_ACCUMULATOR)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0x08, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanLsrZeroPage()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LSR_ZERO_PAGE)
+                .Write(0x20)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x20, 0x11);
+            _cpu.Reset();
+            Assert.AreEqual(0x08, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanLsrZeroPageX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x20)
+                .Write(CPU6502.OPCODE.LSR_ZERO_PAGE_X)
+                .Write(0x00)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x20, 0x11);
+            _cpu.Reset();
+            Assert.AreEqual(0x08, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanLsrAbsolute()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LSR_ABSOLUTE)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1020, 0x11, "Data")
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x08, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanLsrAbsoluteX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.LSR_ABSOLUTE_X)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .WriteWord(0x1020, 0x00, "Data")
+                .Write(0x11)
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x08, _cpu.A);
             Assert.IsTrue(_cpu.P.C);
         }
 
@@ -1717,6 +1949,26 @@ namespace Tests
                 .Fixup();
             _cpu.Reset();
             Assert.AreEqual(0xAA, _cpu.A);
+        }
+
+        [Test]
+        public void CanCauseStackOverflow()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.JSR, "InfiniteLoop")
+                .Ref("InfiniteLoop")
+                .Fixup();
+            _cpu.Reset();
+            Assert.IsTrue(_cpu.HaltReason == HaltReason.StackOverflow);
+        }
+
+        [Test]
+        public void CanCauseStackUnderflow()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.RTS);
+            _cpu.Reset();
+            Assert.IsTrue(_cpu.HaltReason == HaltReason.StackUnderflow);
         }
 
     }
