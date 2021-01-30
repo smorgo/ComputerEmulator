@@ -201,6 +201,7 @@ namespace _6502
             OpCodeTable[(int)OPCODE.BVC] = BranchOnOverflowClear;
             OpCodeTable[(int)OPCODE.BVS] = BranchOnOverflowSet;
             OpCodeTable[(int)OPCODE.CLC] = ClearCarryFlag;
+            OpCodeTable[(int)OPCODE.CLD] = ClearDecimalFlag;
             OpCodeTable[(int)OPCODE.CMP_IMMEDIATE] = CompareAccumulatorImmediate;
             OpCodeTable[(int)OPCODE.CMP_ZERO_PAGE] = CompareAccumulatorZeroPage;
             OpCodeTable[(int)OPCODE.CMP_ZERO_PAGE_X] = CompareAccumulatorZeroPageX;
@@ -235,6 +236,7 @@ namespace _6502
             OpCodeTable[(int)OPCODE.PLP] = PullProcessorStatus;
             OpCodeTable[(int)OPCODE.RTS] = ReturnFromSubroutine;
             OpCodeTable[(int)OPCODE.SEC] = SetCarryFlag;
+            OpCodeTable[(int)OPCODE.SED] = SetDecimalFlag;
             OpCodeTable[(int)OPCODE.STA_ZERO_PAGE] = StoreAccumulatorZeroPage;
             OpCodeTable[(int)OPCODE.STA_ZERO_PAGE_X] = StoreAccumulatorZeroPageX;
             OpCodeTable[(int)OPCODE.STA_ABSOLUTE] = StoreAccumulatorAbsolute;
@@ -255,6 +257,7 @@ namespace _6502
             OpCodeTable[(int)OPCODE.TXS] = TransferXToStackPointer;
             OpCodeTable[(int)OPCODE.TYA] = TransferYToAccumulator;
         }
+
 
 
         public void Reset()
@@ -706,6 +709,11 @@ namespace _6502
         {
             P.C = false;
         }
+
+        private void ClearDecimalFlag()
+        {
+            P.D = false;
+        }
         private void CompareAccumulatorImmediate()
         {
             Compare(FetchImmediate(), A);
@@ -855,6 +863,10 @@ namespace _6502
         private void SetCarryFlag()
         {
             P.C = true;
+        }
+        private void SetDecimalFlag()
+        {
+            P.D = true;
         }
         private void StoreAccumulatorAbsolute()
         {

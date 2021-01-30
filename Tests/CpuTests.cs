@@ -580,6 +580,25 @@ namespace Tests
         }
 
         [Test]
+        public void CanSetDecimal()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.SED);
+            _cpu.Reset();
+            Assert.IsTrue(_cpu.P.D);
+        }
+
+        [Test]
+        public void CanClearDecimal()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.SED)
+                .Write(CPU6502.OPCODE.CLD);
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.D);
+        }
+
+        [Test]
         public void CanBranchForwardsOnCarryClear()
         {
             mem.Load(PROG_START)
@@ -1300,6 +1319,7 @@ namespace Tests
             Assert.AreEqual(0x10, _cpu.A);
             Assert.IsTrue(_cpu.P.C);
         }
+
 
     }
 }
