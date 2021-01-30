@@ -107,6 +107,7 @@ namespace _6502
             LoadOpCodes();
         }
 
+#region Helpers
         private void Log(DebugLevel level, string message)
         {
             if((int)level <= (int)DebugLevel)
@@ -129,7 +130,14 @@ namespace _6502
 
         private void LogParams(string logParams)
         {
-            _logParams = logParams;
+            if(String.IsNullOrEmpty(_logParams))
+            {
+                _logParams = logParams;
+            }
+            else
+            {
+                _logParams += " " + logParams;
+            }
         }
 
         private void LogInstruction(OPCODE opcode, ushort pc, string logParams)
@@ -148,6 +156,13 @@ namespace _6502
 
             // Yuck!
             OpCodeTable[(int)OPCODE.ADC_IMMEDIATE] = AddWithCarryImmediate;
+            OpCodeTable[(int)OPCODE.ADC_ZERO_PAGE] = AddWithCarryZeroPage;
+            OpCodeTable[(int)OPCODE.ADC_ZERO_PAGE_X] = AddWithCarryZeroPageX;
+            OpCodeTable[(int)OPCODE.ADC_ABSOLUTE] = AddWithCarryAbsolute;
+            OpCodeTable[(int)OPCODE.ADC_ABSOLUTE_X] = AddWithCarryAbsoluteX;
+            OpCodeTable[(int)OPCODE.ADC_ABSOLUTE_Y] = AddWithCarryAbsoluteY;
+            OpCodeTable[(int)OPCODE.ADC_INDIRECT_X] = AddWithCarryIndirectX;
+            OpCodeTable[(int)OPCODE.ADC_INDIRECT_Y] = AddWithCarryIndirectY;
             OpCodeTable[(int)OPCODE.BCC] = BranchOnCarryClear;
             OpCodeTable[(int)OPCODE.BCS] = BranchOnCarrySet;
             OpCodeTable[(int)OPCODE.BIT_ZERO_PAGE] = BitTestZeroPage;
@@ -212,6 +227,7 @@ namespace _6502
             OpCodeTable[(int)OPCODE.TXS] = TransferXToStackPointer;
             OpCodeTable[(int)OPCODE.TYA] = TransferYToAccumulator;
         }
+
         public void Reset()
         {
             Log(DebugLevel.Information, "\r\n6502 CPU Emulator");
@@ -287,9 +303,14 @@ namespace _6502
             P.Z = (value & A) == 0;
         }
 
-        private void Branch(sbyte offset)
+        private void Branch(bool condition)
         {
-            PC = (ushort)(PC + offset); // offset is signed
+            var offset = (sbyte)Fetch();
+            LogParams($"*{offset:+0;-#}");
+            if(condition)
+            {
+                PC = (ushort)(PC + offset); // offset is signed
+            }
         }
 
         private byte Fetch()
@@ -328,6 +349,78 @@ namespace _6502
             _addressMap.WriteWord(address, value);
         }
 
+        private ushort FetchAbsoluteAddress()
+        {
+            var address = FetchWord();
+            LogParams($"[${address:X4}]");
+            return address;
+        }
+        private ushort FetchAbsoluteAddressX()
+        {
+            var address = FetchWord();
+            LogParams($"${address:X4},${X:X2}");
+            address += X;
+            LogParams($"[${address:X4}]");
+            return address;
+        }
+        private ushort FetchAbsoluteAddressY()
+        {
+            var address = FetchWord();
+            LogParams($"${address:X4},${Y:X2}");
+            address += Y;
+            LogParams($"[${address:X4}]");
+            return address;
+        }
+
+        private ushort FetchIndirectAddress()
+        {
+            var vector = FetchWord();
+            var address = ReadWord(vector);
+            LogParams($"(${vector:X4})");
+            LogParams($"[${address:X4}]");
+            return address;
+        }
+
+        private ushort FetchIndexedIndirectAddressX()
+        {
+            var vector = Fetch();
+            var address = ReadWord((ushort)(vector + X));
+            LogParams($"(${vector:X2},{X:X2})");
+            LogParams($"[${address:X4}]");
+            return address;
+        }
+        private ushort FetchIndirectIndexedAddressY()
+        {
+            var vector = Fetch();
+            var address = (ushort)(ReadWord(vector) + Y);
+            LogParams($"(${vector:X2}),{Y:X2}");
+            LogParams($"[${address:X4}]");
+            return address;
+        }
+
+        private byte FetchZeroPageAddress()
+        {
+            var address = Fetch();
+            LogParams($"[${address:X2}]");
+            return address;
+        }
+        private byte FetchZeroPageAddressX()
+        {
+            var address = Fetch();
+            LogParams($"${address:X2},${X:X2}");
+            address += X;
+            LogParams($"[${address:X2}]");
+            return address;
+        }
+        private byte FetchZeroPageAddressY()
+        {
+            var address = Fetch();
+            LogParams($"${address:X2},${Y:X2}");
+            address += Y;
+            LogParams($"[${address:X2}]");
+            return address;
+        }
+        
         private void LoadAccumulator(byte value)
         {
             A = value;
@@ -406,83 +499,88 @@ namespace _6502
             }
         }
 
-        // OpCode Implementation
-        private void AddWithCarryImmediate()
+        private byte FetchImmediate()
         {
             var value = Fetch();
             LogParams($"#${value:X2}");
-            AddWithCarry(value);
+            return value;
+        }
+#endregion
+
+        // OpCode Implementation
+        private void AddWithCarryImmediate()
+        {
+            AddWithCarry(FetchImmediate());
+        }
+
+        private void AddWithCarryIndirectY()
+        {
+            AddWithCarry(Read(FetchIndirectIndexedAddressY()));
+        }
+
+        private void AddWithCarryIndirectX()
+        {
+            AddWithCarry(Read(FetchIndexedIndirectAddressX()));
+        }
+
+        private void AddWithCarryAbsoluteY()
+        {
+            AddWithCarry(Read(FetchAbsoluteAddressY()));
+        }
+
+        private void AddWithCarryAbsoluteX()
+        {
+            AddWithCarry(Read(FetchAbsoluteAddressX()));
+        }
+
+        private void AddWithCarryAbsolute()
+        {
+            AddWithCarry(Read(FetchAbsoluteAddress()));
+        }
+
+        private void AddWithCarryZeroPageX()
+        {
+            AddWithCarry(Read(FetchZeroPageAddressX()));
+        }
+
+        private void AddWithCarryZeroPage()
+        {
+            AddWithCarry(Read(FetchZeroPageAddress()));
         }
 
         private void BitTestAbsolute()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}]");
-            BitTest(address);
+            BitTest(FetchAbsoluteAddress());
         }
         private void BitTestZeroPage()
         {
-            var address = Fetch();
-            LogParams($"[{address:X2}]");
-            BitTest(address);
+            BitTest(FetchZeroPageAddress());
         }
 
         private void BranchOnCarryClear()
         {
-            var offset = (sbyte)Fetch();
-            LogParams($"{offset}");
-            if(!P.C)
-            {
-                Branch(offset);
-            }
+            Branch(!P.C);
         }
 
         private void BranchOnCarrySet()
         {
-            var offset = (sbyte)Fetch();
-            LogParams($"{offset}");
-            if(P.C)
-            {
-                Branch(offset);
-            }
+            Branch(P.C);
         }
-
         private void BranchEquals()
         {
-            var offset = (sbyte)Fetch();
-            LogParams($"{offset}");
-            if(P.Z)
-            {
-                Branch(offset);
-            }
+            Branch(P.Z);
         }
-
         private void BranchMinus()
         {
-            var offset = (sbyte)Fetch();
-            LogParams($"{offset}");
-            if(P.N)
-            {
-                Branch(offset);
-            }
+            Branch(P.N);
         }
         private void BranchNotEquals()
         {
-            var offset = (sbyte)Fetch();
-            LogParams($"{offset}");
-            if(!P.Z)
-            {
-                Branch(offset);
-            }
+            Branch(!P.Z);
         }
         private void BranchPositive()
         {
-            var offset = (sbyte)Fetch();
-            LogParams($"{offset}");
-            if(!P.N)
-            {
-                Branch(offset);
-            }
+            Branch(!P.N);
         }
 
         private void Break()
@@ -495,191 +593,124 @@ namespace _6502
         }
         private void CompareAccumulatorImmediate()
         {
-            var memoryValue = Fetch();
-            LogParams($"{memoryValue:X2}");
-            Compare(memoryValue, A);
+            Compare(FetchImmediate(), A);
         }
 
         private void CompareAccumulatorZeroPage()
         {
-            var address = Fetch();
-            LogParams($"[{address:X2}]");
-            CompareMemory(address, A);
+            CompareMemory(FetchZeroPageAddress(), A);
         }
 
         private void CompareAccumulatorZeroPageX()
         {
-            var address = Fetch();
-            LogParams($"[{address:X2}] + {X:X2}");
-            address += X;
-            CompareMemory(address, A);
+            CompareMemory(FetchZeroPageAddressX(), A);
         }
 
         private void CompareAccumulatorAbsolute()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}]");
-            CompareMemory(address, A);
+            CompareMemory(FetchAbsoluteAddress(), A);
         }
 
         private void CompareAccumulatorAbsoluteX()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}] + {X:X2}");
-            address += X;
-            CompareMemory(address, A);
+            CompareMemory(FetchAbsoluteAddressX(), A);
         }
         private void CompareAccumulatorIndirectX()
         {
-            var zpOffset = Fetch();
-            var address = ReadWord((ushort)((zpOffset + X) & 0xFF));
-            LogParams($"({zpOffset:X2}) [{address:X4}]");
-            CompareMemory(address,A);
+            CompareMemory(FetchIndexedIndirectAddressX(), A);
         }
-
         private void CompareAccumulatorIndirectY()
         {
-            var zpOffset = Fetch();
-            var address = ReadWord((ushort)((zpOffset + Y) & 0xFF));
-            LogParams($"({zpOffset:X2}) [{address:X4}]");
-            CompareMemory(address,A);
+            CompareMemory(FetchIndirectIndexedAddressY(), A);
         }
-
         private void JumpAbsolute()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}]");
-            PC = address;
+            PC = FetchAbsoluteAddress();
         }
         private void JumpIndirect()
         {
-            var address = FetchWord();
-            var target = ReadWord(address);
-            LogParams($"({address:X4}) [{target:X4}]");
-            PC = target;
+            PC = FetchIndirectAddress();
         }
         private void JumpToSubroutine()
         {
-            var address = FetchWord();
+            var address = FetchAbsoluteAddress();
             PushWord(PC);
-            LogParams($"[{address:X4}]");
             PC = address;
         }
         private void LoadAccumulatorImmediate()
         {
-            var value = Fetch();
-            LogParams($"{value:X2}");
-            LoadAccumulator(value);
+            LoadAccumulator(FetchImmediate());
         }
 
         private void LoadAccumulatorZeroPage()
         {
-            var zpOffset = Fetch();
-            LogParams($"{zpOffset:X2}");
-            LoadAccumulator(Read(zpOffset));
+            LoadAccumulator(Read(FetchZeroPageAddress()));
         }
 
         private void LoadAccumulatorZeroPageX()
         {
-            var zpOffset = Fetch();
-            LogParams($"{zpOffset:X2} + {X:X2}");
-            LoadAccumulator(Read((ushort)(zpOffset + X)));
+            LoadAccumulator(Read(FetchZeroPageAddressX()));
         }
 
         private void LoadAccumulatorAbsolute()
         {
-            var address = FetchWord();
-            LogParams($"{address:X4}");
-            LoadAccumulator(Read(address));
+            LoadAccumulator(Read(FetchAbsoluteAddress()));
         }
 
         private void LoadAccumulatorAbsoluteX()
         {
-            var address = FetchWord();
-            LogParams($"{address:X2} + {X:X2}");
-            address += X;
-            LoadAccumulator(Read(address));
+            LoadAccumulator(Read(FetchAbsoluteAddressX()));
         }
 
         private void LoadAccumulatorIndirectX()
         {
-            var zpOffset = Fetch();
-            var address = ReadWord((ushort)((zpOffset + X) & 0xFF));
-            LogParams($"({zpOffset:X2}) [{address:X4}]");
-            LoadAccumulator(Read(address));
+            LoadAccumulator(Read(FetchIndexedIndirectAddressX()));
         }
 
         private void LoadAccumulatorIndirectY()
         {
-            var zpOffset = Fetch();
-            var address = ReadWord((ushort)((zpOffset + Y) & 0xFF));
-            LogParams($"({zpOffset:X2}) [{address:X4}]");
-            LoadAccumulator(Read(address));
+            LoadAccumulator(Read(FetchIndirectIndexedAddressY()));
         }
         private void LoadXImmediate()
         {
-            var value = Fetch();
-            LogParams($"{value:X2}");
-            LoadX(value);
+            LoadX(FetchImmediate());
         }
         private void LoadXZeroPage()
         {
-            var zpOffset = Fetch();
-            LogParams($"{zpOffset:X2}");
-            LoadX(Read(zpOffset));
+            LoadX(Read(FetchZeroPageAddress()));
         }
         private void LoadXZeroPageY()
         {
-            var zpOffset = Fetch();
-            LogParams($"{zpOffset:X2} + {X:X2}");
-            zpOffset += Y;
-            LoadX(Read(zpOffset));
+            LoadX(Read(FetchZeroPageAddressY()));
         }
         private void LoadXAbsolute()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}]");
-            LoadX(Read(address));
+            LoadX(Read(FetchAbsoluteAddress()));
         }
 
         private void LoadXAbsoluteY()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}] + {Y:X2}");
-            address += Y;
-            LoadX(Read(address));
+            LoadX(Read(FetchAbsoluteAddressY()));
         }
         private void LoadYImmediate()
         {   
-            var value = Fetch();
-            LogParams($"{value:X2}");
-            LoadY(value);
+            LoadY(FetchImmediate());
         }
         private void LoadYZeroPage()
         {
-            var zpOffset = Fetch();
-            LogParams($"[{zpOffset:X2}]");
-            LoadY(Read(zpOffset));
+            LoadY(Read(FetchZeroPageAddress()));
         }
         private void LoadYZeroPageX()
         {
-            var zpOffset = Fetch();
-            LogParams($"[{zpOffset:X2}] + {X:2}");
-            zpOffset += X;
-            LoadY(Read(zpOffset));
+            LoadY(Read(FetchZeroPageAddressX()));
         }
         private void LoadYAbsolute()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}]");
-            LoadY(Read(address));
+            LoadY(Read(FetchAbsoluteAddress()));
         }
         private void LoadYAbsoluteX()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}] + {X:2}");
-            address += X;
-            LoadY(Read(address));
+            LoadY(Read(FetchAbsoluteAddressX()));
         }
         private void NoOperation()
         {
@@ -689,17 +720,14 @@ namespace _6502
         {
             Push(A);
         }
-
         private void PushProcessorStatus()
         {
             Push(P.AsByte());
         }
-
         private void PullAccumulator()
         {
             LoadAccumulator(Pull());
         }
-
         private void PullProcessorStatus()
         {
             P.Set(Pull());
@@ -709,97 +737,62 @@ namespace _6502
             var address = PullWord();
             PC = address;
         }
-
         private void SetCarryFlag()
         {
             P.C = true;
         }
-
         private void StoreAccumulatorAbsolute()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}]");
-            Write(address, A);
+            Write(FetchAbsoluteAddress(), A);
         }
         private void StoreAccumulatorZeroPage()
         {
-            var address = Fetch();
-            LogParams($"[{address:X2}]");
-            Write(address, A);
+            Write(FetchZeroPageAddress(), A);
         }
         private void StoreAccumulatorZeroPageX()
         {
-            var address = Fetch();
-            LogParams($"[{address:X2}] + {X:X2}");
-            address += X;
-            Write(address, A);
+            Write(FetchZeroPageAddressX(), A);
         }
         private void StoreAccumulatorAbsoluteX()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}] + {X:X2}");
-            address += X;
-            Write(address, A);
+            Write(FetchAbsoluteAddressX(), A);
         }
         private void StoreAccumulatorAbsoluteY()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}] + {Y:X2}");
-            address += Y;
-            Write(address, A);
+            Write(FetchAbsoluteAddressY(), A);
         }
         private void StoreAccumulatorIndirectX()
         {
-            var zpOffset = Fetch();
-            var address = ReadWord((ushort)((zpOffset + X) & 0xFF));
-            LogParams($"({zpOffset:X2},{X:X2}) [{address:X4}]");
-            Write(address, A);
+            Write(FetchIndexedIndirectAddressX(), A);
         }
         private void StoreAccumulatorIndirectY()
         {
-            var zpOffset = Fetch();
-            var address = ReadWord((ushort)((zpOffset + Y) & 0xFF));
-            LogParams($"({zpOffset:X2},{Y:X2}) [{address:X4}]");
-            Write(address, A);
+            Write(FetchIndirectIndexedAddressY(), A);
         }
 
         private void StoreXAbsolute()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}]");
-            Write(address, X);
+            Write(FetchAbsoluteAddress(), X);
         }
         private void StoreXZeroPage()
         {
-            var address = Fetch();
-            LogParams($"[{address:X2}]");
-            Write(address, X);
+            Write(FetchZeroPageAddress(), X);
         }
         private void StoreXZeroPageY()
         {
-            var address = Fetch();
-            LogParams($"[{address:X2}] + {Y:X2}");
-            address += Y;
-            Write(address, X);
+            Write(FetchZeroPageAddressY(), X);
         }
         private void StoreYAbsolute()
         {
-            var address = FetchWord();
-            LogParams($"[{address:X4}]");
-            Write(address, Y);
+            Write(FetchAbsoluteAddress(), Y);
         }
         private void StoreYZeroPage()
         {
-            var address = Fetch();
-            LogParams($"[{address:X2}]");
-            Write(address, Y);
+            Write(FetchZeroPageAddress(), Y);
         }
         private void StoreYZeroPageX()
         {
-            var address = Fetch();
-            LogParams($"[{address:X2}] + {X:X2}");
-            address += X;
-            Write(address, Y);
+            Write(FetchZeroPageAddressX(), Y);
         }
 
         private void TransferAccumulatorToX()
