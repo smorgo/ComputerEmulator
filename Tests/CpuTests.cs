@@ -16,6 +16,8 @@ namespace Tests
         const byte CarryNoOverflow = 0x01;
         const byte NoCarryOverflow = 0x40;
         const byte CarryOverflow = 0x41;
+        long _tickCount;
+        long _interruptTickInterval;
 
         [SetUp]
         public void Setup()
@@ -27,7 +29,7 @@ namespace Tests
             _display.Clear();
             _cpu = new CPU6502(mem);
             _cpu.DebugLevel = DebugLevel.Verbose;
-            mem.WriteWord(0xFFFC, PROG_START); 
+            mem.WriteWord(_cpu.RESET_VECTOR, PROG_START);
         }
 
         [Test]
@@ -2475,8 +2477,53 @@ namespace Tests
                 .Write(0x9000, CPU6502.OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x9000, _cpu.PC);
-            Assert.AreEqual(0x55, _cpu.P.AsByte());
+            Assert.AreEqual(0x51, _cpu.P.AsByte());
         }
 
+        [Test]
+        public void CanServiceInterrupt()
+        {
+            _cpu.OnTick += TriggerInterrupt;
+            _tickCount = 0;
+            _interruptTickInterval = 600;
+
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x00)
+                .Write(CPU6502.OPCODE.LDY_IMMEDIATE, "LoopX")
+                .Write(0x20)
+                .Write(CPU6502.OPCODE.TXA, "LoopY")
+                .Write(CPU6502.OPCODE.STA_INDIRECT_Y)
+                .Write(0x10)    // Holds vector for data block to write
+                .Write(CPU6502.OPCODE.DEY)
+                .Write(CPU6502.OPCODE.BNE)
+                .Write(-5)
+                .Write(CPU6502.OPCODE.INX)
+                .Write(CPU6502.OPCODE.BNE)
+                .Write(-11)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0xFF00, CPU6502.OPCODE.INC_ABSOLUTE)
+                .WriteWord(0x7800)
+                .Write(CPU6502.OPCODE.RTI)
+                .Write(0x7000, 0x00, "Block")
+                .Write(0x7800, 0x00) // ISR will increment this
+                .Ref(0x10, "Block")
+                .WriteWord(_cpu.IRQ_VECTOR, 0xFF00)
+                .Fixup();
+            _cpu.Reset();
+            _cpu.OnTick -= TriggerInterrupt;
+            var result = mem.Read(0x7800);
+            Assert.AreEqual(42, result);
+        }
+
+        private void TriggerInterrupt(object sender, EventArgs e)
+        {
+            _tickCount++;
+            if(_tickCount >= _interruptTickInterval)
+            {
+                _tickCount = 0;
+                _cpu.Interrupt();
+            }
+        }
     }
 }
