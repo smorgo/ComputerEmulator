@@ -1735,6 +1735,304 @@ namespace Tests
         }
 
         [Test]
+        public void CanRolAccumulator()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x88)
+                .Write(CPU6502.OPCODE.SEC)
+                .Write(CPU6502.OPCODE.ROL_ACCUMULATOR)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0x11, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRolZeroPage()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.SEC)
+                .Write(CPU6502.OPCODE.ROL_ZERO_PAGE)
+                .Write(0x20)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x20, 0x88);
+            _cpu.Reset();
+            Assert.AreEqual(0x11, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRolZeroPageX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x20)
+                .Write(CPU6502.OPCODE.SEC)
+                .Write(CPU6502.OPCODE.ROL_ZERO_PAGE_X)
+                .Write(0x00)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x20, 0x88);
+            _cpu.Reset();
+            Assert.AreEqual(0x11, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRolAbsolute()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.SEC)
+                .Write(CPU6502.OPCODE.ROL_ABSOLUTE)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1020, 0x88, "Data")
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x11, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRolAbsoluteX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.SEC)
+                .Write(CPU6502.OPCODE.ROL_ABSOLUTE_X)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .WriteWord(0x1020, 0x00, "Data")
+                .Write(0x88)
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x11, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRorAccumulatorNoCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x11)
+                .Write(CPU6502.OPCODE.ROR_ACCUMULATOR)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0x08, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRorZeroPageNoCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.ROR_ZERO_PAGE)
+                .Write(0x20)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x20, 0x11);
+            _cpu.Reset();
+            Assert.AreEqual(0x08, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRorZeroPageXNoCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x20)
+                .Write(CPU6502.OPCODE.ROR_ZERO_PAGE_X)
+                .Write(0x00)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x20, 0x11);
+            _cpu.Reset();
+            Assert.AreEqual(0x08, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRorAbsoluteNoCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.ROR_ABSOLUTE)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1020, 0x11, "Data")
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x08, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRorAbsoluteXNoCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.ROR_ABSOLUTE_X)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .WriteWord(0x1020, 0x00, "Data")
+                .Write(0x11)
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x08, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRorAccumulatorCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x11)
+                .Write(CPU6502.OPCODE.SEC)
+                .Write(CPU6502.OPCODE.ROR_ACCUMULATOR)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0x88, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRorZeroPageCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.SEC)
+                .Write(CPU6502.OPCODE.ROR_ZERO_PAGE)
+                .Write(0x20)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x20, 0x11);
+            _cpu.Reset();
+            Assert.AreEqual(0x88, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRorZeroPageXCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x20)
+                .Write(CPU6502.OPCODE.SEC)
+                .Write(CPU6502.OPCODE.ROR_ZERO_PAGE_X)
+                .Write(0x00)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x20, 0x11);
+            _cpu.Reset();
+            Assert.AreEqual(0x88, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRorAbsoluteCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.SEC)
+                .Write(CPU6502.OPCODE.ROR_ABSOLUTE)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1020, 0x11, "Data")
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x88, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRorAbsoluteXCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.SEC)
+                .Write(CPU6502.OPCODE.ROR_ABSOLUTE_X)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .WriteWord(0x1020, 0x00, "Data")
+                .Write(0x11)
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x88, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRolAccumulatorNoCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x88)
+                .Write(CPU6502.OPCODE.ROL_ACCUMULATOR)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0x10, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRolZeroPageNoCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.ROL_ZERO_PAGE)
+                .Write(0x20)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x20, 0x88);
+            _cpu.Reset();
+            Assert.AreEqual(0x10, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRolZeroPageXNoCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x20)
+                .Write(CPU6502.OPCODE.ROL_ZERO_PAGE_X)
+                .Write(0x00)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x20, 0x88);
+            _cpu.Reset();
+            Assert.AreEqual(0x10, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRolAbsoluteNoCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.ROL_ABSOLUTE)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1020, 0x88, "Data")
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x10, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
+        public void CanRolAbsoluteXNoCarry()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.ROL_ABSOLUTE_X)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .WriteWord(0x1020, 0x00, "Data")
+                .Write(0x88)
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x10, _cpu.A);
+            Assert.IsTrue(_cpu.P.C);
+        }
+
+        [Test]
         public void CanDecrementZeroPage()
         {
             mem.Load(PROG_START)

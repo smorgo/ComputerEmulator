@@ -116,6 +116,16 @@ namespace _6502
             PHP = 0x08,
             PLA = 0x68,
             PLP = 0x28,
+            ROL_ACCUMULATOR = 0x2A,
+            ROL_ZERO_PAGE = 0x26,
+            ROL_ZERO_PAGE_X = 0x36,
+            ROL_ABSOLUTE = 0x2E,
+            ROL_ABSOLUTE_X = 0x3E,
+            ROR_ACCUMULATOR = 0x6A,
+            ROR_ZERO_PAGE = 0x66,
+            ROR_ZERO_PAGE_X = 0x76,
+            ROR_ABSOLUTE = 0x6E,
+            ROR_ABSOLUTE_X = 0x7E,
             RTS = 0x60,
             SEC = 0x38,
             SED = 0xF8,
@@ -314,6 +324,16 @@ namespace _6502
             OpCodeTable[(int)OPCODE.PHP] = PushProcessorStatus;
             OpCodeTable[(int)OPCODE.PLA] = PullAccumulator;
             OpCodeTable[(int)OPCODE.PLP] = PullProcessorStatus;
+            OpCodeTable[(int)OPCODE.ROL_ACCUMULATOR] = RolAccumulator;
+            OpCodeTable[(int)OPCODE.ROL_ZERO_PAGE] = RolZeroPage;
+            OpCodeTable[(int)OPCODE.ROL_ZERO_PAGE_X] = RolZeroPageX;
+            OpCodeTable[(int)OPCODE.ROL_ABSOLUTE] = RolAbsolute;
+            OpCodeTable[(int)OPCODE.ROL_ABSOLUTE_X] = RolAbsoluteX;
+            OpCodeTable[(int)OPCODE.ROR_ACCUMULATOR] = RorAccumulator;
+            OpCodeTable[(int)OPCODE.ROR_ZERO_PAGE] = RorZeroPage;
+            OpCodeTable[(int)OPCODE.ROR_ZERO_PAGE_X] = RorZeroPageX;
+            OpCodeTable[(int)OPCODE.ROR_ABSOLUTE] = RorAbsolute;
+            OpCodeTable[(int)OPCODE.ROR_ABSOLUTE_X] = RorAbsoluteX;
             OpCodeTable[(int)OPCODE.RTS] = ReturnFromSubroutine;
             OpCodeTable[(int)OPCODE.SEC] = SetCarryFlag;
             OpCodeTable[(int)OPCODE.SED] = SetDecimalFlag;
@@ -633,10 +653,35 @@ namespace _6502
             LoadAccumulator(value);
             P.C = carry != 0;
         }
+
+        private void Rol(byte value)
+        {
+            var carry = value.Bit(7);
+            value = (byte)(value << 1);
+            if(P.C)
+            {
+                value++;
+            }
+            LoadAccumulator(value);
+            P.C = carry != 0;
+        }
+
         private void Lsr(byte value)
         {
             var carry = value.Bit(0);
             value = (byte)(value >> 1);
+            LoadAccumulator(value);
+            P.C = carry != 0;
+        }
+
+        private void Ror(byte value)
+        {
+            var carry = value.Bit(0);
+            value = (byte)(value >> 1);
+            if(P.C)
+            {
+                value |= 0x80;
+            }
             LoadAccumulator(value);
             P.C = carry != 0;
         }
@@ -1183,6 +1228,54 @@ namespace _6502
         {
             var address = PullWord();
             PC = address;
+        }
+        private void RolAbsoluteX()
+        {
+            Rol(Read(FetchAbsoluteAddressX()));
+        }
+
+        private void RolAbsolute()
+        {
+            Rol(Read(FetchAbsoluteAddress()));
+        }
+
+        private void RolZeroPageX()
+        {
+            Rol(Read(FetchZeroPageAddressX()));
+        }
+
+        private void RolZeroPage()
+        {
+            Rol(Read(FetchZeroPageAddress()));
+        }
+
+        private void RolAccumulator()
+        {
+            Rol(A);
+        }
+        private void RorAbsoluteX()
+        {
+            Ror(Read(FetchAbsoluteAddressX()));
+        }
+
+        private void RorAbsolute()
+        {
+            Ror(Read(FetchAbsoluteAddress()));
+        }
+
+        private void RorZeroPageX()
+        {
+            Ror(Read(FetchZeroPageAddressX()));
+        }
+
+        private void RorZeroPage()
+        {
+            Ror(Read(FetchZeroPageAddress()));
+        }
+
+        private void RorAccumulator()
+        {
+            Ror(A);
         }
         private void SetCarryFlag()
         {
