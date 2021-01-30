@@ -25,6 +25,11 @@ namespace _6502
             }
         }
 
+        public Loader Load(ushort startAddress = 0x0000)
+        {
+            return new Loader(this, startAddress);
+        }
+
         public byte Read(ushort address)
         {
             var device = RedirectionTable[address];

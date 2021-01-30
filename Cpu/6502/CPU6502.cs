@@ -16,6 +16,14 @@ namespace _6502
             ADC_ABSOLUTE_Y = 0x79,
             ADC_INDIRECT_X = 0x61,
             ADC_INDIRECT_Y = 0x71,
+            AND_IMMEDIATE = 0x29,
+            AND_ZERO_PAGE = 0x25,
+            AND_ZERO_PAGE_X = 0x35,
+            AND_ABSOLUTE = 0x2D,
+            AND_ABSOLUTE_X = 0x3D,
+            AND_ABSOLUTE_Y = 0x39,
+            AND_INDIRECT_X = 0x21,
+            AND_INDIRECT_Y = 0x31,
             BCC = 0x90,
             BCS = 0xB0,
             BEQ = 0xF0,
@@ -163,6 +171,14 @@ namespace _6502
             OpCodeTable[(int)OPCODE.ADC_ABSOLUTE_Y] = AddWithCarryAbsoluteY;
             OpCodeTable[(int)OPCODE.ADC_INDIRECT_X] = AddWithCarryIndirectX;
             OpCodeTable[(int)OPCODE.ADC_INDIRECT_Y] = AddWithCarryIndirectY;
+            OpCodeTable[(int)OPCODE.AND_IMMEDIATE] = AndImmediate;
+            OpCodeTable[(int)OPCODE.AND_ZERO_PAGE] = AndZeroPage;
+            OpCodeTable[(int)OPCODE.AND_ZERO_PAGE_X] = AndZeroPageX;
+            OpCodeTable[(int)OPCODE.AND_ABSOLUTE] = AndAbsolute;
+            OpCodeTable[(int)OPCODE.AND_ABSOLUTE_X] = AndAbsoluteX;
+            OpCodeTable[(int)OPCODE.AND_ABSOLUTE_Y] = AndAbsoluteY;
+            OpCodeTable[(int)OPCODE.AND_INDIRECT_X] = AndIndirectX;
+            OpCodeTable[(int)OPCODE.AND_INDIRECT_Y] = AndIndirectY;
             OpCodeTable[(int)OPCODE.BCC] = BranchOnCarryClear;
             OpCodeTable[(int)OPCODE.BCS] = BranchOnCarrySet;
             OpCodeTable[(int)OPCODE.BIT_ZERO_PAGE] = BitTestZeroPage;
@@ -227,6 +243,7 @@ namespace _6502
             OpCodeTable[(int)OPCODE.TXS] = TransferXToStackPointer;
             OpCodeTable[(int)OPCODE.TYA] = TransferYToAccumulator;
         }
+
 
         public void Reset()
         {
@@ -499,6 +516,12 @@ namespace _6502
             }
         }
 
+        private void AndAccumulator(byte value)
+        {
+            var result = (byte)(A & value);
+            LoadAccumulator(result);
+        }
+
         private byte FetchImmediate()
         {
             var value = Fetch();
@@ -548,6 +571,45 @@ namespace _6502
             AddWithCarry(Read(FetchZeroPageAddress()));
         }
 
+        private void AndIndirectY()
+        {
+            AndAccumulator(Read(FetchIndirectIndexedAddressY()));
+        }
+
+        private void AndIndirectX()
+        {
+            AndAccumulator(Read(FetchIndexedIndirectAddressX()));
+        }
+
+        private void AndAbsoluteY()
+        {
+            AndAccumulator(Read(FetchAbsoluteAddressY()));
+        }
+
+        private void AndAbsoluteX()
+        {
+            AndAccumulator(Read(FetchAbsoluteAddressX()));
+        }
+
+        private void AndAbsolute()
+        {
+            AndAccumulator(Read(FetchAbsoluteAddress()));
+        }
+
+        private void AndZeroPageX()
+        {
+            AndAccumulator(Read(FetchZeroPageAddressX()));
+        }
+
+        private void AndZeroPage()
+        {
+            AndAccumulator(Read(FetchZeroPageAddress()));
+        }
+
+        private void AndImmediate()
+        {
+            AndAccumulator(FetchImmediate());
+        }
         private void BitTestAbsolute()
         {
             BitTest(FetchAbsoluteAddress());
