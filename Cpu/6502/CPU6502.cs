@@ -126,7 +126,16 @@ namespace _6502
             ROR_ZERO_PAGE_X = 0x76,
             ROR_ABSOLUTE = 0x6E,
             ROR_ABSOLUTE_X = 0x7E,
+            RTI = 0x40,
             RTS = 0x60,
+            SBC_IMMEDIATE = 0xE9,
+            SBC_ZERO_PAGE = 0xE5,
+            SBC_ZERO_PAGE_X = 0xF5,
+            SBC_ABSOLUTE = 0xED,
+            SBC_ABSOLUTE_X = 0xFD,
+            SBC_ABSOLUTE_Y = 0xF9,
+            SBC_INDIRECT_X = 0xE1,
+            SBC_INDIRECT_Y = 0xF1,
             SEC = 0x38,
             SED = 0xF8,
             SEI = 0x78,
@@ -335,6 +344,14 @@ namespace _6502
             OpCodeTable[(int)OPCODE.ROR_ABSOLUTE] = RorAbsolute;
             OpCodeTable[(int)OPCODE.ROR_ABSOLUTE_X] = RorAbsoluteX;
             OpCodeTable[(int)OPCODE.RTS] = ReturnFromSubroutine;
+            OpCodeTable[(int)OPCODE.SBC_IMMEDIATE] = SubtractWithCarryImmediate;
+            OpCodeTable[(int)OPCODE.SBC_ZERO_PAGE] = SubtractWithCarryZeroPage;
+            OpCodeTable[(int)OPCODE.SBC_ZERO_PAGE_X] = SubtractWithCarryZeroPageX;
+            OpCodeTable[(int)OPCODE.SBC_ABSOLUTE] = SubtractWithCarryAbsolute;
+            OpCodeTable[(int)OPCODE.SBC_ABSOLUTE_X] = SubtractWithCarryAbsoluteX;
+            OpCodeTable[(int)OPCODE.SBC_ABSOLUTE_Y] = SubtractWithCarryAbsoluteY;
+            OpCodeTable[(int)OPCODE.SBC_INDIRECT_X] = SubtractWithCarryIndirectX;
+            OpCodeTable[(int)OPCODE.SBC_INDIRECT_Y] = SubtractWithCarryIndirectY;
             OpCodeTable[(int)OPCODE.SEC] = SetCarryFlag;
             OpCodeTable[(int)OPCODE.SED] = SetDecimalFlag;
             OpCodeTable[(int)OPCODE.SEI] = SetInterruptDisableFlag;
@@ -416,6 +433,30 @@ namespace _6502
             if(P.C)
             {
                 total++;
+            }
+
+            byte result = (byte)(total & 0xff);
+
+            LoadAccumulator(result);
+
+            P.C = (total < -128 || total > 127);
+            var b1 = v1.Bit(7);
+            var b2 = v2.Bit(7);
+            var r = result.Bit(7);
+            
+            P.V = (v1.Bit(7) == v2.Bit(7)) && (v1.Bit(7) != result.Bit(7));
+        }
+
+        private void SubtractWithCarry(byte value)
+        {
+            byte v1 = A;
+            byte v2 = value;
+
+            var total = v1 - v2;
+            
+            if(P.C)
+            {
+                total--;
             }
 
             byte result = (byte)(total & 0xff);
@@ -1342,6 +1383,46 @@ namespace _6502
         private void StoreYZeroPageX()
         {
             Write(FetchZeroPageAddressX(), Y);
+        }
+
+        private void SubtractWithCarryImmediate()
+        {
+            SubtractWithCarry(FetchImmediate());
+        }
+
+        private void SubtractWithCarryIndirectY()
+        {
+            SubtractWithCarry(Read(FetchIndirectIndexedAddressY()));
+        }
+
+        private void SubtractWithCarryIndirectX()
+        {
+            SubtractWithCarry(Read(FetchIndexedIndirectAddressX()));
+        }
+
+        private void SubtractWithCarryAbsoluteY()
+        {
+            SubtractWithCarry(Read(FetchAbsoluteAddressY()));
+        }
+
+        private void SubtractWithCarryAbsoluteX()
+        {
+            SubtractWithCarry(Read(FetchAbsoluteAddressX()));
+        }
+
+        private void SubtractWithCarryAbsolute()
+        {
+            SubtractWithCarry(Read(FetchAbsoluteAddress()));
+        }
+
+        private void SubtractWithCarryZeroPageX()
+        {
+            SubtractWithCarry(Read(FetchZeroPageAddressX()));
+        }
+
+        private void SubtractWithCarryZeroPage()
+        {
+            SubtractWithCarry(Read(FetchZeroPageAddress()));
         }
 
         private void TransferAccumulatorToX()

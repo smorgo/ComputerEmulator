@@ -12,6 +12,10 @@ namespace Tests
         const ushort DISPLAY_BASE_ADDR = 0xF000;
         const ushort PROG_START = 0x8000;
         const ushort DISPLAY_SIZE = 40;
+        const byte NoCarryNoOverflow = 0x00;
+        const byte CarryNoOverflow = 0x01;
+        const byte NoCarryOverflow = 0x40;
+        const byte CarryOverflow = 0x41;
 
         [SetUp]
         public void Setup()
@@ -481,6 +485,57 @@ namespace Tests
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.Y);
         }
+        [Test]
+        public void CanTransferXToAccumulator()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write('H')
+                .Write(CPU6502.OPCODE.TXA);
+            _cpu.Reset();
+            Assert.AreEqual((byte)'H', _cpu.A);
+        }
+        [Test]
+        public void CanTransferYToAccumulator()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write('H')
+                .Write(CPU6502.OPCODE.TYA);
+            _cpu.Reset();
+            Assert.AreEqual((byte)'H', _cpu.A);
+        }
+
+        [Test]
+        public void CanTransferStackPointerToX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x7F)
+                .Write(CPU6502.OPCODE.PHA)
+                .Write(CPU6502.OPCODE.PHA)
+                .Write(CPU6502.OPCODE.TSX)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0xFD, _cpu.X);
+        }
+
+        [Test]
+        public void CanTransferXToStackPointer()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x7F)
+                .Write(CPU6502.OPCODE.PHA)
+                .Write(CPU6502.OPCODE.PHA)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x80)
+                .Write(CPU6502.OPCODE.TXS)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0x80, _cpu.SP);
+        }
+
         [Test]
         public void CanPushAccumulator()
         {
@@ -1360,6 +1415,138 @@ namespace Tests
                 .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
                 .Write(0x01)
                 .Write(CPU6502.OPCODE.ADC_ABSOLUTE_X)
+                .WriteWord(0x1004)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1005, 0x02);
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
+            Assert.AreEqual(0x03, _cpu.A);
+        }
+
+        [Test]
+        public void CanSubtractWithCarryImmediate()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x03)
+                .Write(CPU6502.OPCODE.SBC_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
+            Assert.AreEqual(0x01, _cpu.A);
+        }
+
+        [TestCase(0x50, 0x10, 0x40, NoCarryNoOverflow)]
+        [TestCase(0x50, 0x60, 0xF0, NoCarryOverflow)]
+        [TestCase(0xE0, 0x90, 0x50, NoCarryNoOverflow)]
+        [TestCase(0x9C, 0xE2, 0xBA, NoCarryNoOverflow)]
+        [TestCase(0xE2, 0x9C, 0x46, NoCarryOverflow)]
+        public void InnerSubtractWithCarry(byte v1, byte v2, byte expected, byte statusMask)
+        {
+            Console.WriteLine($"${v1:X2} - ${v2:X2} = ${expected:X2}? {(sbyte)v1}-{(sbyte)v2}={(sbyte)expected}");
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(v1)
+                .Write(CPU6502.OPCODE.SBC_IMMEDIATE)
+                .Write(v2)
+                .Write(CPU6502.OPCODE.BRK);
+
+            _cpu.Reset();
+
+            Assert.AreEqual(expected, _cpu.A);
+            Assert.AreEqual(statusMask, _cpu.P.AsByte() & statusMask);
+        }
+
+        [TestCase(300,200,100)]
+        [TestCase(1,1,0)]
+        [TestCase(2,65535,3)]
+        public void CanSubtractMultipleBytes(int v1, int v2, int expectedResult)
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.CLC)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x00)
+                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(0x01)
+                .Write(CPU6502.OPCODE.LDA_ABSOLUTE_X)
+                .Ref("V1")
+                .Write(CPU6502.OPCODE.SBC_ABSOLUTE_X)
+                .Ref("V2")
+                .Write(CPU6502.OPCODE.STA_ABSOLUTE_X)
+                .Ref("Result")
+                .Write(CPU6502.OPCODE.INX)
+                .Write(CPU6502.OPCODE.DEY)
+                .Write(CPU6502.OPCODE.BPL)
+                .Write(-13)
+                .Write(CPU6502.OPCODE.BRK)
+                .WriteWord(0x9000, (ushort)v1, "V1" )
+                .WriteWord((ushort)v2, "V2")
+                .WriteWord(0x0000, "Result")
+                .Fixup();
+            _cpu.Reset();
+
+            var result = mem.ReadWord(0x9004);
+
+            Assert.AreEqual(expectedResult, result);
+        }
+        [Test]
+        public void CanSubtractWithCarryZeroPage()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x05)
+                .Write(CPU6502.OPCODE.SBC_ZERO_PAGE)
+                .Write(0x01)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x01, 0x02);
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
+            Assert.AreEqual(0x03, _cpu.A);
+        }
+
+        [Test]
+        public void CanSubtractWithCarryZeroPageX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x05)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.SBC_ZERO_PAGE_X)
+                .Write(0x03)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x05, 0x02);
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
+            Assert.AreEqual(0x03, _cpu.A);
+        }
+
+        [Test]
+        public void CanSubtractWithCarryAbsolute()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x05)
+                .Write(CPU6502.OPCODE.SBC_ABSOLUTE)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1005, 0x02, "Data")
+                .Fixup();
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
+            Assert.AreEqual(0x03, _cpu.A);
+        }
+
+        [Test]
+        public void CanSubtractWithCarryAbsoluteX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0x05)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x01)
+                .Write(CPU6502.OPCODE.SBC_ABSOLUTE_X)
                 .WriteWord(0x1004)
                 .Write(CPU6502.OPCODE.BRK)
                 .Write(0x1005, 0x02);
