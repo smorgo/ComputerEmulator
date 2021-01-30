@@ -58,6 +58,12 @@ namespace _6502
             CPY_IMMEDIATE = 0xC0,
             CPY_ZERO_PAGE = 0xC4,
             CPY_ABSOLUTE = 0xCC,
+            DEC_ZERO_PAGE = 0xC6,
+            DEC_ZERO_PAGE_X = 0xD6,
+            DEC_ABSOLUTE = 0xCE,
+            DEC_ABSOLUTE_X = 0xDE,
+            DEX = 0xCA,
+            DEY = 0x88,
             JMP_ABSOLUTE = 0x4C,
             JMP_INDIRECT = 0x6C,
             JSR = 0x20,
@@ -223,6 +229,12 @@ namespace _6502
             OpCodeTable[(int)OPCODE.CPY_IMMEDIATE] = CompareYImmediate;
             OpCodeTable[(int)OPCODE.CPY_ZERO_PAGE] = CompareYZeroPage;
             OpCodeTable[(int)OPCODE.CPY_ABSOLUTE] = CompareYAbsolute;
+            OpCodeTable[(int)OPCODE.DEC_ZERO_PAGE] = DecrementZeroPage;
+            OpCodeTable[(int)OPCODE.DEC_ZERO_PAGE_X] = DecrementZeroPageX;
+            OpCodeTable[(int)OPCODE.DEC_ABSOLUTE] = DecrementAbsolute;
+            OpCodeTable[(int)OPCODE.DEC_ABSOLUTE_X] = DecrementAbsoluteX;
+            OpCodeTable[(int)OPCODE.DEX] = DecrementX;
+            OpCodeTable[(int)OPCODE.DEY] = DecrementY;
             OpCodeTable[(int)OPCODE.JMP_ABSOLUTE] = JumpAbsolute;
             OpCodeTable[(int)OPCODE.JMP_INDIRECT] = JumpIndirect;
             OpCodeTable[(int)OPCODE.JSR] = JumpToSubroutine;
@@ -273,7 +285,7 @@ namespace _6502
             OpCodeTable[(int)OPCODE.TYA] = TransferYToAccumulator;
         }
 
- 
+        
         public void Reset()
         {
             Log(DebugLevel.Information, "\r\n6502 CPU Emulator");
@@ -559,6 +571,15 @@ namespace _6502
             P.C = carry != 0;
         }
 
+        private void DecrementMemory(ushort address)
+        {
+            var value = Read(address);
+            value--;
+            Write(address, value);
+            P.Z = value == 0;
+            P.N = value.Bit(7) != 0;
+        }
+
         private byte FetchImmediate()
         {
             var value = Fetch();
@@ -798,7 +819,37 @@ namespace _6502
         {
             Compare(FetchImmediate(),Y);
         }
-       private void JumpAbsolute()
+        private void DecrementZeroPage()
+        {
+            DecrementMemory(FetchZeroPageAddress());
+        }
+
+        private void DecrementZeroPageX()
+        {
+            DecrementMemory(FetchZeroPageAddressX());
+        }
+
+        private void DecrementAbsolute()
+        {
+            DecrementMemory(FetchAbsoluteAddress());
+        }
+
+        private void DecrementAbsoluteX()
+        {
+            DecrementMemory(FetchAbsoluteAddressX());
+        }
+
+        private void DecrementX()
+        {
+            LoadX((byte)(X-1));
+        }
+
+        private void DecrementY()
+        {
+            LoadY((byte)(Y-1));
+        }
+
+        private void JumpAbsolute()
         {
             PC = FetchAbsoluteAddress();
         }

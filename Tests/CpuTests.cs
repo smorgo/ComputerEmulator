@@ -1502,6 +1502,109 @@ namespace Tests
             Assert.IsTrue(_cpu.P.C);
         }
 
+        [Test]
+        public void CanDecrementZeroPage()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.DEC_ZERO_PAGE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x10, 0x80);
+            _cpu.Reset();
+            Assert.AreEqual(0x7F, _cpu.A);
+        }
+
+        [Test]
+        public void CanDecrementZeroPageFromZero()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.DEC_ZERO_PAGE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x10, 0x00);
+            _cpu.Reset();
+            Assert.AreEqual(0xFF, _cpu.A);
+            Assert.IsTrue(_cpu.P.N);
+        }
+
+        [Test]
+        public void CanDecrementZeroPageX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.DEC_ZERO_PAGE_X)
+                .Write(0x00)
+                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE)
+                .Write(0x10)
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x10, 0x80);
+            _cpu.Reset();
+            Assert.AreEqual(0x7F, _cpu.A);
+        }
+
+        [Test]
+        public void CanDecrementAbsolute()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.DEC_ABSOLUTE)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.LDA_ABSOLUTE)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .Write(0x1010, 0x80, "Data")
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x7F, _cpu.A);
+        }
+
+        [Test]
+        public void CanDecrementAbsoluteX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x02)
+                .Write(CPU6502.OPCODE.DEC_ABSOLUTE_X)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.LDA_ABSOLUTE_X)
+                .Ref("Data")
+                .Write(CPU6502.OPCODE.BRK)
+                .WriteWord(0x1010, 0x5555, "Data")
+                .Write(0x80)
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual(0x7F, _cpu.A);
+        }
+
+        [Test]
+        public void CanDecrementX()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(0x80)
+                .Write(CPU6502.OPCODE.DEX)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0x7F, _cpu.X);
+            Assert.IsFalse(_cpu.P.N);
+        }
+
+        [Test]
+        public void CanDecrementY()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(0x80)
+                .Write(CPU6502.OPCODE.DEY)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0x7F, _cpu.Y);
+            Assert.IsFalse(_cpu.P.N);
+        }
 
     }
 }
