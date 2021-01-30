@@ -52,6 +52,12 @@ namespace _6502
             CMP_ABSOLUTE_Y = 0xD9,
             CMP_INDIRECT_X = 0xC1,
             CMP_INDIRECT_Y = 0xD1,
+            CPX_IMMEDIATE = 0xE0,
+            CPX_ZERO_PAGE = 0xE4,
+            CPX_ABSOLUTE = 0xEC,
+            CPY_IMMEDIATE = 0xC0,
+            CPY_ZERO_PAGE = 0xC4,
+            CPY_ABSOLUTE = 0xCC,
             JMP_ABSOLUTE = 0x4C,
             JMP_INDIRECT = 0x6C,
             JSR = 0x20,
@@ -211,6 +217,12 @@ namespace _6502
             OpCodeTable[(int)OPCODE.CMP_ABSOLUTE_X] = CompareAccumulatorAbsoluteX;
             OpCodeTable[(int)OPCODE.CMP_INDIRECT_X] = CompareAccumulatorIndirectX;
             OpCodeTable[(int)OPCODE.CMP_INDIRECT_Y] = CompareAccumulatorIndirectY;
+            OpCodeTable[(int)OPCODE.CPX_IMMEDIATE] = CompareXImmediate;
+            OpCodeTable[(int)OPCODE.CPX_ZERO_PAGE] = CompareXZeroPage;
+            OpCodeTable[(int)OPCODE.CPX_ABSOLUTE] = CompareXAbsolute;
+            OpCodeTable[(int)OPCODE.CPY_IMMEDIATE] = CompareYImmediate;
+            OpCodeTable[(int)OPCODE.CPY_ZERO_PAGE] = CompareYZeroPage;
+            OpCodeTable[(int)OPCODE.CPY_ABSOLUTE] = CompareYAbsolute;
             OpCodeTable[(int)OPCODE.JMP_ABSOLUTE] = JumpAbsolute;
             OpCodeTable[(int)OPCODE.JMP_INDIRECT] = JumpIndirect;
             OpCodeTable[(int)OPCODE.JSR] = JumpToSubroutine;
@@ -261,8 +273,7 @@ namespace _6502
             OpCodeTable[(int)OPCODE.TYA] = TransferYToAccumulator;
         }
 
-        
-
+ 
         public void Reset()
         {
             Log(DebugLevel.Information, "\r\n6502 CPU Emulator");
@@ -758,7 +769,36 @@ namespace _6502
         {
             CompareMemory(FetchIndirectIndexedAddressY(), A);
         }
-        private void JumpAbsolute()
+        private void CompareXAbsolute()
+        {
+            CompareMemory(FetchAbsoluteAddress(),X);
+        }
+
+        private void CompareXZeroPage()
+        {
+            CompareMemory(FetchZeroPageAddress(),X);
+        }
+
+        private void CompareXImmediate()
+        {
+            Compare(FetchImmediate(),X);
+        }
+
+        private void CompareYAbsolute()
+        {
+            CompareMemory(FetchAbsoluteAddress(),Y);
+        }
+
+        private void CompareYZeroPage()
+        {
+            CompareMemory(FetchZeroPageAddress(),Y);
+        }
+
+        private void CompareYImmediate()
+        {
+            Compare(FetchImmediate(),Y);
+        }
+       private void JumpAbsolute()
         {
             PC = FetchAbsoluteAddress();
         }
