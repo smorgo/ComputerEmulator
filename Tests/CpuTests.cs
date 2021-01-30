@@ -519,19 +519,19 @@ namespace Tests
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.A);
         }
-        // [Test]
-        // public void CanPullProcessorStatus()
-        // {
-        //     _map.Write(0x8000, (byte)CPU6502.OPCODE.LDA_IMMEDIATE);
-        //     _map.Write(0x8001, 0x02);
-        //     _map.Write(0x8002, (byte)CPU6502.OPCODE.PHA);
-        //     _map.Write(0x8003, (byte)CPU6502.OPCODE.PLP);
-        //     // Need logic to act of the processor status - not yet
-        //     _map.Write(0x8004, 0x00);
-        //     _map.Write(0x8005, (byte)CPU6502.OPCODE.PLA);
-        //     _cpu.Reset();
-        //     Assert.AreEqual((byte)'H', _cpu.A);
-        // }
+
+        [Test]
+        public void CanPullProcessorStatus()
+        {
+            mem.Load(PROG_START)
+                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(0xFF)
+                .Write(CPU6502.OPCODE.PHA)
+                .Write(CPU6502.OPCODE.PLP)
+                .Write(CPU6502.OPCODE.BRK);
+            _cpu.Reset();
+            Assert.AreEqual(0xFF, _cpu.P.AsByte());
+        }
         
         [Test]
         public void CanJumpAbsolute()
