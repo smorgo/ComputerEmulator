@@ -24,6 +24,11 @@ namespace _6502
             AND_ABSOLUTE_Y = 0x39,
             AND_INDIRECT_X = 0x21,
             AND_INDIRECT_Y = 0x31,
+            ASL_ACCUMULATOR = 0x0A,
+            ASL_ZERO_PAGE = 0x06,
+            ASL_ZERO_PAGE_X = 0x16,
+            ASL_ABSOLUTE = 0x0E,
+            ASL_ABSOLUTE_X = 0x1E,
             BCC = 0x90,
             BCS = 0xB0,
             BEQ = 0xF0,
@@ -179,6 +184,11 @@ namespace _6502
             OpCodeTable[(int)OPCODE.AND_ABSOLUTE_Y] = AndAbsoluteY;
             OpCodeTable[(int)OPCODE.AND_INDIRECT_X] = AndIndirectX;
             OpCodeTable[(int)OPCODE.AND_INDIRECT_Y] = AndIndirectY;
+            OpCodeTable[(int)OPCODE.ASL_ACCUMULATOR] = AslAccumulator;
+            OpCodeTable[(int)OPCODE.ASL_ZERO_PAGE] = AslZeroPage;
+            OpCodeTable[(int)OPCODE.ASL_ZERO_PAGE_X] = AslZeroPageX;
+            OpCodeTable[(int)OPCODE.ASL_ABSOLUTE] = AslAbsolute;
+            OpCodeTable[(int)OPCODE.ASL_ABSOLUTE_X] = AslAbsoluteX;
             OpCodeTable[(int)OPCODE.BCC] = BranchOnCarryClear;
             OpCodeTable[(int)OPCODE.BCS] = BranchOnCarrySet;
             OpCodeTable[(int)OPCODE.BIT_ZERO_PAGE] = BitTestZeroPage;
@@ -522,6 +532,14 @@ namespace _6502
             LoadAccumulator(result);
         }
 
+        private void Asl(byte value)
+        {
+            var carry = value.Bit(7);
+            value = (byte)(value << 1);
+            LoadAccumulator(value);
+            P.C = carry != 0;
+        }
+
         private byte FetchImmediate()
         {
             var value = Fetch();
@@ -609,6 +627,30 @@ namespace _6502
         private void AndImmediate()
         {
             AndAccumulator(FetchImmediate());
+        }
+        private void AslAbsoluteX()
+        {
+            Asl(Read(FetchAbsoluteAddressX()));
+        }
+
+        private void AslAbsolute()
+        {
+            Asl(Read(FetchAbsoluteAddress()));
+        }
+
+        private void AslZeroPageX()
+        {
+            Asl(Read(FetchZeroPageAddressX()));
+        }
+
+        private void AslZeroPage()
+        {
+            Asl(Read(FetchZeroPageAddress()));
+        }
+
+        private void AslAccumulator()
+        {
+            Asl(A);
         }
         private void BitTestAbsolute()
         {
