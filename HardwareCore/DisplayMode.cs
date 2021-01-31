@@ -1,3 +1,5 @@
+using System;
+
 namespace HardwareCore
 {
     public class DisplayMode
@@ -13,6 +15,21 @@ namespace HardwareCore
         public int ColourDepth {get; private set;}
         public int Width {get; private set;}
         public int Height {get; private set;}
+        public byte BytesPerCharacter
+        {
+            get
+            {
+                if( Type == RenderType.Text )
+                {
+                    return 1;
+                }
+
+                // Assume character is 8x8 pixels
+                return (byte)(Math.Pow(2, ColourDepth - 1) * 8);
+            }
+        }
+        
+        public ushort BytesPerRow => (ushort)(Width * BytesPerCharacter);
 
         public DisplayMode(byte mode, RenderType type, int colourDepth, int width, int height)
         {

@@ -2578,10 +2578,13 @@ namespace Tests
         }
 
         [Test]
-        public void CanFillScreen()
+        public void CanDrawColumnAndRowHeadersOnScreen()
         {
+            Assert.IsTrue(_display.Mode.Type == DisplayMode.RenderType.Text);
+
             var w = _display.Mode.Width;
             var h = _display.Mode.Height;
+            var bpr = _display.Mode.BytesPerRow;
 
             mem.Load(PROG_START)
                 // Write column header
@@ -2613,13 +2616,13 @@ namespace Tests
 
                 .Write(OPCODE.CLC, "IncrementRowAddress")
                 .Write(OPCODE.LDA_IMMEDIATE)
-                .Write(w)
+                .Write(bpr.Lsb())
                 .Write(OPCODE.ADC_ZERO_PAGE)
                 .ZeroPageRef("DisplayVector")
                 .Write(OPCODE.STA_ZERO_PAGE)
                 .ZeroPageRef("DisplayVector")
                 .Write(OPCODE.LDA_IMMEDIATE)
-                .Write(0)
+                .Write(bpr.Msb())
                 .Write(OPCODE.ADC_ZERO_PAGE)
                 .ZeroPageRef("DisplayVector",1)
                 .Write(OPCODE.STA_ZERO_PAGE)
