@@ -1,12 +1,24 @@
 using System;
 using System.Collections.Generic;
 
-namespace _6502
+namespace HardwareCore
 {
     public class Loader
     {
+        public class ReferenceDescriptor
+        {
+            public string Label {get; private set;}
+            public bool Relative {get; private set;}
+
+            public ReferenceDescriptor(string label, bool relative = false)
+            {
+                Label = label;
+                Relative = relative;
+            }
+        }
+
         private Dictionary<string, ushort> _labels;
-        private Dictionary<ushort, string> _labelReferences;
+        private Dictionary<ushort, ReferenceDescriptor> _labelReferences;
         public ushort Cursor {get; private set;}
         private AddressMap _addressMap;
 
@@ -15,7 +27,7 @@ namespace _6502
             _addressMap = addressMap;
             Cursor = cursor;
             _labels = new Dictionary<string, ushort>();
-            _labelReferences = new Dictionary<ushort, string>();
+            _labelReferences = new Dictionary<ushort, ReferenceDescriptor>();
         }
 
         public Loader Write(ushort address, byte value, string label = null)
@@ -31,12 +43,12 @@ namespace _6502
             return Write(Cursor, value, label);
         }
 
-        public Loader Write(ushort address, CPU6502.OPCODE opcode, string label = null)
+        public Loader Write(ushort address, OPCODE opcode, string label = null)
         {
             return Write(address, (byte)opcode, label);
         }
         
-        public Loader Write(CPU6502.OPCODE opcode, string label = null)
+        public Loader Write(OPCODE opcode, string label = null)
         {
             return Write((byte)opcode, label);
         }
@@ -63,6 +75,21 @@ namespace _6502
             return WriteWord(Cursor, value, label);
         }
 
+        public Loader WriteString(ushort address, string content, string label = null)
+        {
+            AddLabel(label, address);
+            foreach(var ch in content)
+            {
+                Write((byte)ch);
+            }
+            return this;
+        }
+
+        public Loader WriteString(string content, string label = null)
+        {
+            return WriteString(Cursor, content, label);
+        }
+
         public Loader RelativeAddress(int offset, string label = null)
         {
             AddLabel(label, Cursor);
@@ -79,14 +106,24 @@ namespace _6502
 
         public Loader Ref(string label)
         {
-            _labelReferences.Add(Cursor, label);
+            _labelReferences.Add(Cursor, new ReferenceDescriptor(label));
             return WriteWord(0xffff);
         }
 
         public Loader Ref(ushort address, string label)
         {
-            _labelReferences.Add(address, label);
+            _labelReferences.Add(address, new ReferenceDescriptor(label));
             return WriteWord(address, 0xffff);
+        }
+
+        public Loader RelativeRef(string label)
+        {
+            return RelativeRef(Cursor, label);
+        }
+        public Loader RelativeRef(ushort address, string label)
+        {
+            _labelReferences.Add(address, new ReferenceDescriptor(label, true));
+            return Write(address, 0xff);
         }
 
         private void AddLabel(string label, ushort address)
@@ -113,9 +150,19 @@ namespace _6502
         {
             foreach(var reference in _labelReferences)
             {
-                if(_labels.ContainsKey(reference.Value))
+                if(_labels.ContainsKey(reference.Value.Label))
                 {
-                    _addressMap.WriteWord(reference.Key, _labels[reference.Value]);
+                    var labelAddress = _labels[reference.Value.Label];
+
+                    if(reference.Value.Relative)
+                    {
+                        short relAddress = (short)(labelAddress - reference.Key -1);
+                        _addressMap.Write(reference.Key, (byte)relAddress);
+                    }
+                    else
+                    {
+                        _addressMap.WriteWord(reference.Key, _labels[reference.Value.Label] );
+                    }
                 }
                 else
                 {

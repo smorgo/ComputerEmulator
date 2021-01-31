@@ -18,6 +18,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Cpu\6502\6502.csproj" />
+    <ProjectReference Include="..\HardwareCore\HardwareCore.csproj" />
+    <ProjectReference Include="..\RemoteDisplayConnector\RemoteDisplayConnector.csproj" />
   </ItemGroup>
 
 </Project>

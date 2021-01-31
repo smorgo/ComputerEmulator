@@ -1,0 +1,46 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+</div>
+@* <div class="container">
+    <div class="row">&nbsp;</div>
+    <div class="row">
+        <div class="col-2">User</div>
+        <div class="col-4"><input type="text" id="userInput" /></div>
+    </div>
+    <div class="row">
+        <div class="col-2">Message</div>
+        <div class="col-4"><input type="text" id="messageInput" /></div>
+    </div>
+    <div class="row">&nbsp;</div>
+    <div class="row">
+        <div class="col-6">
+            <input type="button" id="sendButton" value="Send Message" />
+        </div>
+    </div>
+</div> *@
+<div class="row">
+    <div class="col-12">
+        <hr />
+    </div>
+</div>
+<div>
+    <svg id="screen" viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg" style="background-color:darkgreen">
+        <style>
+            text { 
+                font: 16px 'Courier New', Courier, monospace;
+                fill: white;
+            }
+        </style>
+    </svg>
+</div>
+<div class="row">
+    <div class="col-6">
+        <ul id="messagesList"></ul>
+    </div>
+</div>
+<script src="~/js/signalr/dist/browser/signalr.js"></script>
+<script src="~/js/displayhub.js"></script>

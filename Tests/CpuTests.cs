@@ -1,6 +1,9 @@
 using NUnit.Framework;
 using _6502;
+using HardwareCore;
 using System;
+using RemoteDisplayConnector;
+using System.Threading.Tasks;
 
 namespace Tests
 {
@@ -20,12 +23,13 @@ namespace Tests
         long _interruptTickInterval;
 
         [SetUp]
-        public void Setup()
+        public async Task Setup()
         {
             mem = new AddressMap();
             mem.Install(new Ram(0x0000, 0x10000));
             _display = new MemoryMappedDisplay(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
+            await _display.Initialise();
             _display.Clear();
             _cpu = new CPU6502(mem);
             _cpu.DebugLevel = DebugLevel.Verbose;
@@ -44,9 +48,9 @@ namespace Tests
         {
             mem.Load(PROG_START)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(1, _cpu.EmulationErrorsCount);
             Assert.AreEqual(0x02, _cpu.A);
@@ -56,7 +60,7 @@ namespace Tests
         public void CanLoadAccumulatorImmediate()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x34);
             _cpu.Reset();
             Assert.AreEqual(0x34, _cpu.A);
@@ -66,7 +70,7 @@ namespace Tests
         public void CanLoadAccumulatorZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE)
+                .Write(OPCODE.LDA_ZERO_PAGE)
                 .Write(0x34)
                 .Write(0x34, 0x56);
             _cpu.Reset();
@@ -77,9 +81,9 @@ namespace Tests
         public void CanLoadAccumulatorZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x1)
-                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE_X)
+                .Write(OPCODE.LDA_ZERO_PAGE_X)
                 .Write(0x34)
                 .Write(0x35, 0x56);
             _cpu.Reset();
@@ -90,7 +94,7 @@ namespace Tests
         public void CanLoadAccumulatorAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_ABSOLUTE)
+                .Write(OPCODE.LDA_ABSOLUTE)
                 .WriteWord(0x2021)
                 .Write(0x2021, 0x56);
             _cpu.Reset();
@@ -101,9 +105,9 @@ namespace Tests
         public void CanLoadAccumulatorAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x1)
-                .Write(CPU6502.OPCODE.LDA_ABSOLUTE_X)
+                .Write(OPCODE.LDA_ABSOLUTE_X)
                 .WriteWord(0x2021)
                 .Write(0x2022, 0x56);
             _cpu.Reset();
@@ -114,9 +118,9 @@ namespace Tests
         public void CanLoadAccumulatorIndirectX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x2)
-                .Write(CPU6502.OPCODE.LDA_INDIRECT_X)
+                .Write(OPCODE.LDA_INDIRECT_X)
                 .Write(0x80)
                 .WriteWord(0x82, 0x2021)
                 .Write(0x2021, 0x56);
@@ -128,9 +132,9 @@ namespace Tests
         public void CanLoadAccumulatorIndirectY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x2)
-                .Write(CPU6502.OPCODE.LDA_INDIRECT_Y)
+                .Write(OPCODE.LDA_INDIRECT_Y)
                 .Write(0x80)
                 .WriteWord(0x80, 0x2021)
                 .Write(0x2023, 0x56);
@@ -142,7 +146,7 @@ namespace Tests
         public void CanLoadXImmediate()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x34);
             _cpu.Reset();
             Assert.AreEqual(0x34, _cpu.X);
@@ -152,7 +156,7 @@ namespace Tests
         public void CanLoadXZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_ZERO_PAGE)
+                .Write(OPCODE.LDX_ZERO_PAGE)
                 .Write(0x34)
                 .Write(0x34, 0x56);
             _cpu.Reset();
@@ -163,9 +167,9 @@ namespace Tests
         public void CanLoadXZeroPageY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x1)
-                .Write(CPU6502.OPCODE.LDX_ZERO_PAGE_Y)
+                .Write(OPCODE.LDX_ZERO_PAGE_Y)
                 .Write(0x34)
                 .Write(0x35, 0x56);
             _cpu.Reset();
@@ -176,7 +180,7 @@ namespace Tests
         public void CanLoadXAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_ABSOLUTE)
+                .Write(OPCODE.LDX_ABSOLUTE)
                 .WriteWord(0x2021)
                 .Write(0x2021, 0x56);
             _cpu.Reset();
@@ -187,9 +191,9 @@ namespace Tests
         public void CanLoadXAbsoluteY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x1)
-                .Write(CPU6502.OPCODE.LDX_ABSOLUTE_Y)
+                .Write(OPCODE.LDX_ABSOLUTE_Y)
                 .WriteWord(0x2021)
                 .Write(0x2022, 0x56);
             _cpu.Reset();
@@ -200,7 +204,7 @@ namespace Tests
         public void CanLoadYImmediate()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x34);
             _cpu.Reset();
             Assert.AreEqual(0x34, _cpu.Y);
@@ -210,7 +214,7 @@ namespace Tests
         public void CanLoadYZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_ZERO_PAGE)
+                .Write(OPCODE.LDY_ZERO_PAGE)
                 .Write(0x34)
                 .Write(0x34, 0x56);
             _cpu.Reset();
@@ -221,9 +225,9 @@ namespace Tests
         public void CanLoadYZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x1)
-                .Write(CPU6502.OPCODE.LDY_ZERO_PAGE_X)
+                .Write(OPCODE.LDY_ZERO_PAGE_X)
                 .Write(0x34)
                 .Write(0x35, 0x56);
             _cpu.Reset();
@@ -234,7 +238,7 @@ namespace Tests
         public void CanLoadYAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_ABSOLUTE)
+                .Write(OPCODE.LDY_ABSOLUTE)
                 .WriteWord(0x2021)
                 .Write(0x2021, 0x56);
             _cpu.Reset();
@@ -245,9 +249,9 @@ namespace Tests
         public void CanLoadYAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x1)
-                .Write(CPU6502.OPCODE.LDY_ABSOLUTE_X)
+                .Write(OPCODE.LDY_ABSOLUTE_X)
                 .WriteWord(0x2021)
                 .Write(0x2022, 0x56);
             _cpu.Reset();
@@ -258,9 +262,9 @@ namespace Tests
         public void CanNoOperation()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.NOP)
-                .Write(CPU6502.OPCODE.NOP)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.NOP)
+                .Write(OPCODE.NOP)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(PROG_START + 3, _cpu.PC);
         }
@@ -269,9 +273,9 @@ namespace Tests
         public void CanBreak()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.NOP)
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.NOP);
+                .Write(OPCODE.NOP)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.NOP);
             _cpu.Reset();
             Assert.AreEqual(PROG_START + 2, _cpu.PC); 
         }
@@ -280,11 +284,11 @@ namespace Tests
         public void CanStoreAccumulatorZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.STA_ZERO_PAGE)
+                .Write(OPCODE.STA_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.LDY_ZERO_PAGE)
+                .Write(OPCODE.LDY_ZERO_PAGE)
                 .Write(0x10);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.Y);
@@ -294,13 +298,13 @@ namespace Tests
         public void CanStoreAccumulatorZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.STA_ZERO_PAGE_X)
+                .Write(OPCODE.STA_ZERO_PAGE_X)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.LDY_ZERO_PAGE)
+                .Write(OPCODE.LDY_ZERO_PAGE)
                 .Write(0x12);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.Y);
@@ -310,11 +314,11 @@ namespace Tests
         public void CanStoreAccumulatorAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.STA_ABSOLUTE)
+                .Write(OPCODE.STA_ABSOLUTE)
                 .WriteWord(DISPLAY_BASE_ADDR)
-                .Write(CPU6502.OPCODE.LDY_ABSOLUTE)
+                .Write(OPCODE.LDY_ABSOLUTE)
                 .WriteWord(DISPLAY_BASE_ADDR);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.Y);
@@ -324,13 +328,13 @@ namespace Tests
         public void CanStoreAccumulatorAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(1)
-                .Write(CPU6502.OPCODE.STA_ABSOLUTE_X)
+                .Write(OPCODE.STA_ABSOLUTE_X)
                 .WriteWord(DISPLAY_BASE_ADDR)
-                .Write(CPU6502.OPCODE.LDY_ABSOLUTE)
+                .Write(OPCODE.LDY_ABSOLUTE)
                 .WriteWord(DISPLAY_BASE_ADDR+1);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.Y);
@@ -339,13 +343,13 @@ namespace Tests
         public void CanStoreAccumulatorAbsoluteY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(1)
-                .Write(CPU6502.OPCODE.STA_ABSOLUTE_Y)
+                .Write(OPCODE.STA_ABSOLUTE_Y)
                 .WriteWord(DISPLAY_BASE_ADDR)
-                .Write(CPU6502.OPCODE.LDX_ABSOLUTE)
+                .Write(OPCODE.LDX_ABSOLUTE)
                 .WriteWord(DISPLAY_BASE_ADDR+1);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.X);
@@ -354,13 +358,13 @@ namespace Tests
         public void CanStoreAccumulatorIndirectX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(2)
-                .Write(CPU6502.OPCODE.STA_INDIRECT_X)
+                .Write(OPCODE.STA_INDIRECT_X)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.LDY_ABSOLUTE)
+                .Write(OPCODE.LDY_ABSOLUTE)
                 .WriteWord(DISPLAY_BASE_ADDR)
                 .WriteWord(0x2, DISPLAY_BASE_ADDR);
             _cpu.Reset();
@@ -370,13 +374,13 @@ namespace Tests
         public void CanStoreAccumulatorIndirectY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(2)
-                .Write(CPU6502.OPCODE.STA_INDIRECT_Y)
+                .Write(OPCODE.STA_INDIRECT_Y)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.LDX_ABSOLUTE)
+                .Write(OPCODE.LDX_ABSOLUTE)
                 .WriteWord(DISPLAY_BASE_ADDR + 2)
                 .WriteWord(0x00, DISPLAY_BASE_ADDR);
             _cpu.Reset();
@@ -386,11 +390,11 @@ namespace Tests
         public void CanStoreXZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.STX_ZERO_PAGE)
+                .Write(OPCODE.STX_ZERO_PAGE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE)
+                .Write(OPCODE.LDA_ZERO_PAGE)
                 .Write(0x20);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.A);
@@ -399,13 +403,13 @@ namespace Tests
         public void CanStoreXZeroPageY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.STX_ZERO_PAGE_Y)
+                .Write(OPCODE.STX_ZERO_PAGE_Y)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE)
+                .Write(OPCODE.LDA_ZERO_PAGE)
                 .Write(0x20);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.A);
@@ -415,11 +419,11 @@ namespace Tests
         public void CanStoreXAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.STX_ABSOLUTE)
+                .Write(OPCODE.STX_ABSOLUTE)
                 .WriteWord(DISPLAY_BASE_ADDR)
-                .Write(CPU6502.OPCODE.LDA_ABSOLUTE)
+                .Write(OPCODE.LDA_ABSOLUTE)
                 .WriteWord(DISPLAY_BASE_ADDR);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.A);
@@ -428,11 +432,11 @@ namespace Tests
         public void CanStoreYZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.STY_ZERO_PAGE)
+                .Write(OPCODE.STY_ZERO_PAGE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE)
+                .Write(OPCODE.LDA_ZERO_PAGE)
                 .Write(0x20);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.A);
@@ -441,13 +445,13 @@ namespace Tests
         public void CanStoreYZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.STY_ZERO_PAGE_X)
+                .Write(OPCODE.STY_ZERO_PAGE_X)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE)
+                .Write(OPCODE.LDA_ZERO_PAGE)
                 .Write(0x20);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.A);
@@ -457,11 +461,11 @@ namespace Tests
         public void CanStoreYAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.STY_ABSOLUTE)
+                .Write(OPCODE.STY_ABSOLUTE)
                 .WriteWord(DISPLAY_BASE_ADDR)
-                .Write(CPU6502.OPCODE.LDA_ABSOLUTE)
+                .Write(OPCODE.LDA_ABSOLUTE)
                 .WriteWord(DISPLAY_BASE_ADDR);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.A);
@@ -471,9 +475,9 @@ namespace Tests
         public void CanTransferAccumulatorToX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.TAX);
+                .Write(OPCODE.TAX);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.X);
         }
@@ -481,9 +485,9 @@ namespace Tests
         public void CanTransferAccumulatorToY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.TAY);
+                .Write(OPCODE.TAY);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.Y);
         }
@@ -491,9 +495,9 @@ namespace Tests
         public void CanTransferXToAccumulator()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.TXA);
+                .Write(OPCODE.TXA);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.A);
         }
@@ -501,9 +505,9 @@ namespace Tests
         public void CanTransferYToAccumulator()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.TYA);
+                .Write(OPCODE.TYA);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.A);
         }
@@ -512,12 +516,12 @@ namespace Tests
         public void CanTransferStackPointerToX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x7F)
-                .Write(CPU6502.OPCODE.PHA)
-                .Write(CPU6502.OPCODE.PHA)
-                .Write(CPU6502.OPCODE.TSX)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.PHA)
+                .Write(OPCODE.PHA)
+                .Write(OPCODE.TSX)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0xFD, _cpu.X);
         }
@@ -526,14 +530,14 @@ namespace Tests
         public void CanTransferXToStackPointer()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x7F)
-                .Write(CPU6502.OPCODE.PHA)
-                .Write(CPU6502.OPCODE.PHA)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.PHA)
+                .Write(OPCODE.PHA)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x80)
-                .Write(CPU6502.OPCODE.TXS)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.TXS)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x80, _cpu.SP);
         }
@@ -542,10 +546,10 @@ namespace Tests
         public void CanPushAccumulator()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.PHA)
-                .Write(CPU6502.OPCODE.LDY_ABSOLUTE)
+                .Write(OPCODE.PHA)
+                .Write(OPCODE.LDY_ABSOLUTE)
                 .WriteWord(0x1FF);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.Y);
@@ -555,10 +559,10 @@ namespace Tests
         public void CanPushProcessorStatus()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.PHP)
-                .Write(CPU6502.OPCODE.LDY_ABSOLUTE)
+                .Write(OPCODE.PHP)
+                .Write(OPCODE.LDY_ABSOLUTE)
                 .WriteWord(0x1FF);
             _cpu.Reset();
             Assert.AreEqual(0x02, _cpu.Y);
@@ -567,12 +571,12 @@ namespace Tests
         public void CanPullAccumulator()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.PHA)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.PHA)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.PLA);
+                .Write(OPCODE.PLA);
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.A);
         }
@@ -581,11 +585,11 @@ namespace Tests
         public void CanPullProcessorStatus()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.PHA)
-                .Write(CPU6502.OPCODE.PLP)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.PHA)
+                .Write(OPCODE.PLP)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0xFF, _cpu.P.AsByte());
         }
@@ -594,12 +598,12 @@ namespace Tests
         public void CanJumpAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.JMP_ABSOLUTE)
+                .Write(OPCODE.JMP_ABSOLUTE)
                 .Ref("Continue")
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE, "Continue")
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE, "Continue")
                 .Write('e')
                 .Fixup();
             _cpu.Reset();
@@ -609,12 +613,12 @@ namespace Tests
         public void CanJumpIndirect()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.JMP_INDIRECT)
+                .Write(OPCODE.JMP_INDIRECT)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('e')
                 .WriteWord(0x9000, PROG_START + 6, "Data")
                 .Fixup();
@@ -626,14 +630,14 @@ namespace Tests
         public void CanJumpToSubroutine()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.JSR)
+                .Write(OPCODE.JSR)
                 .Ref("Sub")
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE, "Sub")
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE, "Sub")
                 .Write('e')
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -644,16 +648,16 @@ namespace Tests
         public void CanReturnSubroutine()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.JSR)
+                .Write(OPCODE.JSR)
                 .Ref("Sub")
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('l')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE, "Sub")
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE, "Sub")
                 .Write('e')
-                .Write(CPU6502.OPCODE.RTS)
+                .Write(OPCODE.RTS)
                 .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'l', _cpu.A);
@@ -664,7 +668,7 @@ namespace Tests
         public void CanSetCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.SEC);
+                .Write(OPCODE.SEC);
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C);
         }
@@ -673,8 +677,8 @@ namespace Tests
         public void CanClearCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.CLC);
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.CLC);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C);
         }
@@ -683,11 +687,11 @@ namespace Tests
         public void CanClearOverflow()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x50)
-                .Write(CPU6502.OPCODE.ADC_IMMEDIATE)
+                .Write(OPCODE.ADC_IMMEDIATE)
                 .Write(0x50)
-                .Write(CPU6502.OPCODE.CLV);
+                .Write(OPCODE.CLV);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.V);
         }
@@ -696,7 +700,7 @@ namespace Tests
         public void CanSetInterruptDisable()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.SEI);
+                .Write(OPCODE.SEI);
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.I);
         }
@@ -705,8 +709,8 @@ namespace Tests
         public void CanClearInterruptDisable()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.SEI)
-                .Write(CPU6502.OPCODE.CLI);
+                .Write(OPCODE.SEI)
+                .Write(OPCODE.CLI);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.I);
         }
@@ -715,7 +719,7 @@ namespace Tests
         public void CanSetDecimal()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.SED);
+                .Write(OPCODE.SED);
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.D);
         }
@@ -724,8 +728,8 @@ namespace Tests
         public void CanClearDecimal()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.SED)
-                .Write(CPU6502.OPCODE.CLD);
+                .Write(OPCODE.SED)
+                .Write(OPCODE.CLD);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.D);
         }
@@ -734,15 +738,16 @@ namespace Tests
         public void CanBranchForwardsOnCarryClear()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.CLC)
-                .Write(CPU6502.OPCODE.BCC)
-                .Write(0x3)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.CLC)
+                .Write(OPCODE.BCC)
+                .RelativeRef("Cont")
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE, "Cont")
                 .Write('e')
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK)
+                .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
         }
@@ -751,17 +756,17 @@ namespace Tests
         public void CanBranchBackwardsOnCarryClear()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.JMP_ABSOLUTE)
+                .Write(OPCODE.JMP_ABSOLUTE)
                 .Ref("Continue")
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE, "Back")
                 .Write('e')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.CLC, "Continue")
-                .Write(CPU6502.OPCODE.BCC)
-                .Write(-6)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.CLC, "Continue")
+                .Write(OPCODE.BCC)
+                .RelativeRef("Back")
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -771,15 +776,16 @@ namespace Tests
         public void CanBranchForwardsOnCarrySet()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.BCS)
-                .Write(0x3)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.BCS)
+                .RelativeRef("Cont")
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE, "Cont")
                 .Write('e')
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK)
+                .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
         }
@@ -788,17 +794,17 @@ namespace Tests
         public void CanBranchBackwardsOnCarrySet()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.JMP_ABSOLUTE)
+                .Write(OPCODE.JMP_ABSOLUTE)
                 .Ref("Continue")
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE, "Back")
                 .Write('e')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.SEC, "Continue")
-                .Write(CPU6502.OPCODE.BCS)
-                .Write(-6)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.SEC, "Continue")
+                .Write(OPCODE.BCS)
+                .RelativeRef("Back")
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -808,19 +814,20 @@ namespace Tests
         public void CanBranchOnOverflowClear()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x22)
-                .Write(CPU6502.OPCODE.ADC_IMMEDIATE)
+                .Write(OPCODE.ADC_IMMEDIATE)
                 .Write(0x23)
-                .Write(CPU6502.OPCODE.ASL_ACCUMULATOR)
-                .Write(CPU6502.OPCODE.BVC)
-                .Write(0x3)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.ASL_ACCUMULATOR)
+                .Write(OPCODE.BVC)
+                .RelativeRef("Cont")
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE, "Cont")
                 .Write('e')
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK)
+                .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
         }
@@ -829,19 +836,20 @@ namespace Tests
         public void CanBranchOnOverflowSet()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x42)
-                .Write(CPU6502.OPCODE.ADC_IMMEDIATE)
+                .Write(OPCODE.ADC_IMMEDIATE)
                 .Write(0x43)
-                .Write(CPU6502.OPCODE.ASL_ACCUMULATOR)
-                .Write(CPU6502.OPCODE.BVS)
-                .Write(0x3)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.ASL_ACCUMULATOR)
+                .Write(OPCODE.BVS)
+                .RelativeRef("Cont")
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE, "Cont")
                 .Write('e')
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK)
+                .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
         }
@@ -851,16 +859,17 @@ namespace Tests
         public void CanBranchForwardsOnMinus()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x88)
-                .Write(CPU6502.OPCODE.BMI)
-                .Write(0x3)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BMI)
+                .RelativeRef("Cont")
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE, "Cont")
                 .Write('e')
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK)
+                .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
         }
@@ -869,18 +878,18 @@ namespace Tests
         public void CanBranchBackwardsOnMinus()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.JMP_ABSOLUTE)
+                .Write(OPCODE.JMP_ABSOLUTE)
                 .Ref("Continue")
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE, "Back")
                 .Write('e')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE, "Continue")
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE, "Continue")
                 .Write(0x88)
-                .Write(CPU6502.OPCODE.BMI)
-                .Write(-7)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BMI)
+                .RelativeRef("Back")
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -890,16 +899,17 @@ namespace Tests
         public void CanBranchForwardsOnPositive()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x08)
-                .Write(CPU6502.OPCODE.BPL)
-                .Write(0x3)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BPL)
+                .RelativeRef("Cont")
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE, "Cont")
                 .Write('e')
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK)
+                .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
         }
@@ -908,18 +918,18 @@ namespace Tests
         public void CanBranchBackwardsOnPositive()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.JMP_ABSOLUTE)
+                .Write(OPCODE.JMP_ABSOLUTE)
                 .Ref("Start")
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE, "Back")
                 .Write('e')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x08)
-                .Write(CPU6502.OPCODE.BPL, "Start")
-                .Write(-7)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BPL, "Start")
+                .RelativeRef("Back")
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Fixup();
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -929,13 +939,13 @@ namespace Tests
         public void CanCompareImmediateEqual()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CMP_IMMEDIATE)
+                .Write(OPCODE.CMP_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
         }
@@ -943,13 +953,13 @@ namespace Tests
         public void CanCompareImmediateLess()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x90)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CMP_IMMEDIATE)
+                .Write(OPCODE.CMP_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.IsTrue(!_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
         }
@@ -957,13 +967,13 @@ namespace Tests
         public void CanCompareImmediateGreater()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x90)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CMP_IMMEDIATE)
+                .Write(OPCODE.CMP_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
         }
@@ -971,13 +981,13 @@ namespace Tests
         public void CanCompareZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CMP_ZERO_PAGE)
+                .Write(OPCODE.CMP_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x10, 'H');
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -986,13 +996,13 @@ namespace Tests
         public void CanCompareZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.CMP_ZERO_PAGE_X)
+                .Write(OPCODE.CMP_ZERO_PAGE_X)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x12, 'H');
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1002,13 +1012,13 @@ namespace Tests
         public void CanCompareAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CMP_ABSOLUTE)
+                .Write(OPCODE.CMP_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 'H', "Data")
                 .Fixup();
             _cpu.Reset();
@@ -1019,13 +1029,13 @@ namespace Tests
         public void CanCompareAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.CMP_ABSOLUTE_X)
+                .Write(OPCODE.CMP_ABSOLUTE_X)
                 .WriteWord(0x1000)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 'H');
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1034,13 +1044,13 @@ namespace Tests
         public void CanCompareIndirectX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.CMP_INDIRECT_X)
+                .Write(OPCODE.CMP_INDIRECT_X)
                 .Write(0x0E)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 'H')
                 .WriteWord(0x0010, 0x1010);
             _cpu.Reset();
@@ -1050,13 +1060,13 @@ namespace Tests
         public void CanCompareIndirectY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.CMP_INDIRECT_Y)
+                .Write(OPCODE.CMP_INDIRECT_Y)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1012,'H')
                 .WriteWord(0x0010, 0x1010);
             _cpu.Reset();
@@ -1067,13 +1077,13 @@ namespace Tests
         public void CanCompareXImmediateEqual()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CPX_IMMEDIATE)
+                .Write(OPCODE.CPX_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
         }
@@ -1081,13 +1091,13 @@ namespace Tests
         public void CanCompareXImmediateLess()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x90)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CPX_IMMEDIATE)
+                .Write(OPCODE.CPX_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.IsTrue(!_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
         }
@@ -1095,13 +1105,13 @@ namespace Tests
         public void CanCompareXImmediateGreater()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x90)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CPX_IMMEDIATE)
+                .Write(OPCODE.CPX_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
         }
@@ -1109,13 +1119,13 @@ namespace Tests
         public void CanCompareXZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CPX_ZERO_PAGE)
+                .Write(OPCODE.CPX_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x10, 'H');
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1125,13 +1135,13 @@ namespace Tests
         public void CanCompareXAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CPX_ABSOLUTE)
+                .Write(OPCODE.CPX_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 'H', "Data")
                 .Fixup();
             _cpu.Reset();
@@ -1142,13 +1152,13 @@ namespace Tests
         public void CanCompareYImmediateEqual()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CPY_IMMEDIATE)
+                .Write(OPCODE.CPY_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
         }
@@ -1156,13 +1166,13 @@ namespace Tests
         public void CanCompareYImmediateLess()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x90)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CPY_IMMEDIATE)
+                .Write(OPCODE.CPY_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.IsTrue(!_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
         }
@@ -1170,13 +1180,13 @@ namespace Tests
         public void CanCompareYImmediateGreater()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x90)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CPY_IMMEDIATE)
+                .Write(OPCODE.CPY_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
         }
@@ -1184,13 +1194,13 @@ namespace Tests
         public void CanCompareYZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CPY_ZERO_PAGE)
+                .Write(OPCODE.CPY_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x10, 'H');
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1200,13 +1210,13 @@ namespace Tests
         public void CanCompareYAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.CPY_ABSOLUTE)
+                .Write(OPCODE.CPY_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 'H', "Data")
                 .Fixup();
             _cpu.Reset();
@@ -1217,18 +1227,18 @@ namespace Tests
         public void CanBranchEquals()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.CMP_IMMEDIATE)
+                .Write(OPCODE.CMP_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.BEQ)
+                .Write(OPCODE.BEQ)
                 .Write(0x03)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('N')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('Y')
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual((byte)'Y', _cpu.A);
         }
@@ -1236,18 +1246,18 @@ namespace Tests
         public void CanBranchNotEquals()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('H')
-                .Write(CPU6502.OPCODE.CMP_IMMEDIATE)
+                .Write(OPCODE.CMP_IMMEDIATE)
                 .Write('e')
-                .Write(CPU6502.OPCODE.BNE)
+                .Write(OPCODE.BNE)
                 .Write(0x03)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('N')
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.BRK)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write('Y')
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual((byte)'Y', _cpu.A);
         }
@@ -1256,11 +1266,11 @@ namespace Tests
         public void CanBitTestAbsoluteAllMasked()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x0A)
-                .Write(CPU6502.OPCODE.BIT_ABSOLUTE)
+                .Write(OPCODE.BIT_ABSOLUTE)
                 .WriteWord(0x1000)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1000, 0xF0);
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.Z);
@@ -1270,11 +1280,11 @@ namespace Tests
         public void CanBitTestAbsoluteNotAllMasked()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x1A)
-                .Write(CPU6502.OPCODE.BIT_ABSOLUTE)
+                .Write(OPCODE.BIT_ABSOLUTE)
                 .WriteWord(0x1000)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1000, 0xF0);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.Z);
@@ -1284,11 +1294,11 @@ namespace Tests
         public void CanAddWithCarryImmediate()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.ADC_IMMEDIATE)
+                .Write(OPCODE.ADC_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
             Assert.AreEqual(0x03, _cpu.A);
@@ -1316,11 +1326,11 @@ namespace Tests
         private void InnerAddWithCarry(byte v1, byte v2, byte expected, byte statusMask)
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(v1)
-                .Write(CPU6502.OPCODE.ADC_IMMEDIATE)
+                .Write(OPCODE.ADC_IMMEDIATE)
                 .Write(v2)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
 
             _cpu.Reset();
 
@@ -1334,22 +1344,22 @@ namespace Tests
         public void CanAddMultipleBytes(int v1, int v2, int expectedResult)
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.CLC)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.CLC)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.LDA_ABSOLUTE_X)
+                .Write(OPCODE.LDA_ABSOLUTE_X)
                 .Ref("V1")
-                .Write(CPU6502.OPCODE.ADC_ABSOLUTE_X)
+                .Write(OPCODE.ADC_ABSOLUTE_X)
                 .Ref("V2")
-                .Write(CPU6502.OPCODE.STA_ABSOLUTE_X)
+                .Write(OPCODE.STA_ABSOLUTE_X)
                 .Ref("Result")
-                .Write(CPU6502.OPCODE.INX)
-                .Write(CPU6502.OPCODE.DEY)
-                .Write(CPU6502.OPCODE.BPL)
+                .Write(OPCODE.INX)
+                .Write(OPCODE.DEY)
+                .Write(OPCODE.BPL)
                 .Write(-13)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x9000, (ushort)v1, "V1" )
                 .WriteWord((ushort)v2, "V2")
                 .WriteWord(0x0000, "Result")
@@ -1364,11 +1374,11 @@ namespace Tests
         public void CanAddWithCarryZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.ADC_ZERO_PAGE)
+                .Write(OPCODE.ADC_ZERO_PAGE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x01, 0x02);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
@@ -1379,13 +1389,13 @@ namespace Tests
         public void CanAddWithCarryZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.ADC_ZERO_PAGE_X)
+                .Write(OPCODE.ADC_ZERO_PAGE_X)
                 .Write(0x03)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x05, 0x02);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
@@ -1396,11 +1406,11 @@ namespace Tests
         public void CanAddWithCarryAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.ADC_ABSOLUTE)
+                .Write(OPCODE.ADC_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1005, 0x02, "Data")
                 .Fixup();
             _cpu.Reset();
@@ -1412,13 +1422,13 @@ namespace Tests
         public void CanAddWithCarryAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.ADC_ABSOLUTE_X)
+                .Write(OPCODE.ADC_ABSOLUTE_X)
                 .WriteWord(0x1004)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1005, 0x02);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
@@ -1429,11 +1439,11 @@ namespace Tests
         public void CanSubtractWithCarryImmediate()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x03)
-                .Write(CPU6502.OPCODE.SBC_IMMEDIATE)
+                .Write(OPCODE.SBC_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
             Assert.AreEqual(0x01, _cpu.A);
@@ -1448,11 +1458,11 @@ namespace Tests
         {
             Console.WriteLine($"${v1:X2} - ${v2:X2} = ${expected:X2}? {(sbyte)v1}-{(sbyte)v2}={(sbyte)expected}");
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(v1)
-                .Write(CPU6502.OPCODE.SBC_IMMEDIATE)
+                .Write(OPCODE.SBC_IMMEDIATE)
                 .Write(v2)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
 
             _cpu.Reset();
 
@@ -1466,22 +1476,22 @@ namespace Tests
         public void CanSubtractMultipleBytes(int v1, int v2, int expectedResult)
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.CLC)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.CLC)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.LDA_ABSOLUTE_X)
+                .Write(OPCODE.LDA_ABSOLUTE_X)
                 .Ref("V1")
-                .Write(CPU6502.OPCODE.SBC_ABSOLUTE_X)
+                .Write(OPCODE.SBC_ABSOLUTE_X)
                 .Ref("V2")
-                .Write(CPU6502.OPCODE.STA_ABSOLUTE_X)
+                .Write(OPCODE.STA_ABSOLUTE_X)
                 .Ref("Result")
-                .Write(CPU6502.OPCODE.INX)
-                .Write(CPU6502.OPCODE.DEY)
-                .Write(CPU6502.OPCODE.BPL)
+                .Write(OPCODE.INX)
+                .Write(OPCODE.DEY)
+                .Write(OPCODE.BPL)
                 .Write(-13)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x9000, (ushort)v1, "V1" )
                 .WriteWord((ushort)v2, "V2")
                 .WriteWord(0x0000, "Result")
@@ -1496,11 +1506,11 @@ namespace Tests
         public void CanSubtractWithCarryZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x05)
-                .Write(CPU6502.OPCODE.SBC_ZERO_PAGE)
+                .Write(OPCODE.SBC_ZERO_PAGE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x01, 0x02);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
@@ -1511,13 +1521,13 @@ namespace Tests
         public void CanSubtractWithCarryZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x05)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.SBC_ZERO_PAGE_X)
+                .Write(OPCODE.SBC_ZERO_PAGE_X)
                 .Write(0x03)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x05, 0x02);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
@@ -1528,11 +1538,11 @@ namespace Tests
         public void CanSubtractWithCarryAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x05)
-                .Write(CPU6502.OPCODE.SBC_ABSOLUTE)
+                .Write(OPCODE.SBC_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1005, 0x02, "Data")
                 .Fixup();
             _cpu.Reset();
@@ -1544,13 +1554,13 @@ namespace Tests
         public void CanSubtractWithCarryAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x05)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.SBC_ABSOLUTE_X)
+                .Write(OPCODE.SBC_ABSOLUTE_X)
                 .WriteWord(0x1004)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1005, 0x02);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
@@ -1561,13 +1571,13 @@ namespace Tests
         public void CanAddWithCarryAbsoluteY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.ADC_ABSOLUTE_Y)
+                .Write(OPCODE.ADC_ABSOLUTE_Y)
                 .WriteWord(0x1004)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1005, 0x02);
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
@@ -1578,13 +1588,13 @@ namespace Tests
         public void CanAddWithCarryIndirectX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.ADC_INDIRECT_X)
+                .Write(OPCODE.ADC_INDIRECT_X)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x02, 0x1234)
                 .Write(0x1234, 0x02);
             _cpu.Reset();
@@ -1595,13 +1605,13 @@ namespace Tests
         public void CanAddWithCarryIndirectY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x01)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.ADC_INDIRECT_Y)
+                .Write(OPCODE.ADC_INDIRECT_Y)
                 .Write(0x08)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x08, 0x1234)
                 .Write(0x1236, 0x02);
             _cpu.Reset();
@@ -1613,11 +1623,11 @@ namespace Tests
         public void CanAndImmediate()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.AND_IMMEDIATE)
+                .Write(OPCODE.AND_IMMEDIATE)
                 .Write(0x80)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x80, _cpu.A);
         }
@@ -1626,11 +1636,11 @@ namespace Tests
         public void CanAndZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.AND_ZERO_PAGE)
+                .Write(OPCODE.AND_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x10, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x80, _cpu.A);
@@ -1639,13 +1649,13 @@ namespace Tests
         public void CanAndZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.AND_ZERO_PAGE_X)
+                .Write(OPCODE.AND_ZERO_PAGE_X)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x10, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x80, _cpu.A);
@@ -1654,11 +1664,11 @@ namespace Tests
         public void CanAndAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.AND_ABSOLUTE)
+                .Write(OPCODE.AND_ABSOLUTE)
                 .WriteWord(0x1010)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x80, _cpu.A);
@@ -1667,13 +1677,13 @@ namespace Tests
         public void CanAndAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.AND_ABSOLUTE_X)
+                .Write(OPCODE.AND_ABSOLUTE_X)
                 .WriteWord(0x1000)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x80, _cpu.A);
@@ -1682,13 +1692,13 @@ namespace Tests
         public void CanAndAbsoluteY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.AND_ABSOLUTE_Y)
+                .Write(OPCODE.AND_ABSOLUTE_Y)
                 .WriteWord(0x1000)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x80, _cpu.A);
@@ -1698,11 +1708,11 @@ namespace Tests
         public void CanOrImmediate()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x0F)
-                .Write(CPU6502.OPCODE.ORA_IMMEDIATE)
+                .Write(OPCODE.ORA_IMMEDIATE)
                 .Write(0x80)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x8F, _cpu.A);
         }
@@ -1711,11 +1721,11 @@ namespace Tests
         public void CanOrZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x0F)
-                .Write(CPU6502.OPCODE.ORA_ZERO_PAGE)
+                .Write(OPCODE.ORA_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x10, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x8F, _cpu.A);
@@ -1724,13 +1734,13 @@ namespace Tests
         public void CanOrZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x0F)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.ORA_ZERO_PAGE_X)
+                .Write(OPCODE.ORA_ZERO_PAGE_X)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x10, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x8F, _cpu.A);
@@ -1739,11 +1749,11 @@ namespace Tests
         public void CanOrAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x0F)
-                .Write(CPU6502.OPCODE.ORA_ABSOLUTE)
+                .Write(OPCODE.ORA_ABSOLUTE)
                 .WriteWord(0x1010)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x8F, _cpu.A);
@@ -1752,13 +1762,13 @@ namespace Tests
         public void CanOrAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x0F)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.ORA_ABSOLUTE_X)
+                .Write(OPCODE.ORA_ABSOLUTE_X)
                 .WriteWord(0x1000)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x8F, _cpu.A);
@@ -1767,13 +1777,13 @@ namespace Tests
         public void CanOrAbsoluteY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x0F)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.ORA_ABSOLUTE_Y)
+                .Write(OPCODE.ORA_ABSOLUTE_Y)
                 .WriteWord(0x1000)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x8F, _cpu.A);
@@ -1783,10 +1793,10 @@ namespace Tests
         public void CanAslAccumulator()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x88)
-                .Write(CPU6502.OPCODE.ASL_ACCUMULATOR)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.ASL_ACCUMULATOR)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
             Assert.IsTrue(_cpu.P.C);
@@ -1796,9 +1806,9 @@ namespace Tests
         public void CanAslZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.ASL_ZERO_PAGE)
+                .Write(OPCODE.ASL_ZERO_PAGE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x88);
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
@@ -1809,11 +1819,11 @@ namespace Tests
         public void CanAslZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.ASL_ZERO_PAGE_X)
+                .Write(OPCODE.ASL_ZERO_PAGE_X)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x88);
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
@@ -1824,9 +1834,9 @@ namespace Tests
         public void CanAslAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.ASL_ABSOLUTE)
+                .Write(OPCODE.ASL_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1020, 0x88, "Data")
                 .Fixup();
             _cpu.Reset();
@@ -1838,11 +1848,11 @@ namespace Tests
         public void CanAslAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.ASL_ABSOLUTE_X)
+                .Write(OPCODE.ASL_ABSOLUTE_X)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x1020, 0x00, "Data")
                 .Write(0x88)
                 .Fixup();
@@ -1855,10 +1865,10 @@ namespace Tests
         public void CanLsrAccumulator()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x11)
-                .Write(CPU6502.OPCODE.LSR_ACCUMULATOR)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.LSR_ACCUMULATOR)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x08, _cpu.A);
             Assert.IsTrue(_cpu.P.C);
@@ -1868,9 +1878,9 @@ namespace Tests
         public void CanLsrZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LSR_ZERO_PAGE)
+                .Write(OPCODE.LSR_ZERO_PAGE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x11);
             _cpu.Reset();
             Assert.AreEqual(0x08, _cpu.A);
@@ -1881,11 +1891,11 @@ namespace Tests
         public void CanLsrZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.LSR_ZERO_PAGE_X)
+                .Write(OPCODE.LSR_ZERO_PAGE_X)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x11);
             _cpu.Reset();
             Assert.AreEqual(0x08, _cpu.A);
@@ -1896,9 +1906,9 @@ namespace Tests
         public void CanLsrAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LSR_ABSOLUTE)
+                .Write(OPCODE.LSR_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1020, 0x11, "Data")
                 .Fixup();
             _cpu.Reset();
@@ -1910,11 +1920,11 @@ namespace Tests
         public void CanLsrAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.LSR_ABSOLUTE_X)
+                .Write(OPCODE.LSR_ABSOLUTE_X)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x1020, 0x00, "Data")
                 .Write(0x11)
                 .Fixup();
@@ -1927,11 +1937,11 @@ namespace Tests
         public void CanRolAccumulator()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x88)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.ROL_ACCUMULATOR)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.ROL_ACCUMULATOR)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x11, _cpu.A);
             Assert.IsTrue(_cpu.P.C);
@@ -1941,10 +1951,10 @@ namespace Tests
         public void CanRolZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.ROL_ZERO_PAGE)
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.ROL_ZERO_PAGE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x88);
             _cpu.Reset();
             Assert.AreEqual(0x11, _cpu.A);
@@ -1955,12 +1965,12 @@ namespace Tests
         public void CanRolZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.ROL_ZERO_PAGE_X)
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.ROL_ZERO_PAGE_X)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x88);
             _cpu.Reset();
             Assert.AreEqual(0x11, _cpu.A);
@@ -1971,10 +1981,10 @@ namespace Tests
         public void CanRolAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.ROL_ABSOLUTE)
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.ROL_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1020, 0x88, "Data")
                 .Fixup();
             _cpu.Reset();
@@ -1986,12 +1996,12 @@ namespace Tests
         public void CanRolAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.ROL_ABSOLUTE_X)
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.ROL_ABSOLUTE_X)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x1020, 0x00, "Data")
                 .Write(0x88)
                 .Fixup();
@@ -2004,10 +2014,10 @@ namespace Tests
         public void CanRorAccumulatorNoCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x11)
-                .Write(CPU6502.OPCODE.ROR_ACCUMULATOR)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.ROR_ACCUMULATOR)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x08, _cpu.A);
             Assert.IsTrue(_cpu.P.C);
@@ -2017,9 +2027,9 @@ namespace Tests
         public void CanRorZeroPageNoCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.ROR_ZERO_PAGE)
+                .Write(OPCODE.ROR_ZERO_PAGE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x11);
             _cpu.Reset();
             Assert.AreEqual(0x08, _cpu.A);
@@ -2030,11 +2040,11 @@ namespace Tests
         public void CanRorZeroPageXNoCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.ROR_ZERO_PAGE_X)
+                .Write(OPCODE.ROR_ZERO_PAGE_X)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x11);
             _cpu.Reset();
             Assert.AreEqual(0x08, _cpu.A);
@@ -2045,9 +2055,9 @@ namespace Tests
         public void CanRorAbsoluteNoCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.ROR_ABSOLUTE)
+                .Write(OPCODE.ROR_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1020, 0x11, "Data")
                 .Fixup();
             _cpu.Reset();
@@ -2059,11 +2069,11 @@ namespace Tests
         public void CanRorAbsoluteXNoCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.ROR_ABSOLUTE_X)
+                .Write(OPCODE.ROR_ABSOLUTE_X)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x1020, 0x00, "Data")
                 .Write(0x11)
                 .Fixup();
@@ -2076,11 +2086,11 @@ namespace Tests
         public void CanRorAccumulatorCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x11)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.ROR_ACCUMULATOR)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.ROR_ACCUMULATOR)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x88, _cpu.A);
             Assert.IsTrue(_cpu.P.C);
@@ -2090,10 +2100,10 @@ namespace Tests
         public void CanRorZeroPageCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.ROR_ZERO_PAGE)
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.ROR_ZERO_PAGE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x11);
             _cpu.Reset();
             Assert.AreEqual(0x88, _cpu.A);
@@ -2104,12 +2114,12 @@ namespace Tests
         public void CanRorZeroPageXCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.ROR_ZERO_PAGE_X)
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.ROR_ZERO_PAGE_X)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x11);
             _cpu.Reset();
             Assert.AreEqual(0x88, _cpu.A);
@@ -2120,10 +2130,10 @@ namespace Tests
         public void CanRorAbsoluteCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.ROR_ABSOLUTE)
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.ROR_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1020, 0x11, "Data")
                 .Fixup();
             _cpu.Reset();
@@ -2135,12 +2145,12 @@ namespace Tests
         public void CanRorAbsoluteXCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.SEC)
-                .Write(CPU6502.OPCODE.ROR_ABSOLUTE_X)
+                .Write(OPCODE.SEC)
+                .Write(OPCODE.ROR_ABSOLUTE_X)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x1020, 0x00, "Data")
                 .Write(0x11)
                 .Fixup();
@@ -2153,10 +2163,10 @@ namespace Tests
         public void CanRolAccumulatorNoCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x88)
-                .Write(CPU6502.OPCODE.ROL_ACCUMULATOR)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.ROL_ACCUMULATOR)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
             Assert.IsTrue(_cpu.P.C);
@@ -2166,9 +2176,9 @@ namespace Tests
         public void CanRolZeroPageNoCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.ROL_ZERO_PAGE)
+                .Write(OPCODE.ROL_ZERO_PAGE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x88);
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
@@ -2179,11 +2189,11 @@ namespace Tests
         public void CanRolZeroPageXNoCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.ROL_ZERO_PAGE_X)
+                .Write(OPCODE.ROL_ZERO_PAGE_X)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x20, 0x88);
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
@@ -2194,9 +2204,9 @@ namespace Tests
         public void CanRolAbsoluteNoCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.ROL_ABSOLUTE)
+                .Write(OPCODE.ROL_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1020, 0x88, "Data")
                 .Fixup();
             _cpu.Reset();
@@ -2208,11 +2218,11 @@ namespace Tests
         public void CanRolAbsoluteXNoCarry()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.ROL_ABSOLUTE_X)
+                .Write(OPCODE.ROL_ABSOLUTE_X)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x1020, 0x00, "Data")
                 .Write(0x88)
                 .Fixup();
@@ -2225,11 +2235,11 @@ namespace Tests
         public void CanDecrementZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.DEC_ZERO_PAGE)
+                .Write(OPCODE.DEC_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE)
+                .Write(OPCODE.LDA_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x10, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x7F, _cpu.A);
@@ -2239,11 +2249,11 @@ namespace Tests
         public void CanDecrementZeroPageFromZero()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.DEC_ZERO_PAGE)
+                .Write(OPCODE.DEC_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE)
+                .Write(OPCODE.LDA_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x10, 0x00);
             _cpu.Reset();
             Assert.AreEqual(0xFF, _cpu.A);
@@ -2254,13 +2264,13 @@ namespace Tests
         public void CanDecrementZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.DEC_ZERO_PAGE_X)
+                .Write(OPCODE.DEC_ZERO_PAGE_X)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.LDA_ZERO_PAGE)
+                .Write(OPCODE.LDA_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x10, 0x80);
             _cpu.Reset();
             Assert.AreEqual(0x7F, _cpu.A);
@@ -2270,11 +2280,11 @@ namespace Tests
         public void CanDecrementAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.DEC_ABSOLUTE)
+                .Write(OPCODE.DEC_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.LDA_ABSOLUTE)
+                .Write(OPCODE.LDA_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 0x80, "Data")
                 .Fixup();
             _cpu.Reset();
@@ -2285,13 +2295,13 @@ namespace Tests
         public void CanDecrementAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.DEC_ABSOLUTE_X)
+                .Write(OPCODE.DEC_ABSOLUTE_X)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.LDA_ABSOLUTE_X)
+                .Write(OPCODE.LDA_ABSOLUTE_X)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x1010, 0x5555, "Data")
                 .Write(0x80)
                 .Fixup();
@@ -2303,10 +2313,10 @@ namespace Tests
         public void CanDecrementX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x80)
-                .Write(CPU6502.OPCODE.DEX)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.DEX)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x7F, _cpu.X);
             Assert.IsFalse(_cpu.P.N);
@@ -2316,10 +2326,10 @@ namespace Tests
         public void CanDecrementY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x80)
-                .Write(CPU6502.OPCODE.DEY)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.DEY)
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x7F, _cpu.Y);
             Assert.IsFalse(_cpu.P.N);
@@ -2329,11 +2339,11 @@ namespace Tests
         public void CanExclusiveOrImmediate()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.EOR_IMMEDIATE)
+                .Write(OPCODE.EOR_IMMEDIATE)
                 .Write(0x55)
-                .Write(CPU6502.OPCODE.BRK);
+                .Write(OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0xAA, _cpu.A);
         }
@@ -2342,11 +2352,11 @@ namespace Tests
         public void CanExclusiveOrZeroPage()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.EOR_ZERO_PAGE)
+                .Write(OPCODE.EOR_ZERO_PAGE)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x10, 0x55);
             _cpu.Reset();
             Assert.AreEqual(0xAA, _cpu.A);
@@ -2356,13 +2366,13 @@ namespace Tests
         public void CanExclusiveOrZeroPageX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.EOR_ZERO_PAGE_X)
+                .Write(OPCODE.EOR_ZERO_PAGE_X)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x12, 0x55);
             _cpu.Reset();
             Assert.AreEqual(0xAA, _cpu.A);
@@ -2372,11 +2382,11 @@ namespace Tests
         public void CanExclusiveOrAbsolute()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.EOR_ABSOLUTE)
+                .Write(OPCODE.EOR_ABSOLUTE)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x1010, 0x55, "Data")
                 .Fixup();
             _cpu.Reset();
@@ -2387,13 +2397,13 @@ namespace Tests
         public void CanExclusiveOrAbsoluteX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.EOR_ABSOLUTE_X)
+                .Write(OPCODE.EOR_ABSOLUTE_X)
                 .Ref("Data")
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x1010, 0xFFFF, "Data")
                 .Write(0x55)
                 .Fixup();
@@ -2405,13 +2415,13 @@ namespace Tests
         public void CanExclusiveOrIndirectX()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.EOR_INDIRECT_X)
+                .Write(OPCODE.EOR_INDIRECT_X)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .Write(0x9000, 0x55, "Data")
                 .Ref(0x12, "Data")
                 .Fixup();
@@ -2423,13 +2433,13 @@ namespace Tests
         public void CanExclusiveOrIndirectY()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0xFF)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE)
+                .Write(OPCODE.LDY_IMMEDIATE)
                 .Write(0x02)
-                .Write(CPU6502.OPCODE.EOR_INDIRECT_Y)
+                .Write(OPCODE.EOR_INDIRECT_Y)
                 .Write(0x10)
-                .Write(CPU6502.OPCODE.BRK)
+                .Write(OPCODE.BRK)
                 .WriteWord(0x9000, 0xFFFF, "Data")
                 .Write(0x55)
                 .Ref(0x10, "Data")
@@ -2442,7 +2452,7 @@ namespace Tests
         public void CanCauseStackOverflow()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.JSR, "InfiniteLoop")
+                .Write(OPCODE.JSR, "InfiniteLoop")
                 .Ref("InfiniteLoop")
                 .Fixup();
             _cpu.Reset();
@@ -2453,7 +2463,7 @@ namespace Tests
         public void CanCauseStackUnderflow()
         {
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.RTS);
+                .Write(OPCODE.RTS);
             _cpu.Reset();
             Assert.IsTrue(_cpu.HaltReason == HaltReason.StackUnderflow);
         }
@@ -2464,17 +2474,17 @@ namespace Tests
             // Manually push a return address and processor flags to the stack
             // to simulate an interrupt
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x90)
-                .Write(CPU6502.OPCODE.PHA)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.PHA)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.PHA)
-                .Write(CPU6502.OPCODE.LDA_IMMEDIATE)
+                .Write(OPCODE.PHA)
+                .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(0x55)
-                .Write(CPU6502.OPCODE.PHA)
-                .Write(CPU6502.OPCODE.RTI)
-                .Write(0x9000, CPU6502.OPCODE.BRK);
+                .Write(OPCODE.PHA)
+                .Write(OPCODE.RTI)
+                .Write(0x9000, OPCODE.BRK);
             _cpu.Reset();
             Assert.AreEqual(0x9000, _cpu.PC);
             Assert.AreEqual(0x51, _cpu.P.AsByte());
@@ -2488,23 +2498,23 @@ namespace Tests
             _interruptTickInterval = 600;
 
             mem.Load(PROG_START)
-                .Write(CPU6502.OPCODE.LDX_IMMEDIATE)
+                .Write(OPCODE.LDX_IMMEDIATE)
                 .Write(0x00)
-                .Write(CPU6502.OPCODE.LDY_IMMEDIATE, "LoopX")
+                .Write(OPCODE.LDY_IMMEDIATE, "LoopX")
                 .Write(0x20)
-                .Write(CPU6502.OPCODE.TXA, "LoopY")
-                .Write(CPU6502.OPCODE.STA_INDIRECT_Y)
+                .Write(OPCODE.TXA, "LoopY")
+                .Write(OPCODE.STA_INDIRECT_Y)
                 .Write(0x10)    // Holds vector for data block to write
-                .Write(CPU6502.OPCODE.DEY)
-                .Write(CPU6502.OPCODE.BNE)
+                .Write(OPCODE.DEY)
+                .Write(OPCODE.BNE)
                 .Write(-5)
-                .Write(CPU6502.OPCODE.INX)
-                .Write(CPU6502.OPCODE.BNE)
+                .Write(OPCODE.INX)
+                .Write(OPCODE.BNE)
                 .Write(-11)
-                .Write(CPU6502.OPCODE.BRK)
-                .Write(0xFF00, CPU6502.OPCODE.INC_ABSOLUTE)
+                .Write(OPCODE.BRK)
+                .Write(0xFF00, OPCODE.INC_ABSOLUTE)
                 .WriteWord(0x7800)
-                .Write(CPU6502.OPCODE.RTI)
+                .Write(OPCODE.RTI)
                 .Write(0x7000, 0x00, "Block")
                 .Write(0x7800, 0x00) // ISR will increment this
                 .Ref(0x10, "Block")
@@ -2514,6 +2524,29 @@ namespace Tests
             _cpu.OnTick -= TriggerInterrupt;
             var result = mem.Read(0x7800);
             Assert.AreEqual(42, result);
+        }
+
+        [Test]
+        public void LetsDoThis()
+        {
+            mem.Load(PROG_START)
+                .Write(OPCODE.LDX_IMMEDIATE) // X will be our index into the data and the screen
+                .Write(0x00)
+                .Write(OPCODE.LDA_ABSOLUTE_X, "Loop")
+                .Ref("Data")
+                .Write(OPCODE.BEQ)
+                .RelativeRef("Finished")
+                .Write(OPCODE.STA_ABSOLUTE_X)
+                .WriteWord(DISPLAY_BASE_ADDR)
+                .Write(OPCODE.INX)
+                .Write(OPCODE.BNE)
+                .RelativeRef("Loop")
+                .Write(OPCODE.BRK, "Finished")
+                .WriteString("Hello, World!", "Data")
+                .Write(0x00)
+                .Fixup();
+            _cpu.Reset();
+            Assert.AreEqual('H', mem.Read(DISPLAY_BASE_ADDR));
         }
 
         private void TriggerInterrupt(object sender, EventArgs e)

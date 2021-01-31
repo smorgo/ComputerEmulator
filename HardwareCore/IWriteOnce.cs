@@ -1,4 +1,4 @@
-namespace _6502
+namespace HardwareCore
 {
     public interface IWriteOnce
     {

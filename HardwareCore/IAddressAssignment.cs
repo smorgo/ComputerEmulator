@@ -1,6 +1,6 @@
 using System;
 
-namespace _6502
+namespace HardwareCore
 {
     public interface IAddressAssignment
     {

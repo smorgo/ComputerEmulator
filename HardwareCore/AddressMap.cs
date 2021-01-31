@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace _6502
+namespace HardwareCore
 {
     public class AddressMap : IAddressAssignment
     {
