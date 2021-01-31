@@ -14,7 +14,7 @@ namespace Tests
         private AddressMap mem;
         const ushort DISPLAY_BASE_ADDR = 0xF000;
         const ushort PROG_START = 0x8000;
-        const ushort DISPLAY_SIZE = 40;
+        const ushort DISPLAY_SIZE = 0x400;  // 1kB
         const byte NoCarryNoOverflow = 0x00;
         const byte CarryNoOverflow = 0x01;
         const byte NoCarryOverflow = 0x40;
@@ -2547,6 +2547,125 @@ namespace Tests
                 .Fixup();
             _cpu.Reset();
             Assert.AreEqual('H', mem.Read(DISPLAY_BASE_ADDR));
+        }
+
+        [TestCase(1,127,128)]
+        [TestCase(1,255,256)]
+        public void CanAdd16Bit(int v1, int v2, int expected)
+        {
+            mem.Load(PROG_START)
+                .Write(OPCODE.CLC)
+                .Write(OPCODE.LDA_ABSOLUTE)
+                .Ref("v1")
+                .Write(OPCODE.ADC_ABSOLUTE)
+                .Ref("v2")
+                .Write(OPCODE.STA_ABSOLUTE)
+                .Ref("Result")
+                .Write(OPCODE.LDA_ABSOLUTE)
+                .Ref("v1",1)
+                .Write(OPCODE.ADC_ABSOLUTE)
+                .Ref("v2",1)
+                .Write(OPCODE.STA_ABSOLUTE)
+                .Ref("Result",1)
+                .Write(OPCODE.BRK)
+                .WriteWord((ushort)v1, "v1")
+                .WriteWord((ushort)v2, "v2")
+                .WriteWord(0x8200, 0x0000, "Result")
+                .Fixup();
+            _cpu.Reset();
+            var result = mem.ReadWord(0x8200);
+            Assert.AreEqual(expected,result);
+        }
+
+        [Test]
+        public void CanFillScreen()
+        {
+            var w = _display.Mode.Width;
+            var h = _display.Mode.Height;
+
+            mem.Load(PROG_START)
+                // Write column header
+                .Write(OPCODE.LDX_IMMEDIATE)
+                .Write(0x00)
+                .Write(OPCODE.JSR)
+                .Ref("ResetDigit")
+
+                .Write(OPCODE.LDA_ZERO_PAGE, "ColumnLoop")
+                .ZeroPageRef("CurrentDigit")
+                .Write(OPCODE.STA_ABSOLUTE_X)
+                .WriteWord(DISPLAY_BASE_ADDR)
+                .Write(OPCODE.INX)
+                .Write(OPCODE.CPX_IMMEDIATE)
+                .Write((byte)w)
+                .Write(OPCODE.BCS)
+                .RelativeRef("DoneColumns")
+
+                .Write(OPCODE.JSR)
+                .Ref("IncrementDigit")
+                .Write(OPCODE.JMP_ABSOLUTE)
+                .Ref("ColumnLoop")
+
+                // Write row labels
+                .Write(OPCODE.JSR, "DoneColumns")
+                .Ref("ResetDigit")
+                .Write(OPCODE.LDY_IMMEDIATE)
+                .Write(h-1)
+
+                .Write(OPCODE.CLC, "IncrementRowAddress")
+                .Write(OPCODE.LDA_IMMEDIATE)
+                .Write(w)
+                .Write(OPCODE.ADC_ZERO_PAGE)
+                .ZeroPageRef("DisplayVector")
+                .Write(OPCODE.STA_ZERO_PAGE)
+                .ZeroPageRef("DisplayVector")
+                .Write(OPCODE.LDA_IMMEDIATE)
+                .Write(0)
+                .Write(OPCODE.ADC_ZERO_PAGE)
+                .ZeroPageRef("DisplayVector",1)
+                .Write(OPCODE.STA_ZERO_PAGE)
+                .ZeroPageRef("DisplayVector",1)
+
+                .Write(OPCODE.JSR)
+                .Ref("IncrementDigit")
+
+                .Write(OPCODE.LDA_ZERO_PAGE)
+                .ZeroPageRef("CurrentDigit")
+                .Write(OPCODE.LDX_IMMEDIATE)
+                .Write(0x00)
+                .Write(OPCODE.STA_INDIRECT_X)
+                .ZeroPageRef("DisplayVector")
+                
+                .Write(OPCODE.DEY)
+                .Write(OPCODE.BNE)
+                .RelativeRef("IncrementRowAddress")
+                .Write(OPCODE.BRK, "Finished")
+
+                // Subroutine ResetDigit
+                .Write(OPCODE.LDA_IMMEDIATE, "ResetDigit")
+                .Write('0')
+                .Write(OPCODE.STA_ZERO_PAGE)
+                .ZeroPageRef("CurrentDigit")
+                .Write(OPCODE.RTS)
+
+                // Subroutine IncrementDigit
+                .Write(OPCODE.LDA_ZERO_PAGE, "IncrementDigit")
+                .ZeroPageRef("CurrentDigit")
+                .Write(OPCODE.CMP_IMMEDIATE)
+                .Write('9')
+                .Write(OPCODE.BCS)
+                .RelativeRef("ResetDigit") // Sneakily jump to the reset routine
+                .Write(OPCODE.INC_ZERO_PAGE)
+                .ZeroPageRef("CurrentDigit")
+                .Write(OPCODE.RTS)
+
+                .Write(0x10, '0', "CurrentDigit")
+                .WriteWord(0x12, DISPLAY_BASE_ADDR, "DisplayVector")
+                .Fixup();
+
+            _cpu.Reset();
+            Assert.AreEqual('0', mem.Read(DISPLAY_BASE_ADDR));
+            var expected = (h + 9) % 10 + '0';
+            Assert.AreEqual(expected, mem.Read((ushort)(DISPLAY_BASE_ADDR + (h-1) * w)));
         }
 
         private void TriggerInterrupt(object sender, EventArgs e)

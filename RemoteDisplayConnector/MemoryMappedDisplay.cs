@@ -41,12 +41,29 @@ namespace RemoteDisplayConnector
             _connection.Closed += async (error) =>
             {
                 await Task.Delay(new Random().Next(0,5) * 1000);
-                await _connection.StartAsync();
-                Debug.Assert(_connection.State == HubConnectionState.Connected);
+                try
+                {
+                    await _connection.StartAsync();
+                    Debug.Assert(_connection.State == HubConnectionState.Connected);
+                }
+                catch(Exception ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                    Console.WriteLine("Unable to reach remote display");
+                }
             };
 
-            await _connection.StartAsync();
-            Debug.Assert(_connection.State == HubConnectionState.Connected);
+            try
+            {
+                await _connection.StartAsync();
+                Debug.Assert(_connection.State == HubConnectionState.Connected);
+            }
+            catch(Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                Console.WriteLine("Unable to reach remote display");
+            }
+
             await SendDisplayMode();
         }
 

@@ -18,12 +18,14 @@ connection.on("ReceiveMessage", function (user, message) {
 connection.on("SetMode", function (w,h) {
     width = w;
     height = h;
-    charWidth = 400 / width;
-    charHeight = 250 / height;
+    var screen = document.getElementById('screen');
+    var screenHeight = h * charHeight + 4;
+    var screenWidth = w * charWidth + 4;
+    var vb = "0 0 " + screenWidth + " " + screenHeight;
+    screen.setAttributeNS(null, 'viewBox', vb);
 });
 
 connection.on("Write", function (offset, value) {
-    debugger;
     var elId = 'el'+offset;
     var el = document.getElementById(elId);
     if(!el)

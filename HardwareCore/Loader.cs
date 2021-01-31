@@ -9,11 +9,14 @@ namespace HardwareCore
         {
             public string Label {get; private set;}
             public bool Relative {get; private set;}
-
-            public ReferenceDescriptor(string label, bool relative = false)
+            public bool ZeroPage {get; private set;}
+            public int Offset {get; private set;}
+            public ReferenceDescriptor(string label, bool relative = false, bool zeroPage = false, int offset = 0)
             {
                 Label = label;
                 Relative = relative;
+                ZeroPage = zeroPage;
+                Offset = offset;
             }
         }
 
@@ -104,22 +107,37 @@ namespace HardwareCore
             return this;
         }
 
-        public Loader Ref(string label)
+        public Loader Ref(string label, int offset = 0)
         {
-            _labelReferences.Add(Cursor, new ReferenceDescriptor(label));
-            return WriteWord(0xffff);
+            return Ref(Cursor, label, offset);
         }
 
-        public Loader Ref(ushort address, string label)
+        public Loader Ref(ushort address, string label, int offset = 0)
         {
-            _labelReferences.Add(address, new ReferenceDescriptor(label));
+            _labelReferences.Add(address, new ReferenceDescriptor(label, offset: offset));
             return WriteWord(address, 0xffff);
+        }
+
+        public Loader ZeroPageRef(string label, int offset = 0)
+        {
+            if(offset != 0)
+            {
+                Console.WriteLine("!");
+            }
+            return ZeroPageRef(Cursor, label, offset);
+        }
+
+        public Loader ZeroPageRef(ushort address, string label, int offset = 0)
+        {
+            _labelReferences.Add(address, new ReferenceDescriptor(label, false, true, offset));
+            return Write(address, 0xff);
         }
 
         public Loader RelativeRef(string label)
         {
             return RelativeRef(Cursor, label);
         }
+
         public Loader RelativeRef(ushort address, string label)
         {
             _labelReferences.Add(address, new ReferenceDescriptor(label, true));
@@ -159,9 +177,31 @@ namespace HardwareCore
                         short relAddress = (short)(labelAddress - reference.Key -1);
                         _addressMap.Write(reference.Key, (byte)relAddress);
                     }
+                    else if(reference.Value.ZeroPage)
+                    {
+                        var addressToUse = labelAddress + reference.Value.Offset;
+
+                        if(addressToUse >= 0 && addressToUse < 0x100)
+                        {
+                            _addressMap.Write(reference.Key, (byte)addressToUse);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"FIXUP ERROR at ${reference.Key:X4} - label '{reference.Value.Label}' at ${addressToUse:X4} is not a ZeroPage address");
+                        }
+                    }
                     else
                     {
-                        _addressMap.WriteWord(reference.Key, _labels[reference.Value.Label] );
+                        var offsetAddress = _labels[reference.Value.Label] + reference.Value.Offset;
+
+                        if(offsetAddress >= 0 && offsetAddress < 0x10000)
+                        {
+                            _addressMap.WriteWord(reference.Key, (ushort)offsetAddress );
+                        }
+                        else
+                        {
+                            Console.WriteLine($"FIXUP ERROR at ${reference.Key:X4} - label '{reference.Value.Label}' at ${offsetAddress:X8} is not valid");
+                        }
                     }
                 }
                 else

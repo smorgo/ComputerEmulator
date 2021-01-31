@@ -348,7 +348,7 @@ namespace _6502
 
             LoadAccumulator(result);
 
-            P.C = (total < -128 || total > 127);
+            P.C = (total & 0x100) == 0x100;
             var b1 = v1.Bit(7);
             var b2 = v2.Bit(7);
             var r = result.Bit(7);
@@ -372,7 +372,7 @@ namespace _6502
 
             LoadAccumulator(result);
 
-            P.C = (total < -128 || total > 127);
+            P.C = (total & 0x100) == 0x100;
             var b1 = v1.Bit(7);
             var b2 = v2.Bit(7);
             var r = result.Bit(7);
