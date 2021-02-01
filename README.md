@@ -10,6 +10,9 @@ I've spent the intervening decades working on all sorts of computer systems, fro
 
 I develop mostly in C#, these days. I've used it since it was a beta product in 1999 and still feel most comfortable with it. But being a Mac user, more than a Windows user, these days, I prefer to target .NET Core. That's exactly what I've done with this project. Indeed, I have thus far developed and tested it entirely on a Mac. At some point, I'll test it on Windows and Linux.
 
+Being able to capture this image made me very happy.
+![Hello, World](Docs/Images/HelloWorld.png "Hello, World! on my 6502 emulator")
+
 ## What do we have?
 ### CPU Emulation
 I have implemented an emulator for the 6502 CPU. Almost completely, except that I have not attempted to implement any of the original processor's quirks and I have not (yet) included support for BCD (decimal) mode arithmetic.
