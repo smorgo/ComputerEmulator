@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 namespace HardwareCore
 {
-    public class Loader
+
+    public class Loader : IDisposable
     {
         public class ReferenceDescriptor
         {
@@ -20,16 +21,17 @@ namespace HardwareCore
             }
         }
 
-        private Dictionary<string, ushort> _labels;
+        private bool _fixupRequired = false;
+        private LabelTable _labels;
         private Dictionary<ushort, ReferenceDescriptor> _labelReferences;
         public ushort Cursor {get; private set;}
         private AddressMap _addressMap;
 
-        public Loader(AddressMap addressMap, ushort cursor)
+        public Loader(AddressMap addressMap, ushort cursor, LabelTable labels)
         {
             _addressMap = addressMap;
             Cursor = cursor;
-            _labels = new Dictionary<string, ushort>();
+            _labels = labels;
             _labelReferences = new Dictionary<ushort, ReferenceDescriptor>();
         }
 
@@ -109,17 +111,20 @@ namespace HardwareCore
 
         public Loader Ref(string label, int offset = 0)
         {
+            _fixupRequired = true;
             return Ref(Cursor, label, offset);
         }
 
         public Loader Ref(ushort address, string label, int offset = 0)
         {
+            _fixupRequired = true;
             _labelReferences.Add(address, new ReferenceDescriptor(label, offset: offset));
             return WriteWord(address, 0xffff);
         }
 
         public Loader ZeroPageRef(string label, int offset = 0)
         {
+            _fixupRequired = true;
             if(offset != 0)
             {
                 Console.WriteLine("!");
@@ -129,26 +134,30 @@ namespace HardwareCore
 
         public Loader ZeroPageRef(ushort address, string label, int offset = 0)
         {
+            _fixupRequired = true;
             _labelReferences.Add(address, new ReferenceDescriptor(label, false, true, offset));
             return Write(address, 0xff);
         }
 
         public Loader RelativeRef(string label)
         {
+            _fixupRequired = true;
             return RelativeRef(Cursor, label);
         }
 
         public Loader RelativeRef(ushort address, string label)
         {
+            _fixupRequired = true;
             _labelReferences.Add(address, new ReferenceDescriptor(label, true));
             return Write(address, 0xff);
         }
 
         private void AddLabel(string label, ushort address)
         {
+            _fixupRequired = true;
             if(!string.IsNullOrWhiteSpace(label))
             {
-                if(_labels.ContainsKey(label))
+                if(!_labels.Add(label, address))
                 {
                     Console.WriteLine($"Label '{label}' already defined");
                 }
@@ -164,7 +173,7 @@ namespace HardwareCore
             AddLabel(label, Cursor);
         }
 
-        public Loader Fixup(out Dictionary<string, ushort> exportLabels)
+        public Loader Fixup(out LabelTable exportLabels)
         {
             Fixup();
             exportLabels = _labels;
@@ -173,12 +182,12 @@ namespace HardwareCore
 
         public Loader Fixup()
         {
+            ushort labelAddress;
+
             foreach(var reference in _labelReferences)
             {
-                if(_labels.ContainsKey(reference.Value.Label))
+                if(_labels.TryResolve(reference.Value.Label, out labelAddress))
                 {
-                    var labelAddress = _labels[reference.Value.Label];
-
                     if(reference.Value.Relative)
                     {
                         short relAddress = (short)(labelAddress - reference.Key -1);
@@ -199,7 +208,7 @@ namespace HardwareCore
                     }
                     else
                     {
-                        var offsetAddress = _labels[reference.Value.Label] + reference.Value.Offset;
+                        var offsetAddress = labelAddress + reference.Value.Offset;
 
                         if(offsetAddress >= 0 && offsetAddress < 0x10000)
                         {
@@ -217,7 +226,16 @@ namespace HardwareCore
                 }
             }
 
+            _fixupRequired = false;
             return this;
+        }
+
+        public void Dispose()
+        {
+            if(_fixupRequired)
+            {
+                Fixup();
+            }
         }
     }
 }

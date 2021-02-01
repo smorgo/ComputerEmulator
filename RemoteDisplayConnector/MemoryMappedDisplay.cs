@@ -9,6 +9,7 @@ namespace RemoteDisplayConnector
 {
     public class MemoryMappedDisplay : IAddressAssignment
     {
+        public const ushort DISPLAY_CONTROL_BLOCK_ADDR = 0x80;
         private VideoRam _videoRam;
         private DisplayControlBlock _controlBlock;
 
@@ -30,7 +31,7 @@ namespace RemoteDisplayConnector
             Debug.Assert(absoluteAddress + size <= 0x10000);
             _videoRam = new VideoRam(this, 0, absoluteAddress, size);
             _videoRam.OnRender += OnRender;
-            _controlBlock = new DisplayControlBlock(this, 1, 0x80);
+            _controlBlock = new DisplayControlBlock(this, 1, DISPLAY_CONTROL_BLOCK_ADDR);
             _controlBlock.OnControlChanged += OnControlChanged;
             _controlBlock.OnModeChanged += OnModeChanged;
             _controlBlock.OnCursorMoved += OnCursorMoved;

@@ -11,7 +11,7 @@ namespace Tests
 {
     public class FilePersistenceTests
     {
-        private  CPU6502 _cpu;
+        private CPU6502 _cpu;
         private MemoryMappedDisplay _display;
         private AddressMap mem;
         private ILoaderPersistence _persistence;
@@ -24,17 +24,32 @@ namespace Tests
         {
             mem = new AddressMap();
             mem.Install(new Ram(0x0000, 0x10000));
+
             _display = new MemoryMappedDisplay(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
             await _display.Initialise();
             _display.Clear();
+
             _cpu = new CPU6502(mem);
             _cpu.DebugLevel = DebugLevel.Verbose;
+
             mem.WriteWord(_cpu.RESET_VECTOR, PROG_START);
+
             _persistence = new MemoryFilePersistence
             {
                 WorkingDirectory = "~/6502Programs"
             };
+
+            mem.Labels = new LabelTable();
+            mem.Labels.Add("DISPLAY_CONTROL_ADDR", MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR);
+            mem.Labels.Add("DISPLAY_BASE_ADDR", DISPLAY_BASE_ADDR);
+            mem.Labels.Add("DISPLAY_SIZE", DISPLAY_SIZE);
+            mem.Labels.Add("RESET_VECTOR", _cpu.RESET_VECTOR);
+            mem.Labels.Add("IRQ_VECTOR", _cpu.IRQ_VECTOR);
+            mem.Labels.Add("NMI_VECTOR", _cpu.NMI_VECTOR);
+
+            mem.Labels.Push();
+
         }
 
 
@@ -46,9 +61,10 @@ namespace Tests
             var w = _display.Mode.Width;
             var h = _display.Mode.Height;
             var bpr = _display.Mode.BytesPerRow;
-            Dictionary<string, ushort> labels;
-            
-            mem.Load(PROG_START)
+
+            using (var loader = mem.Load(PROG_START))
+            {
+                loader
                 // Write column header
                 .Write(OPCODE.LDX_IMMEDIATE, "StartOfProgram")
                 .Write(0x00)
@@ -74,7 +90,7 @@ namespace Tests
                 .Write(OPCODE.JSR, "DoneColumns")
                 .Ref("ResetDigit")
                 .Write(OPCODE.LDY_IMMEDIATE)
-                .Write(h-1)
+                .Write(h - 1)
 
                 .Write(OPCODE.CLC, "IncrementRowAddress")
                 .Write(OPCODE.LDA_IMMEDIATE)
@@ -86,9 +102,9 @@ namespace Tests
                 .Write(OPCODE.LDA_IMMEDIATE)
                 .Write(bpr.Msb())
                 .Write(OPCODE.ADC_ZERO_PAGE)
-                .ZeroPageRef("DisplayVector",1)
+                .ZeroPageRef("DisplayVector", 1)
                 .Write(OPCODE.STA_ZERO_PAGE)
-                .ZeroPageRef("DisplayVector",1)
+                .ZeroPageRef("DisplayVector", 1)
 
                 .Write(OPCODE.JSR)
                 .Ref("IncrementDigit")
@@ -99,7 +115,7 @@ namespace Tests
                 .Write(0x00)
                 .Write(OPCODE.STA_INDIRECT_X)
                 .ZeroPageRef("DisplayVector")
-                
+
                 .Write(OPCODE.DEY)
                 .Write(OPCODE.BNE)
                 .RelativeRef("IncrementRowAddress")
@@ -125,11 +141,11 @@ namespace Tests
                 .Write(OPCODE.BRK, "EndOfProgram")
 
                 .Write(0x10, '0', "CurrentDigit")
-                .WriteWord(0x12, DISPLAY_BASE_ADDR, "DisplayVector")
-                .Fixup(out labels);
+                .WriteWord(0x12, DISPLAY_BASE_ADDR, "DisplayVector");
+            }
 
-            var start = labels["StartOfProgram"];
-            var end = labels["EndOfProgram"];
+            var start = mem.Labels.Resolve("StartOfProgram");
+            var end = mem.Labels.Resolve("EndOfProgram");
             var length = (ushort)(end - start);
 
             _persistence.Save("TestProgram.bin", start, length, mem);
@@ -146,14 +162,17 @@ namespace Tests
             _persistence.Load("TestProgram.bin", mem);
 
             // Initialise Working Memory
-            mem.Load()
+            using (var loader = mem.Load())
+            {
+                loader
                 .Write(0x10, '0')
                 .WriteWord(0x12, DISPLAY_BASE_ADDR);
+            }
 
             _cpu.Reset();
             Assert.AreEqual('0', mem.Read(DISPLAY_BASE_ADDR));
             var expected = (h + 9) % 10 + '0';
-            Assert.AreEqual(expected, mem.Read((ushort)(DISPLAY_BASE_ADDR + (h-1) * w)));
+            Assert.AreEqual(expected, mem.Read((ushort)(DISPLAY_BASE_ADDR + (h - 1) * w)));
         }
     }
 }

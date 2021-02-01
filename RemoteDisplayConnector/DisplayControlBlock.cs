@@ -10,6 +10,13 @@ namespace RemoteDisplayConnector
         public EventHandler<byte> OnModeChanged {get; set;}
         public EventHandler<CursorPosition> OnCursorMoved {get; set;}
         public const ushort CONTROL_ADDR = 0x00;
+
+        public static class ControlBits
+        {
+            const byte CURSOR_ENABLED = 0x01;
+            const byte CURSOR_FLASHING = 0x02;
+        }
+
         public const ushort MODE_ADDR = 0x01;
         public const ushort CURSOR_X_ADDR = 0x02;
         public const ushort CURSOR_Y_ADDR = 0x03;

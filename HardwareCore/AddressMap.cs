@@ -17,7 +17,7 @@ namespace HardwareCore
 
         public ushort LowWaterMark {get; private set;}
         public ushort HighWaterMark {get; private set;}
-
+        public LabelTable Labels {get; set;}
         private IAddressableBlock[] RedirectionTable = new IAddressableBlock[0x10000]; // This is going to be woefully inefficient in terms of memory
         private List<IAddressAssignment> _installedModules = new List<IAddressAssignment>();
 
@@ -50,7 +50,7 @@ namespace HardwareCore
 
         public Loader Load(ushort startAddress = 0x0000)
         {
-            return new Loader(this, startAddress);
+            return new Loader(this, startAddress, Labels == null ? new LabelTable() : Labels);
         }
 
         public void ResetWatermarks()
