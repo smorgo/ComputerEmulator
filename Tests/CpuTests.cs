@@ -29,7 +29,7 @@ namespace Tests
             mem.Install(new Ram(0x0000, 0x10000));
             _display = new MemoryMappedDisplay(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
-            await _display.Initialise();
+            await mem.Initialise();
             _display.Clear();
             _cpu = new CPU6502(mem);
             _cpu.DebugLevel = DebugLevel.Verbose;

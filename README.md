@@ -38,4 +38,4 @@ Examples are in the Tests project.
 The test suite is reasonably comprehensive and code coverage is much higher than I would normally expect to achieve.
 
 ## What's next?
-I'm just getting started with the project and it's very early days. The code is not shockingly bad, so I'm expecting to turn it over for public scrutiny, and wider contribution, shortly.
+I'm just getting started with the project and it's very early days. The code is not shockingly bad (by my standards, at least *haha*), so I've turned it over for public scrutiny, and wider contribution.

@@ -33,6 +33,7 @@ bld/
 [Oo]bj/
 [Oo]ut/
 [Tt]estResults/
+coveragereport/
 msbuild.log
 msbuild.err
 msbuild.wrn
