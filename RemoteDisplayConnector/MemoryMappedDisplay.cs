@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using HardwareCore;
@@ -8,11 +9,9 @@ namespace RemoteDisplayConnector
 {
     public class MemoryMappedDisplay : IAddressAssignment
     {
-        public bool CanRead => true;
-        public bool CanWrite => true;
-        public ushort StartAddress {get; private set;}
-        public UInt32 Size {get; private set;}
-        private Byte[] Memory;
+        private VideoRam _videoRam;
+        private DisplayControlBlock _controlBlock;
+
         HubConnection _connection;
         private DisplayMode _mode = DisplayMode.Mode7;
 
@@ -24,16 +23,42 @@ namespace RemoteDisplayConnector
             }
         }
 
+        public List<IAddressableBlock> Blocks {get; private set;}
+
         public MemoryMappedDisplay(ushort absoluteAddress, UInt32 size) 
         {
             Debug.Assert(absoluteAddress + size <= 0x10000);
-            StartAddress = absoluteAddress;
-            Size = size;
-            Memory = new byte[size];
+            _videoRam = new VideoRam(this, 0, absoluteAddress, size);
+            _videoRam.OnRender += OnRender;
+            _controlBlock = new DisplayControlBlock(this, 1, 0x80);
+            _controlBlock.OnControlChanged += OnControlChanged;
+            _controlBlock.OnModeChanged += OnModeChanged;
+            _controlBlock.OnCursorMoved += OnCursorMoved;
+            
+            Blocks = new List<IAddressableBlock>
+            {
+                _videoRam,
+                _controlBlock
+            };
+        }
+
+        private void OnCursorMoved(object sender, CursorPosition e)
+        {
+        }
+
+        private void OnModeChanged(object sender, byte e)
+        {
+        }
+
+        private void OnControlChanged(object sender, byte e)
+        {
         }
 
         public async Task Initialise()
         {
+            await _videoRam.Initialise();
+            await _controlBlock.Initialise();
+
             _connection = new HubConnectionBuilder()
                 .WithUrl("https://localhost:5001/display")
                 .Build();
@@ -88,12 +113,17 @@ namespace RemoteDisplayConnector
             await SendDisplayMode();
         }
 
-        public void Write(ushort address, byte value)
+        public void Write(int blockId, ushort address, byte value)
         {
             // address is now relative to start address
-            Debug.Assert(address < Size);
-            Memory[address] = value;
-            Task.Run(() => RenderCharacter(address, value));
+            var block = Blocks[blockId];
+            Debug.Assert(address < block.Size);
+            block.Write(address, value);
+        }
+
+        private void OnRender(object sender, AddressedByte data)
+        {
+            Task.Run(() => RenderCharacter(data.Address, data.Value));
         }
 
         private async Task RenderCharacter(ushort address, byte value)
@@ -108,35 +138,16 @@ namespace RemoteDisplayConnector
                 Debug.WriteLine(ex.Message);
             }
         }
-        public byte Read(ushort address)
+        public byte Read(int blockId, ushort address)
         {
             // address is now relative to start address
-            Debug.Assert(address < Size);
-            return Memory[address];
-        }
-
-        private async Task Render()
-        {
-            var message = $"Display: {System.Text.Encoding.ASCII.GetString(Memory, 0, (int)Size)}";
-
-            Debug.WriteLine(message);
-            try
-            {
-                await _connection.InvokeAsync("SendMessage", 
-                    "CPU", message);
-            }
-            catch (Exception ex)
-            {                
-                Debug.WriteLine(ex.Message);
-            }
+            var block = Blocks[blockId];
+            return block.Read(address);
         }
 
         public void Clear()
         {
-            for(var ix = 0; ix < Size; ix++)
-            {
-                Memory[ix] = (byte)' ';
-            }
+            _videoRam.Clear();
         }
     }
 }

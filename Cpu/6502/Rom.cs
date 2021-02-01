@@ -1,17 +1,25 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using HardwareCore;
 
 namespace _6502
 {
-    public class Rom : IAddressAssignment, IWriteOnce, IErasable
+    public class Rom : IAddressAssignment, IAddressableBlock, IWriteOnce, IErasable
     {
         private bool Burned = false;
         public bool CanRead => true;
         public bool CanWrite => false;
         public ushort StartAddress {get; private set;}
-        public UInt32 Size {get; private set;} 
+        public UInt32 Size {get; private set;}
+
+        public List<IAddressableBlock> Blocks => new List<IAddressableBlock> {this};
+
+        public IAddressAssignment Device => this;
+
+        public int BlockId => 0;
+
         private Byte[] Memory;
 
         public Rom(ushort absoluteAddress, UInt32 size) 
@@ -59,6 +67,16 @@ namespace _6502
         {
             Array.Fill<byte>(Memory, 0xFF);
             await Task.Delay(0);
+        }
+
+        public void Write(int blockId, ushort address, byte value)
+        {
+            Write(address, value);
+        }
+
+        public byte Read(int blockId, ushort address)
+        {
+            return Read(address);
         }
     }
 }

@@ -1,16 +1,24 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using HardwareCore;
 
 namespace _6502
 {
-    public class Ram : IAddressAssignment
+    public class Ram : IAddressAssignment, IAddressableBlock
     {
         public bool CanRead => true;
         public bool CanWrite => true;
         public ushort StartAddress {get; private set;}
-        public UInt32 Size {get; private set;} 
+        public UInt32 Size {get; private set;}
+
+        public List<IAddressableBlock> Blocks => new List<IAddressableBlock> {this};
+
+        public IAddressAssignment Device => this;
+
+        public int BlockId => 0;
+
         private Byte[] Memory;
 
         public Ram(ushort absoluteAddress, UInt32 size) 
@@ -39,6 +47,16 @@ namespace _6502
         {
             Array.Fill<byte>(Memory, 0x00);
             await Task.Delay(0);
+        }
+
+        public void Write(int blockId, ushort address, byte value)
+        {
+            Write(address, value);
+        }
+
+        public byte Read(int blockId, ushort address)
+        {
+            return Read(address);
         }
     }
 }

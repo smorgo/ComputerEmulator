@@ -4,7 +4,8 @@ using System.Threading.Tasks;
 
 namespace HardwareCore
 {
-    public class AddressMap : IAddressAssignment
+
+    public class AddressMap
     {
         public bool CanRead => true;
 
@@ -17,7 +18,7 @@ namespace HardwareCore
         public ushort LowWaterMark {get; private set;}
         public ushort HighWaterMark {get; private set;}
 
-        private IAddressAssignment[] RedirectionTable = new IAddressAssignment[0x10000]; // This is going to be woefully inefficient in terms of memory
+        private IAddressableBlock[] RedirectionTable = new IAddressableBlock[0x10000]; // This is going to be woefully inefficient in terms of memory
         private List<IAddressAssignment> _installedModules = new List<IAddressAssignment>();
 
         public AddressMap()
@@ -35,12 +36,15 @@ namespace HardwareCore
 
         public void Install(IAddressAssignment device)
         {
-            Debug.Assert(device.StartAddress + device.Size <= Size);
             _installedModules.Add(device);
-            var jx = device.StartAddress;
-            for(var ix = 0; ix < device.Size; ix++)
+
+            foreach(var block in device.Blocks)
             {
-                RedirectionTable[jx++] = device;
+                var jx = block.StartAddress;
+                for(var ix = 0; ix < block.Size; ix++)
+                {
+                    RedirectionTable[jx++] = block;
+                }
             }
         }
 
@@ -57,11 +61,11 @@ namespace HardwareCore
 
         public byte Read(ushort address)
         {
-            var device = RedirectionTable[address];
+            var block = RedirectionTable[address];
 
-            if(device != null && device.CanRead)
+            if(block != null && block.CanRead)
             {
-                return device.Read((ushort)(address - device.StartAddress));
+                return block.Device.Read(block.BlockId, (ushort)(address - block.StartAddress));
             }
 
             return 0; // Could return some random value for noise.
@@ -69,11 +73,11 @@ namespace HardwareCore
 
         public void Write(ushort address, byte value)
         {
-            var device = RedirectionTable[address];
+            var block = RedirectionTable[address];
 
-            if(device != null && device.CanWrite)
+            if(block != null && block.CanWrite)
             {
-                device.Write((ushort)(address - device.StartAddress), value);
+                block.Device.Write(block.BlockId, (ushort)(address - block.StartAddress), value);
             }
 
             Debug.WriteLine($"[{address:X4}] <- {value:X2}");

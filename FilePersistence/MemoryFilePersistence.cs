@@ -27,17 +27,17 @@ namespace FilePersistence
             }
         }
 
-        public void Load(string name, IAddressAssignment mem)
+        public void Load(string name, AddressMap mem)
         {
             LoadInternal(name, mem);
         }
 
-        public void LoadAt(string name, ushort startAddress, IAddressAssignment mem)
+        public void LoadAt(string name, ushort startAddress, AddressMap mem)
         {
             LoadInternal(name, mem, startAddress);
         }
 
-        private void LoadInternal(string name, IAddressAssignment mem, int overrideStartAddress = -1)
+        private void LoadInternal(string name, AddressMap mem, int overrideStartAddress = -1)
         {
             var combined = CrossPlatformPathExtensions.Combine(WorkingDirectory, name);
             var filename = Path.GetFullPath(combined);
@@ -61,7 +61,7 @@ namespace FilePersistence
                 }
             }
         }
-        public void Save(string name, ushort startAddress, ushort length, IAddressAssignment mem)
+        public void Save(string name, ushort startAddress, ushort length, AddressMap mem)
         {
             var combined = CrossPlatformPathExtensions.Combine(WorkingDirectory, name);
             var filename = Path.GetFullPath(combined);

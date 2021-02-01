@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using HardwareCore;
@@ -6,7 +7,7 @@ using HardwareCore;
 namespace KeyboardConnector
 {
 
-    public class KeyboardConnector : IAddressAssignment, IKeyboardInput
+    public class KeyboardConnector : IAddressAssignment, IAddressableBlock, IKeyboardInput
     {
         public const ushort STATUS_REGISTER = 0x0000;
         public const ushort CONTROL_REGISTER = 0x0001;
@@ -38,12 +39,19 @@ namespace KeyboardConnector
 
         public uint Size => 0x04;
 
-        public EventHandler<byte> OnKeyDown { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-        public EventHandler<byte> OnKeyUp { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public EventHandler<byte> OnKeyDown { get; set; }
+        public EventHandler<byte> OnKeyUp { get; set; }
 
-        public EventHandler OnStatusRequest => throw new NotImplementedException();
+        public EventHandler OnStatusRequest {get; set;}
 
         public IKeyboardOutput Transmitter {get; set;}
+
+        public List<IAddressableBlock> Blocks => new List<IAddressableBlock> {this};
+
+        public IAddressAssignment Device => this;
+
+        public int BlockId => 0;
+
         private byte[] _registers = new byte[4];
 
         public KeyboardConnector(ushort startAddress)
@@ -75,6 +83,16 @@ namespace KeyboardConnector
                 _registers[CONTROL_REGISTER] = (byte)(value & 0x7);
                 Transmitter?.SendControl(_registers[CONTROL_REGISTER]);
             }
+        }
+
+        public void Write(int blockId, ushort address, byte value)
+        {
+            Write(address, value);
+        }
+
+        public byte Read(int blockId, ushort address)
+        {
+            return Read(address);
         }
     }
 }
