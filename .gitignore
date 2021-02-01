@@ -8,6 +8,9 @@ nupkg/
 # Visual Studio Code
 .vscode
 
+# VSCodeCounter
+.VSCodeCounter
+
 # Rider
 .idea
 
@@ -29,6 +32,7 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Oo]ut/
+[Tt]estResults/
 msbuild.log
 msbuild.err
 msbuild.wrn
