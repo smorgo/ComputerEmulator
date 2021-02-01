@@ -33,7 +33,7 @@ namespace Tests
             mem.WriteWord(_cpu.RESET_VECTOR, PROG_START);
             _persistence = new MemoryFilePersistence
             {
-                WorkingDirectory = "/Users/Steve/6502Programs"
+                WorkingDirectory = "~/6502Programs"
             };
         }
 

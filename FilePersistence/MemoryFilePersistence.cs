@@ -6,7 +6,26 @@ namespace FilePersistence
 {
     public class MemoryFilePersistence : ILoaderPersistence
     {
-        public string WorkingDirectory {get; set;}
+        private string _workingDirectory;
+        public string WorkingDirectory 
+        {
+            get 
+            {
+                return _workingDirectory;
+            }
+             
+            set
+            {
+                if(!Path.EndsInDirectorySeparator(value))
+                {
+                    _workingDirectory = value + Path.DirectorySeparatorChar;
+                }
+                else
+                {
+                    _workingDirectory = value;
+                }
+            }
+        }
 
         public void Load(string name, IAddressAssignment mem)
         {
@@ -20,7 +39,8 @@ namespace FilePersistence
 
         private void LoadInternal(string name, IAddressAssignment mem, int overrideStartAddress = -1)
         {
-            var filename = Path.Combine(WorkingDirectory, name);
+            var combined = CrossPlatformPathExtensions.Combine(WorkingDirectory, name);
+            var filename = Path.GetFullPath(combined);
 
             using(var file = File.OpenRead(filename))
             {
@@ -43,7 +63,8 @@ namespace FilePersistence
         }
         public void Save(string name, ushort startAddress, ushort length, IAddressAssignment mem)
         {
-            var filename = Path.Combine(WorkingDirectory, name);
+            var combined = CrossPlatformPathExtensions.Combine(WorkingDirectory, name);
+            var filename = Path.GetFullPath(combined);
 
             var buffer = new byte[length + 4];
 
