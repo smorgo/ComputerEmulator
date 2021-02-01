@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 
 namespace HardwareCore
 {
@@ -10,5 +11,6 @@ namespace HardwareCore
         UInt32 Size {get;}
         void Write(ushort address, Byte value);
         Byte Read(ushort address);
+        Task Initialise();
     }
 }

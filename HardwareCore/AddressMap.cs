@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace HardwareCore
 {
@@ -16,16 +18,25 @@ namespace HardwareCore
         public ushort HighWaterMark {get; private set;}
 
         private IAddressAssignment[] RedirectionTable = new IAddressAssignment[0x10000]; // This is going to be woefully inefficient in terms of memory
+        private List<IAddressAssignment> _installedModules = new List<IAddressAssignment>();
 
         public AddressMap()
         {
             ResetWatermarks();
         }
 
+        public async Task Initialise()
+        {
+            foreach(var module in _installedModules)
+            {
+                await module.Initialise();
+            }
+        }
+
         public void Install(IAddressAssignment device)
         {
             Debug.Assert(device.StartAddress + device.Size <= Size);
-
+            _installedModules.Add(device);
             var jx = device.StartAddress;
             for(var ix = 0; ix < device.Size; ix++)
             {

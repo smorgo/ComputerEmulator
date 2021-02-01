@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using HardwareCore;
 
 namespace _6502
@@ -52,6 +53,12 @@ namespace _6502
             Array.Copy(content, 0, Memory, startAddress, content.Length); // Check if there's a risk of overflow.
 
             Burned = true;
+        }
+
+        public async Task Initialise()
+        {
+            Array.Fill<byte>(Memory, 0xFF);
+            await Task.Delay(0);
         }
     }
 }

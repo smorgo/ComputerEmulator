@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using HardwareCore;
 
 namespace _6502
@@ -32,6 +33,12 @@ namespace _6502
             // address is now relative to start address
             Debug.Assert(address < Size);
             return Memory[address];
+        }
+
+        public async Task Initialise()
+        {
+            Array.Fill<byte>(Memory, 0x00);
+            await Task.Delay(0);
         }
     }
 }
