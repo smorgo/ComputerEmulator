@@ -12,7 +12,15 @@ namespace HardwareCore
 
         public uint Size => 0x10000;
 
+        public ushort LowWaterMark {get; private set;}
+        public ushort HighWaterMark {get; private set;}
+
         private IAddressAssignment[] RedirectionTable = new IAddressAssignment[0x10000]; // This is going to be woefully inefficient in terms of memory
+
+        public AddressMap()
+        {
+            ResetWatermarks();
+        }
 
         public void Install(IAddressAssignment device)
         {
@@ -28,6 +36,12 @@ namespace HardwareCore
         public Loader Load(ushort startAddress = 0x0000)
         {
             return new Loader(this, startAddress);
+        }
+
+        public void ResetWatermarks()
+        {
+            LowWaterMark = 0xFFFF;
+            HighWaterMark = 0x0000;
         }
 
         public byte Read(ushort address)
@@ -52,6 +66,16 @@ namespace HardwareCore
             }
 
             Debug.WriteLine($"[{address:X4}] <- {value:X2}");
+
+            if(address < LowWaterMark)
+            {
+                LowWaterMark = address;
+            }
+
+            if(address > HighWaterMark)
+            {
+                HighWaterMark = address;
+            }
         }
 
         public void WriteWord(ushort address, ushort value)

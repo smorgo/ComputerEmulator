@@ -164,6 +164,13 @@ namespace HardwareCore
             AddLabel(label, Cursor);
         }
 
+        public Loader Fixup(out Dictionary<string, ushort> exportLabels)
+        {
+            Fixup();
+            exportLabels = _labels;
+            return this;
+        }
+
         public Loader Fixup()
         {
             foreach(var reference in _labelReferences)
