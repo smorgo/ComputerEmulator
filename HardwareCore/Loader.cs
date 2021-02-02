@@ -27,12 +27,15 @@ namespace HardwareCore
         public ushort Cursor {get; private set;}
         private AddressMap _addressMap;
 
+        public bool HasErrors {get; private set;}
+
         public Loader(AddressMap addressMap, ushort cursor, LabelTable labels)
         {
             _addressMap = addressMap;
             Cursor = cursor;
             _labels = labels;
             _labelReferences = new Dictionary<ushort, ReferenceDescriptor>();
+            HasErrors = false;
         }
 
         public Loader Write(ushort address, byte value, string label = null)
@@ -125,10 +128,6 @@ namespace HardwareCore
         public Loader ZeroPageRef(string label, int offset = 0)
         {
             _fixupRequired = true;
-            if(offset != 0)
-            {
-                Console.WriteLine("!");
-            }
             return ZeroPageRef(Cursor, label, offset);
         }
 
@@ -160,10 +159,7 @@ namespace HardwareCore
                 if(!_labels.Add(label, address))
                 {
                     Console.WriteLine($"Label '{label}' already defined");
-                }
-                else
-                {
-                    _labels.Add(label, address);
+                    HasErrors = true;
                 }
             }
         }
@@ -204,6 +200,7 @@ namespace HardwareCore
                         else
                         {
                             Console.WriteLine($"FIXUP ERROR at ${reference.Key:X4} - label '{reference.Value.Label}' at ${addressToUse:X4} is not a ZeroPage address");
+                            HasErrors = true;
                         }
                     }
                     else
@@ -217,16 +214,24 @@ namespace HardwareCore
                         else
                         {
                             Console.WriteLine($"FIXUP ERROR at ${reference.Key:X4} - label '{reference.Value.Label}' at ${offsetAddress:X8} is not valid");
+                            HasErrors = true;
                         }
                     }
                 }
                 else
                 {
                     Console.WriteLine($"Error: 0x{reference.Key:X4} Label '{reference.Value} is not defined");
+                    HasErrors = true;
                 }
             }
 
             _fixupRequired = false;
+
+            if(HasErrors)
+            {
+                throw new InvalidProgramException("There were errors in the loader");
+            }
+
             return this;
         }
 

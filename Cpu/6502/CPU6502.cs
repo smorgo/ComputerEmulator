@@ -25,6 +25,8 @@ namespace _6502
         public bool InterruptPending {get; private set;}
         public bool NmiPending {get; private set;}
         public EventHandler OnTick;
+        public EventHandler OnStarted;
+        private DateTime _terminateAfter;
         public CPU6502(AddressMap addressMap)
         {
             _addressMap = addressMap;    
@@ -32,7 +34,9 @@ namespace _6502
             InitialiseVectors();
         }
 
-        public void Interrupt()
+        // Generate a maskable interrupt
+        // The arguments allow this method to be hooked to an event handler
+        public void Interrupt(object sender = null, object e = null)
         {
             if(!P.I)
             {
@@ -252,7 +256,7 @@ namespace _6502
             _addressMap.WriteWord(0xFFF0, (byte)OPCODE.RTI);
         }
 
-        public void Reset()
+        public void Reset(TimeSpan? maxDuration = null)
         {
             Log(DebugLevel.Information, "\r\n6502 CPU Emulator");
             // Get the reset vector
@@ -270,12 +274,22 @@ namespace _6502
             EmulationErrorsCount = 0;
             HaltReason = HaltReason.None;
 
+            if(maxDuration.HasValue)
+            {
+                _terminateAfter = DateTime.Now + maxDuration.Value;
+            }
+            else
+            {
+                _terminateAfter = DateTime.MaxValue;
+            }
+
             Run();
             Log(DebugLevel.Information, "HALT");
         }
 
         private void Run()
         {
+            OnStarted?.Invoke(this, null);
             while(true)
             {
                 OnTick?.Invoke(this, null);
@@ -311,6 +325,13 @@ namespace _6502
                             return;
                         }
                     }
+                }
+
+                if(DateTime.Now > _terminateAfter)
+                {
+                    Console.WriteLine("Terminated after maximum duration");
+                    Debug.WriteLine("Terminated after maximum duration");
+                    return;
                 }
             }
         }

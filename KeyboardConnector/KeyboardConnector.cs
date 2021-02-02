@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using HardwareCore;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace KeyboardConnector
 {
 
-    public class KeyboardConnector : IAddressAssignment, IAddressableBlock, IKeyboardInput
+    public class MemoryMappedKeyboard : IAddressAssignment, IAddressableBlock, IKeyboardInput
     {
+        public EventHandler RequestInterrupt {get; set;}
         public const ushort STATUS_REGISTER = 0x0000;
         public const ushort CONTROL_REGISTER = 0x0001;
         public const ushort DATA_REGISTER = 0x0002;
@@ -39,10 +41,10 @@ namespace KeyboardConnector
 
         public uint Size => 0x04;
 
-        public EventHandler<byte> OnKeyDown { get; set; }
-        public EventHandler<byte> OnKeyUp { get; set; }
+        public EventHandler<byte> KeyDown { get; set; }
+        public EventHandler<byte> KeyUp { get; set; }
 
-        public EventHandler OnStatusRequest {get; set;}
+        public EventHandler StatusRequest {get; set;}
 
         public IKeyboardOutput Transmitter {get; set;}
 
@@ -53,8 +55,9 @@ namespace KeyboardConnector
         public int BlockId => 0;
 
         private byte[] _registers = new byte[4];
+        private HubConnection _connection;
 
-        public KeyboardConnector(ushort startAddress)
+        public MemoryMappedKeyboard(ushort startAddress)
         {
             StartAddress = startAddress;
         }
@@ -65,9 +68,89 @@ namespace KeyboardConnector
             _registers[1] = 0x00;
             _registers[2] = 0x00;
             _registers[3] = 0x00;
+
+            _connection = new HubConnectionBuilder()
+                .WithUrl("https://localhost:5001/display")
+                .Build();
+        
+            _connection.Closed += async (error) =>
+            {
+                await Task.Delay(new Random().Next(0,5) * 1000);
+                try
+                {
+                    await _connection.StartAsync();
+                    Debug.Assert(_connection.State == HubConnectionState.Connected);
+                }
+                catch(Exception ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                    Console.WriteLine("Unable to reach remote display");
+                }
+            };
+
+            _connection.On<string>("KeyUp", (e) => OnKeyUp(e)); 
+            _connection.On<string>("KeyDown", (e) => OnKeyDown(e)); 
+            _connection.On("RequestStatus", () => SendControlRegister()); 
+
+            try
+            {
+                await _connection.StartAsync();
+                Debug.Assert(_connection.State == HubConnectionState.Connected);
+            }
+            catch(Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                Console.WriteLine("Unable to reach remote display");
+            }
+
+            await SendControlRegister();
+        }
+
+        private async Task OnKeyUp(string key)
+        {
+            byte keyCode = 0x00;
+            if(key.Length == 1)
+            {
+                keyCode = (byte)key[0];
+            }
+            KeyUp?.Invoke(this, keyCode);
+
+            _registers[DATA_REGISTER] = keyCode;
+            _registers[SCAN_CODE_REGISTER] = keyCode;
+            _registers[STATUS_REGISTER] |= (byte)(StatusBits.AsciiAvailable | StatusBits.KeyUp | StatusBits.ScanCodeAvailable);
+            RequestInterrupt?.Invoke(this,null);
+
             await Task.Delay(0);
         }
 
+        private async Task OnKeyDown(string key)
+        {
+            byte keyCode = 0x00;
+            if(key.Length == 1)
+            {
+                keyCode = (byte)key[0];
+            }
+            KeyDown?.Invoke(this, keyCode);
+
+            _registers[DATA_REGISTER] = keyCode;
+            _registers[SCAN_CODE_REGISTER] = keyCode;
+            _registers[STATUS_REGISTER] |= (byte)(StatusBits.AsciiAvailable | StatusBits.KeyUp | StatusBits.ScanCodeAvailable);
+            RequestInterrupt?.Invoke(this,null);
+
+            await Task.Delay(0);
+        }
+
+        private async Task SendControlRegister()
+        {
+            try
+            {
+                await _connection.InvokeAsync("ReceiveKeyboardStatus", _registers[CONTROL_REGISTER]);
+            }
+            catch (Exception ex)
+            {                
+                Debug.WriteLine(ex.Message);
+            }
+        }
         public byte Read(ushort address)
         {
             Debug.Assert(address < Size);
@@ -77,11 +160,14 @@ namespace KeyboardConnector
 
         public void Write(ushort address, byte value)
         {
-            // Only the control register is writable
             if(address == CONTROL_REGISTER)
             {
                 _registers[CONTROL_REGISTER] = (byte)(value & 0x7);
-                Transmitter?.SendControl(_registers[CONTROL_REGISTER]);
+                Task.Run(SendControlRegister);
+            }
+            else
+            {
+                _registers[CONTROL_REGISTER] = value;
             }
         }
 

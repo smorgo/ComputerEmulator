@@ -40,9 +40,18 @@ connection.on("Write", function (offset, value) {
     el.textContent = String.fromCharCode(value);
   }
 });
-connection.start().then(function () {//     document.getElementById("sendButton").disabled = false;
-  // }).catch(function (err) {
-  //     return console.error(err.toString());
+connection.start().then(function () {
+  document.onkeydown = function (evt) {
+    var key = evt.key;
+    connection.invoke("KeyDown", key);
+  };
+
+  document.onkeyup = function (evt) {
+    var key = evt.key;
+    connection.invoke("KeyUp", key);
+  };
+
+  connection.invoke("RequestStatus");
 }); // document.getElementById("sendButton").addEventListener("click", function (event) {
 //     var user = document.getElementById("userInput").value;
 //     var message = document.getElementById("messageInput").value;

@@ -47,9 +47,15 @@ connection.on("Write", function (offset, value) {
 });
 
 connection.start().then(function () {
-//     document.getElementById("sendButton").disabled = false;
-// }).catch(function (err) {
-//     return console.error(err.toString());
+    document.onkeydown = function(evt) {
+        var key = evt.key;
+        connection.invoke("KeyDown", key); 
+        }
+    document.onkeyup = function(evt) {
+        var key = evt.key;
+        connection.invoke("KeyUp", key); 
+        }
+    connection.invoke("RequestStatus");
 });
 
 // document.getElementById("sendButton").addEventListener("click", function (event) {
