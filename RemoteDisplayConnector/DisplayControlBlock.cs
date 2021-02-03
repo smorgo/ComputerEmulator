@@ -9,12 +9,14 @@ namespace RemoteDisplayConnector
         public EventHandler<byte> OnControlChanged {get; set;}
         public EventHandler<byte> OnModeChanged {get; set;}
         public EventHandler<CursorPosition> OnCursorMoved {get; set;}
+        public EventHandler OnClearScreen {get; set;}
         public const ushort CONTROL_ADDR = 0x00;
 
         public static class ControlBits
         {
-            const byte CURSOR_ENABLED = 0x01;
-            const byte CURSOR_FLASHING = 0x02;
+            public const byte CURSOR_ENABLED = 0x01;
+            public const byte CURSOR_FLASHING = 0x02;
+            public const byte CLEAR_SCREEN = 0x04;
         }
 
         public const ushort MODE_ADDR = 0x01;
@@ -46,17 +48,21 @@ namespace RemoteDisplayConnector
         {
             if(value != Memory[address])
             {
-                Memory[address] = value;
-
                 switch(address)
                 {
                     case CONTROL_ADDR:
-                        OnControlChanged?.Invoke(this, value);
+                        if(!HandleClearScreen(value))
+                        {
+                            Memory[address] = value;
+                            OnControlChanged?.Invoke(this, value);
+                        }
                         break;
                     case MODE_ADDR:
+                        Memory[address] = value;
                         OnModeChanged?.Invoke(this, value);
                         break;
                     default: // Cursor
+                        Memory[address] = value;
                         OnCursorMoved?.Invoke(this, new CursorPosition(Memory[CURSOR_X_ADDR], Memory[CURSOR_Y_ADDR]));
                         break;
                 }
@@ -66,6 +72,17 @@ namespace RemoteDisplayConnector
         public byte Read(ushort address)
         {
             return Memory[address];
+        }
+
+        private bool HandleClearScreen(byte value)
+        {
+            if((value & ControlBits.CLEAR_SCREEN) == ControlBits.CLEAR_SCREEN)
+            {
+                OnClearScreen?.Invoke(this, null);
+                return true;
+            }
+
+            return false;
         }
 
         public async Task Initialise()

@@ -23,6 +23,7 @@ namespace _6502
         public int EmulationErrorsCount {get; private set;}
         public HaltReason HaltReason {get; private set;}
         public bool InterruptPending {get; private set;}
+        public bool InterruptServicing {get; private set;}
         public bool NmiPending {get; private set;}
         public EventHandler OnTick;
         public EventHandler OnStarted;
@@ -269,6 +270,7 @@ namespace _6502
             P.Set(0);
             
             InterruptPending = false;
+            InterruptServicing = false;
             NmiPending = false;
 
             EmulationErrorsCount = 0;
@@ -294,11 +296,11 @@ namespace _6502
             {
                 OnTick?.Invoke(this, null);
 
-                if(NmiPending)
+                if(NmiPending && !InterruptServicing)
                 {
                     ServiceNmi();
                 }
-                else if(InterruptPending)
+                else if(InterruptPending && !InterruptServicing)
                 {
                     ServiceInterrupt();
                 }
@@ -338,6 +340,7 @@ namespace _6502
 
         private void ServiceNmi()
         {
+            InterruptServicing = true;
             NmiPending = false;
             PushWord(PC);
             PushProcessorStatus();
@@ -346,7 +349,9 @@ namespace _6502
 
         private void ServiceInterrupt()
         {
+            InterruptServicing = true;
             InterruptPending = false;
+            Log(DebugLevel.Information, "Interrupt!");
             SetInterruptDisableFlag();
             PushWord(PC);
             PushProcessorStatus();
@@ -1197,6 +1202,7 @@ namespace _6502
             P.Set(p);
             PC = address;
             ClearInterruptDisableFlag();
+            InterruptServicing = false;
         }
 
         private void ReturnFromSubroutine()

@@ -22,6 +22,16 @@ connection.on("SetMode", function (w, h) {
   var vb = "0 0 " + screenWidth + " " + screenHeight;
   screen.setAttributeNS(null, 'viewBox', vb);
 });
+connection.on("Clear", function () {
+  var screen = document.getElementById('screen');
+  node.querySelectorAll('text').forEach(function (n) {
+    return n.remove();
+  });
+  var encodedMsg = "Clear screen";
+  var li = document.createElement("li");
+  li.textContent = encodedMsg;
+  document.getElementById("messagesList").appendChild(li);
+});
 connection.on("Write", function (offset, value) {
   var elId = 'el' + offset;
   var el = document.getElementById(elId);

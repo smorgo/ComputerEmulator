@@ -35,12 +35,27 @@ namespace RemoteDisplayConnector
             _controlBlock.OnControlChanged += OnControlChanged;
             _controlBlock.OnModeChanged += OnModeChanged;
             _controlBlock.OnCursorMoved += OnCursorMoved;
+            _controlBlock.OnClearScreen += async (s,e) => {await OnClearScreen();};
             
             Blocks = new List<IAddressableBlock>
             {
                 _videoRam,
                 _controlBlock
             };
+        }
+
+        private async Task OnClearScreen()
+        {
+            Debug.WriteLine("Clear screen");
+            try
+            {
+                _videoRam.Clear();
+                await _connection.InvokeAsync("Clear");
+            }
+            catch (Exception ex)
+            {                
+                Debug.WriteLine(ex.Message);
+            }
         }
 
         private void OnCursorMoved(object sender, CursorPosition e)

@@ -9,11 +9,14 @@ namespace KeyboardConnector
 {
     public class MemoryMappedKeyboard : IAddressAssignment, IAddressableBlock, IKeyboardInput
     {
+        private static string _synclock = "Lock";
         public EventHandler RequestInterrupt {get; set;}
         public const ushort STATUS_REGISTER = 0x0000;
         public const ushort CONTROL_REGISTER = 0x0001;
         public const ushort DATA_REGISTER = 0x0002;
         public const ushort SCAN_CODE_REGISTER = 0x0003;
+
+        private bool _isKeyDown = false;
 
         [Flags]
         public enum StatusBits
@@ -75,7 +78,7 @@ namespace KeyboardConnector
             _keyboard.OnKeyUp += async (s,e) => {await OnKeyUp(e);}; 
             _keyboard.OnKeyDown += async (s,e) => {await OnKeyDown(e);}; 
             _keyboard.OnRequestControl += async (s,e) => {await SendControlRegister();}; 
-
+    
             await _connection.ConnectAsync("https://localhost:5001/display");
             Debug.Assert(_connection.IsConnected);
 
@@ -83,34 +86,45 @@ namespace KeyboardConnector
         }
         private async Task OnKeyUp(string key)
         {
-            byte keyCode = 0x00;
-            if(key.Length == 1)
+            lock(_synclock)
             {
-                keyCode = (byte)key[0];
+                if(!_isKeyDown) return;
+                _isKeyDown = false;
+
+                byte keyCode = 0x00;
+                if(key.Length == 1)
+                {
+                    keyCode = (byte)key[0];
+                }
+                KeyUp?.Invoke(this, keyCode);
+
+                _registers[DATA_REGISTER] = keyCode;
+                _registers[SCAN_CODE_REGISTER] = keyCode;
+                _registers[STATUS_REGISTER] = (byte)(StatusBits.AsciiAvailable | StatusBits.KeyUp | StatusBits.ScanCodeAvailable);
+                RequestInterrupt?.Invoke(this,null);
             }
-            KeyUp?.Invoke(this, keyCode);
-
-            _registers[DATA_REGISTER] = keyCode;
-            _registers[SCAN_CODE_REGISTER] = keyCode;
-            _registers[STATUS_REGISTER] |= (byte)(StatusBits.AsciiAvailable | StatusBits.KeyUp | StatusBits.ScanCodeAvailable);
-            RequestInterrupt?.Invoke(this,null);
-
             await Task.Delay(0);
         }
 
         private async Task OnKeyDown(string key)
         {
-            byte keyCode = 0x00;
-            if(key.Length == 1)
+            lock(_synclock)
             {
-                keyCode = (byte)key[0];
-            }
-            KeyDown?.Invoke(this, keyCode);
+                if(_isKeyDown) return;
+                _isKeyDown = true;
 
-            _registers[DATA_REGISTER] = keyCode;
-            _registers[SCAN_CODE_REGISTER] = keyCode;
-            _registers[STATUS_REGISTER] |= (byte)(StatusBits.AsciiAvailable | StatusBits.KeyUp | StatusBits.ScanCodeAvailable);
-            RequestInterrupt?.Invoke(this,null);
+                byte keyCode = 0x00;
+                if(key.Length == 1)
+                {
+                    keyCode = (byte)key[0];
+                }
+                KeyDown?.Invoke(this, keyCode);
+
+                _registers[DATA_REGISTER] = keyCode;
+                _registers[SCAN_CODE_REGISTER] = keyCode;
+                _registers[STATUS_REGISTER] = (byte)(StatusBits.AsciiAvailable | StatusBits.KeyDown | StatusBits.ScanCodeAvailable);
+                RequestInterrupt?.Invoke(this,null);
+            }
 
             await Task.Delay(0);
         }
@@ -142,7 +156,7 @@ namespace KeyboardConnector
             }
             else
             {
-                _registers[CONTROL_REGISTER] = value;
+                _registers[address] = value;
             }
         }
 

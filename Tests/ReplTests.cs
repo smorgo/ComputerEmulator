@@ -10,7 +10,7 @@ using System.Timers;
 
 namespace Tests
 {
-    public class KeyboardTests
+    public class ReplTests
     {
         private CPU6502 _cpu;
         private MemoryMappedDisplay _display;
@@ -34,7 +34,9 @@ namespace Tests
             mem.Install(new Ram(0x0000, 0x10000));
             _display = new MemoryMappedDisplay(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
-            _keyboardConnection = new MockRemoteKeyboardConnection();
+
+            // This is interactive, so we want the RemoteKeyboardConnection
+            _keyboardConnection = new RemoteKeyboardConnection();
             _keyboard = new MemoryMappedKeyboard(KEYBOARD_BASE_ADDR, _keyboardConnection);
             mem.Install(_keyboard);
             await mem.Initialise();
@@ -47,6 +49,9 @@ namespace Tests
 
             mem.Labels = new LabelTable();
             mem.Labels.Add("DISPLAY_CONTROL_ADDR", MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR);
+            mem.Labels.Add("DISPLAY_CONTROL_REGISTER", MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR + DisplayControlBlock.CONTROL_ADDR);
+            mem.Labels.Add("CURSOR_X_REGISTER", MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR + DisplayControlBlock.CURSOR_X_ADDR);
+            mem.Labels.Add("CURSOR_Y_REGISTER", MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR + DisplayControlBlock.CURSOR_X_ADDR);
             mem.Labels.Add("DISPLAY_BASE_ADDR", DISPLAY_BASE_ADDR);
             mem.Labels.Add("DISPLAY_SIZE", DISPLAY_SIZE);
             mem.Labels.Add("KEYBOARD_STATUS_REGISTER", MemoryMappedKeyboard.STATUS_REGISTER + KEYBOARD_BASE_ADDR);
@@ -62,80 +67,42 @@ namespace Tests
         }
 
         [Test]
-        public async Task CanGetKeyDownUp()
-        {
-            // This test doesn't seem to like being debugged!
-            var start = DateTime.Now;
-            var timeout = start.AddSeconds(30);
-            bool done = false;
-            bool didKeyDown = false;
-            bool triggered = false;
-            byte key = 0x00;
-
-            Debug.WriteLine("Starting");
-
-            _keyboard.KeyDown += async (s, e) => {
-                didKeyDown = true;
-                key = e;
-                Debug.WriteLine($"KeyDown({e})");
-                Console.WriteLine($"KeyDown({e})");
-                await Task.Delay(10);
-                await _signalr.KeyUp(new string((char)(e),1));
-             };
-
-            _keyboard.KeyUp += async (s, e) => {
-                done = true;
-                key = e;
-                Debug.WriteLine($"KeyUp({e})");
-                Console.WriteLine($"KeyUp({e})");
-                await Task.Delay(0);
-             };
-
-            Debug.WriteLine("Starting loop");
-            while(!done)
-            {
-                await Task.Delay(10);
-
-                if(DateTime.Now > timeout)
-                {
-                    Debug.WriteLine("Timeout waiting for KeyDown");
-                    Console.WriteLine("Timeout waiting for KeyDown");
-                    break;
-                }
-
-                if(!triggered)
-                {
-                    await _signalr.KeyDown("a");
-                    triggered = true;
-                }
-
-                Debug.Write(".");
-            }
-
-            Debug.WriteLine("Done");
-            Assert.IsTrue(done);
-            Assert.IsTrue(didKeyDown);
-            Assert.AreEqual('a', key);
-        }
-
-        [Test]
-        public async Task CanGetKeyInInterruptServiceRoutine()
+        public async Task CanEchoTypedCharacterToDisplay()
         {
             mem.Labels.Push();
 
-            using(var loader = mem.Load(0x8000))
+            using(var _ = mem.Load(0x8000))
             {
-                loader
+                _
 
                 // Main program
+                .JSR("PrintIntro")
+                .LDX_IMMEDIATE(0x00)
+                .STA_ABSOLUTE("CURSOR_X_REGISTER")
+                .INX()
+                .STA_ABSOLUTE("CURSOR_Y_REGISTER")
+
                 .LDA_ABSOLUTE("CharacterBuffer", "LoopStart")
-                .BNE("GotCharacter")
-                .NOP()
-                .NOP()
-                .NOP()
-                .NOP()
+                .BEQ("LoopStart")
+
+                // There is a character in the input buffer (which is now in the accumulator)
+                .JSR("PrintCharacter")
+                .LDA_IMMEDIATE(0x00)
+                .STA_ABSOLUTE("CharacterBuffer")
                 .JMP_ABSOLUTE("LoopStart")
-                .BRK("GotCharacter")
+
+                // For now, don't use the cursor position.
+                // Just write to the character vector and increment it
+                .LDX_IMMEDIATE(0x00, "PrintCharacter")
+                .STA_INDIRECT_X("CharacterVector")
+                .CLC()
+                .LDA_IMMEDIATE(0x01)
+                .ADC_ZERO_PAGE("CharacterVector")
+                .STA_ZERO_PAGE("CharacterVector")
+                .LDA_IMMEDIATE(0x00)
+                .ADC_ZERO_PAGE("CharacterVector+1")
+                .STA_ZERO_PAGE("CharacterVector+1")
+                .RTS()
 
                 // ISR
                 // Save the registers (P and SP are already saved)
@@ -166,29 +133,28 @@ namespace Tests
                 .PLA()
                 .RTI()
 
-                // Data
-                .Write(0xE00, 0x00, "CharacterBuffer")
+                .LDA_IMMEDIATE(DisplayControlBlock.ControlBits.CLEAR_SCREEN, "PrintIntro")
+                .STA_ZERO_PAGE("DISPLAY_CONTROL_REGISTER")
+                .LDX_IMMEDIATE(0x00)
+                .LDA_ABSOLUTE_X("INTRO_TEXT", "Loop")
+                .BEQ("Finished")
+                .STA_ABSOLUTE_X(DISPLAY_BASE_ADDR)
+                .INX()
+                .BNE("Loop")
+                .RTS("Finished")
 
+                // Data
+                .WriteString("Computer Emulator", "INTRO_TEXT")
+                .Write(0x00)
+                .WriteWord(0x10, (ushort)(DISPLAY_BASE_ADDR + _display.Mode.Width), "CharacterVector") // Set to the start of the second line
+                .Write(0xE00, 0x00, "CharacterBuffer")
                 // Wire up ISR
                 .Ref(_cpu.IRQ_VECTOR, "ISR");
             }
 
-            // We use a timer to generate a KeyUp event, 3 seconds after the CPU
-            // has started running the main code.
-            var timer = new Timer(3000) // Wait 3 seconds, then trigger KeyUp
-            {
-                AutoReset = false
-            };
+            _cpu.Reset(TimeSpan.FromMinutes(10)); // Run for a maximum of one minute
 
-            timer.Elapsed += async (s,e) => {await _signalr.KeyUp("a");};
-
-            _cpu.OnStarted += (s,e) => {timer.Start();};
-
-            _cpu.Reset(TimeSpan.FromMinutes(1)); // Run for a maximum of one minute
-
-            var buf = mem.Labels.Resolve("CharacterBuffer");
-
-            Assert.AreEqual('a', mem.Read(buf));
+            Assert.Pass();
 
             mem.Labels.Pop();
 
