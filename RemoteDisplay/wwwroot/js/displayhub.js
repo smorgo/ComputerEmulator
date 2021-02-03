@@ -55,7 +55,7 @@ connection.start().then(function () {
         var key = evt.key;
         connection.invoke("KeyUp", key); 
         }
-    connection.invoke("RequestStatus");
+    connection.invoke("RequestControl");
 });
 
 // document.getElementById("sendButton").addEventListener("click", function (event) {

@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 namespace KeyboardConnector
 {
-
     public class MemoryMappedKeyboard : IAddressAssignment, IAddressableBlock, IKeyboardInput
     {
         public EventHandler RequestInterrupt {get; set;}
@@ -55,11 +54,15 @@ namespace KeyboardConnector
         public int BlockId => 0;
 
         private byte[] _registers = new byte[4];
-        private HubConnection _connection;
+//        private HubConnection _connection;
+        private IRemoteConnection _connection;
+        private IRemoteKeyboard _keyboard;
 
-        public MemoryMappedKeyboard(ushort startAddress)
+        public MemoryMappedKeyboard(ushort startAddress, IRemoteConnection connection)
         {
             StartAddress = startAddress;
+            _connection = connection;
+            _keyboard = (IRemoteKeyboard)connection;
         }
 
         public async Task Initialise()
@@ -69,43 +72,15 @@ namespace KeyboardConnector
             _registers[2] = 0x00;
             _registers[3] = 0x00;
 
-            _connection = new HubConnectionBuilder()
-                .WithUrl("https://localhost:5001/display")
-                .Build();
-        
-            _connection.Closed += async (error) =>
-            {
-                await Task.Delay(new Random().Next(0,5) * 1000);
-                try
-                {
-                    await _connection.StartAsync();
-                    Debug.Assert(_connection.State == HubConnectionState.Connected);
-                }
-                catch(Exception ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                    Console.WriteLine("Unable to reach remote display");
-                }
-            };
+            _keyboard.OnKeyUp += async (s,e) => {await OnKeyUp(e);}; 
+            _keyboard.OnKeyDown += async (s,e) => {await OnKeyDown(e);}; 
+            _keyboard.OnRequestControl += async (s,e) => {await SendControlRegister();}; 
 
-            _connection.On<string>("KeyUp", (e) => OnKeyUp(e)); 
-            _connection.On<string>("KeyDown", (e) => OnKeyDown(e)); 
-            _connection.On("RequestStatus", () => SendControlRegister()); 
-
-            try
-            {
-                await _connection.StartAsync();
-                Debug.Assert(_connection.State == HubConnectionState.Connected);
-            }
-            catch(Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
-                Console.WriteLine("Unable to reach remote display");
-            }
+            await _connection.ConnectAsync("https://localhost:5001/display");
+            Debug.Assert(_connection.IsConnected);
 
             await SendControlRegister();
         }
-
         private async Task OnKeyUp(string key)
         {
             byte keyCode = 0x00;
@@ -144,7 +119,7 @@ namespace KeyboardConnector
         {
             try
             {
-                await _connection.InvokeAsync("ReceiveKeyboardStatus", _registers[CONTROL_REGISTER]);
+                await _keyboard.SendControlRegister(_registers[CONTROL_REGISTER]);
             }
             catch (Exception ex)
             {                

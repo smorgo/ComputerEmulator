@@ -15,6 +15,7 @@ namespace Tests
         private CPU6502 _cpu;
         private MemoryMappedDisplay _display;
         private MemoryMappedKeyboard _keyboard;
+        private IRemoteConnection _keyboardConnection;
         private SignalRIntegration _signalr;
         private AddressMap mem;
         const ushort DISPLAY_BASE_ADDR = 0xF000;
@@ -33,7 +34,8 @@ namespace Tests
             mem.Install(new Ram(0x0000, 0x10000));
             _display = new MemoryMappedDisplay(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
-            _keyboard = new MemoryMappedKeyboard(KEYBOARD_BASE_ADDR);
+            _keyboardConnection = new MockRemoteKeyboardConnection();
+            _keyboard = new MemoryMappedKeyboard(KEYBOARD_BASE_ADDR, _keyboardConnection);
             mem.Install(_keyboard);
             await mem.Initialise();
             _display.Clear();
@@ -55,7 +57,7 @@ namespace Tests
             mem.Labels.Add("IRQ_VECTOR", _cpu.IRQ_VECTOR);
             mem.Labels.Add("NMI_VECTOR", _cpu.NMI_VECTOR);
 
-            _signalr = new SignalRIntegration();
+            _signalr = new SignalRIntegration(_keyboardConnection);
             await _signalr.Initialise();
         }
 

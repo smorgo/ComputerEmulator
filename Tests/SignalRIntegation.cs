@@ -1,54 +1,35 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using HardwareCore;
+using KeyboardConnector;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace Tests
 {
     public class SignalRIntegration
     {
-        private HubConnection _connection;
+        private IRemoteConnection _connection;
+        private IRemoteKeyboard _keyboard;
+        public SignalRIntegration(IRemoteConnection connection)
+        {
+            _connection = connection;
+            _keyboard = (IRemoteKeyboard)connection;
+        }
+
         public async Task Initialise()
         {
-            _connection = new HubConnectionBuilder()
-                .WithUrl("https://localhost:5001/display")
-                .Build();
-        
-            _connection.Closed += async (error) =>
-            {
-                await Task.Delay(1000);
-                try
-                {
-                    await _connection.StartAsync();
-                    Debug.Assert(_connection.State == HubConnectionState.Connected);
-                }
-                catch(Exception ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                    Console.WriteLine("Unable to reach remote display");
-                }
-            };
-
-            try
-            {
-                await _connection.StartAsync();
-                Debug.Assert(_connection.State == HubConnectionState.Connected);
-            }
-            catch(Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
-                Console.WriteLine("Unable to reach remote display");
-            }
+            await _connection.ConnectAsync("https://localhost:5001/display");
         }
 
         public async Task KeyUp(string key)
         {
-            await _connection.InvokeAsync("KeyUp", key);
+            await _keyboard.GenerateKeyUp(key);
         }
 
         public async Task KeyDown(string key)
         {
-            await _connection.InvokeAsync("KeyDown", key);
+            await _keyboard.GenerateKeyDown(key);
         }
     }
 }

@@ -51,7 +51,7 @@ connection.start().then(function () {
     connection.invoke("KeyUp", key);
   };
 
-  connection.invoke("RequestStatus");
+  connection.invoke("RequestControl");
 }); // document.getElementById("sendButton").addEventListener("click", function (event) {
 //     var user = document.getElementById("userInput").value;
 //     var message = document.getElementById("messageInput").value;

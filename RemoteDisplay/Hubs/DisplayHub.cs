@@ -26,13 +26,13 @@ namespace RemoteDisplay.Hubs
         {
             await Clients.All.SendAsync("KeyUp", key);
         }
-        public async Task RequestStatus()
+        public async Task RequestControl()
         {
-            await Clients.All.SendAsync("RequestStatus");
+            await Clients.All.SendAsync("RequestControl");
         }
-        public async Task ReceiveKeyboardStatus(byte status)
+        public async Task ReceiveKeyboardControl(byte status)
         {
-            await Clients.All.SendAsync("ReceiveKeyboardStatus", status);
+            await Clients.All.SendAsync("ReceiveKeyboardControl", status);
         }
         public async Task Clear()
         {
