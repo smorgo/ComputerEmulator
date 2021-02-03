@@ -3,21 +3,89 @@ using System.Collections.Generic;
 
 namespace HardwareCore
 {
-
     public class Loader : IDisposable
     {
         public class ReferenceDescriptor
         {
             public string Label {get; private set;}
             public bool Relative {get; private set;}
-            public bool ZeroPage {get; private set;}
+            public bool OneByte {get; private set;}
+            public ByteSelector ByteSelector {get; private set;}
             public int Offset {get; private set;}
-            public ReferenceDescriptor(string label, bool relative = false, bool zeroPage = false, int offset = 0)
+            public ReferenceDescriptor(string label, bool relative = false, bool oneByte = false, int offset = 0)
             {
-                Label = label;
+                Offset = offset; // This may be modified by ParseLabel
+                Label = ParseLabel(label);
                 Relative = relative;
-                ZeroPage = zeroPage;
-                Offset = offset;
+                OneByte = oneByte;
+            }
+
+            private string ParseLabel(string label)
+            {
+                var ix = label.IndexOf(":");
+
+                if(ix < 0)
+                {
+                    ByteSelector = ByteSelector.Both;
+                    return ParseLabelOffset(label);
+                }
+
+                var byteSpec = label.Substring(ix+1).ToUpper();
+
+                switch(byteSpec)
+                {
+                    case "LO":
+                        ByteSelector = ByteSelector.Low;
+                        break;
+                    case "HI":
+                        ByteSelector = ByteSelector.High;
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Invalid label specifier: {label}");
+                }
+
+                return ParseLabelOffset(label.Substring(0, ix));
+            }
+
+            private string ParseLabelOffset(string label)
+            {
+                var ix = label.IndexOf("+");
+
+                if(ix < 0)
+                {
+                    return ParseLabelNegativeOffset(label);
+                }
+
+                Offset += int.Parse(label.Substring(ix+1));
+
+                return label.Substring(0, ix);
+            }
+
+            private string ParseLabelNegativeOffset(string label)
+            {
+                var ix = label.IndexOf("-");
+
+                if(ix < 0)
+                {
+                    return label;
+                }
+
+                Offset += int.Parse(label.Substring(ix));
+
+                return label.Substring(0, ix);
+            }
+
+            public int Select(int address)
+            {
+                switch(ByteSelector)
+                {
+                    case ByteSelector.Low:
+                        return (ushort)(address & 0xff);
+                    case ByteSelector.High:
+                        return (ushort)(address >> 8);
+                    default:
+                        return address;
+                }
             }
         }
 
@@ -25,11 +93,11 @@ namespace HardwareCore
         private LabelTable _labels;
         private Dictionary<ushort, ReferenceDescriptor> _labelReferences;
         public ushort Cursor {get; private set;}
-        private AddressMap _addressMap;
+        private IAddressMap _addressMap;
 
         public bool HasErrors {get; private set;}
 
-        public Loader(AddressMap addressMap, ushort cursor, LabelTable labels)
+        public Loader(IAddressMap addressMap, ushort cursor, LabelTable labels)
         {
             _addressMap = addressMap;
             Cursor = cursor;
@@ -114,7 +182,6 @@ namespace HardwareCore
 
         public Loader Ref(string label, int offset = 0)
         {
-            _fixupRequired = true;
             return Ref(Cursor, label, offset);
         }
 
@@ -125,9 +192,19 @@ namespace HardwareCore
             return WriteWord(address, 0xffff);
         }
 
-        public Loader ZeroPageRef(string label, int offset = 0)
+        public Loader RefByte(string label, int offset = 0)
+        {
+            return RefByte(Cursor, label, offset);
+        }
+
+        public Loader RefByte(ushort address, string label, int offset = 0)
         {
             _fixupRequired = true;
+            _labelReferences.Add(address, new ReferenceDescriptor(label, false, true, offset));
+            return Write(address, 0xff);
+        }
+        public Loader ZeroPageRef(string label, int offset = 0)
+        {
             return ZeroPageRef(Cursor, label, offset);
         }
 
@@ -140,7 +217,6 @@ namespace HardwareCore
 
         public Loader RelativeRef(string label)
         {
-            _fixupRequired = true;
             return RelativeRef(Cursor, label);
         }
 
@@ -184,14 +260,16 @@ namespace HardwareCore
             {
                 if(_labels.TryResolve(reference.Value.Label, out labelAddress))
                 {
-                    if(reference.Value.Relative)
+                    var descriptor = reference.Value;
+
+                    if(descriptor.Relative)
                     {
-                        short relAddress = (short)(labelAddress - reference.Key -1);
+                        short relAddress = (short)(descriptor.Select(labelAddress - reference.Key -1));
                         _addressMap.Write(reference.Key, (byte)relAddress);
                     }
-                    else if(reference.Value.ZeroPage)
+                    else if(descriptor.OneByte)
                     {
-                        var addressToUse = labelAddress + reference.Value.Offset;
+                        var addressToUse = descriptor.Select(labelAddress + reference.Value.Offset);
 
                         if(addressToUse >= 0 && addressToUse < 0x100)
                         {
@@ -199,13 +277,13 @@ namespace HardwareCore
                         }
                         else
                         {
-                            Console.WriteLine($"FIXUP ERROR at ${reference.Key:X4} - label '{reference.Value.Label}' at ${addressToUse:X4} is not a ZeroPage address");
+                            Console.WriteLine($"FIXUP ERROR at ${reference.Key:X4} - label '{reference.Value.Label}' at ${addressToUse:X4} is not a single byte");
                             HasErrors = true;
                         }
                     }
                     else
                     {
-                        var offsetAddress = labelAddress + reference.Value.Offset;
+                        var offsetAddress = descriptor.Select(labelAddress + reference.Value.Offset);
 
                         if(offsetAddress >= 0 && offsetAddress < 0x10000)
                         {

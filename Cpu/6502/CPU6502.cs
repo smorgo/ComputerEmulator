@@ -19,7 +19,7 @@ namespace _6502
         public Byte Y;
         public CpuFlags P = new CpuFlags();
         public DebugLevel DebugLevel {get;set;} = DebugLevel.Errors;
-        private AddressMap _addressMap;
+        private IAddressMap _addressMap;
         public int EmulationErrorsCount {get; private set;}
         public HaltReason HaltReason {get; private set;}
         public bool InterruptPending {get; private set;}
@@ -27,7 +27,7 @@ namespace _6502
         public EventHandler OnTick;
         public EventHandler OnStarted;
         private DateTime _terminateAfter;
-        public CPU6502(AddressMap addressMap)
+        public CPU6502(IAddressMap addressMap)
         {
             _addressMap = addressMap;    
             LoadOpCodes();

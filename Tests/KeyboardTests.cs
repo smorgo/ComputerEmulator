@@ -128,6 +128,75 @@ namespace Tests
                 loader
 
                 // Main program
+                .LDA_ABSOLUTE("CharacterBuffer", "LoopStart")
+                .BNE("GotCharacter")
+                .NOP()
+                .NOP()
+                .NOP()
+                .NOP()
+                .JMP_ABSOLUTE("LoopStart")
+                .BRK("GotCharacter")
+
+                // ISR
+                // Save the registers (P and SP are already saved)
+                .PHA("ISR")
+                .TXA()
+                .PHA()
+                .TYA()
+                .PHA()
+
+                // Check for keyboard data
+                .LDA_ZERO_PAGE("KEYBOARD_STATUS_REGISTER")
+                .AND_IMMEDIATE((byte)MemoryMappedKeyboard.StatusBits.KeyUp) // Only interested in KeyUp events
+                .BEQ("NoKeyboardCharacter")
+
+                // Copy the new character into the buffer
+                .LDA_ZERO_PAGE("KEYBOARD_DATA_REGISTER")
+                .STA_ABSOLUTE("CharacterBuffer")
+
+                // Clear the keyboard status bits
+                .LDA_IMMEDIATE(0x00)
+                .STA_ZERO_PAGE("KEYBOARD_STATUS_REGISTER")
+
+                // Done
+                .PLA("NoKeyboardCharacter")
+                .TAY()
+                .PLA()
+                .TAX()
+                .PLA()
+                .RTI()
+
+                // Data
+                .Write(0xE00, 0x00, "CharacterBuffer")
+
+                // Wire up ISR
+                .Ref(_cpu.IRQ_VECTOR, "ISR");
+            }
+
+            // We use a timer to generate a KeyUp event, 3 seconds after the CPU
+            // has started running the main code.
+            var timer = new Timer(3000) // Wait 3 seconds, then trigger KeyUp
+            {
+                AutoReset = false
+            };
+
+            timer.Elapsed += async (s,e) => {await FeedKeyUpOnTimerExpiry(s,e);};
+
+            _cpu.OnStarted += (s,e) => {timer.Start();};
+
+            _cpu.Reset(TimeSpan.FromMinutes(20)); // Run for a maximum of one minute
+
+            var buf = mem.Labels.Resolve("CharacterBuffer");
+
+            Assert.AreEqual('a', mem.Read(buf));
+
+            mem.Labels.Pop();
+
+            await Task.Delay(0);
+        }
+
+/*
+                // Main program
                 .Write(OPCODE.LDA_ABSOLUTE, "LoopStart")
                 .Ref("CharacterBuffer")
                 .Write(OPCODE.BNE)
@@ -181,30 +250,8 @@ namespace Tests
 
                 // Wire up ISR
                 .Ref(_cpu.IRQ_VECTOR, "ISR");
-            }
 
-            // We use a timer to generate a KeyUp event, 3 seconds after the CPU
-            // has started running the main code.
-            var timer = new Timer(3000) // Wait 3 seconds, then trigger KeyUp
-            {
-                AutoReset = false
-            };
-
-            timer.Elapsed += async (s,e) => {await FeedKeyUpOnTimerExpiry(s,e);};
-
-            _cpu.OnStarted += (s,e) => {timer.Start();};
-
-            _cpu.Reset(TimeSpan.FromMinutes(20)); // Run for a maximum of one minute
-
-            var buf = mem.Labels.Resolve("CharacterBuffer");
-
-            Assert.AreEqual('a', mem.Read(buf));
-
-            mem.Labels.Pop();
-
-            await Task.Delay(0);
-        }
-
+*/
         private async Task FeedKeyUpOnTimerExpiry(object sender, ElapsedEventArgs e)
         {
             await _signalr.KeyUp("a");

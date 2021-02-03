@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -5,7 +6,7 @@ using System.Threading.Tasks;
 namespace HardwareCore
 {
 
-    public class AddressMap
+    public class AddressMap : IAddressMap
     {
         public bool CanRead => true;
 
@@ -15,12 +16,11 @@ namespace HardwareCore
 
         public uint Size => 0x10000;
 
-        public ushort LowWaterMark {get; private set;}
-        public ushort HighWaterMark {get; private set;}
-        public LabelTable Labels {get; set;}
+        public ushort LowWaterMark { get; private set; }
+        public ushort HighWaterMark { get; private set; }
+        public LabelTable Labels { get; set; }
         private IAddressableBlock[] RedirectionTable = new IAddressableBlock[0x10000]; // This is going to be woefully inefficient in terms of memory
         private List<IAddressAssignment> _installedModules = new List<IAddressAssignment>();
-
         public AddressMap()
         {
             ResetWatermarks();
@@ -28,7 +28,7 @@ namespace HardwareCore
 
         public async Task Initialise()
         {
-            foreach(var module in _installedModules)
+            foreach (var module in _installedModules)
             {
                 await module.Initialise();
             }
@@ -38,10 +38,10 @@ namespace HardwareCore
         {
             _installedModules.Add(device);
 
-            foreach(var block in device.Blocks)
+            foreach (var block in device.Blocks)
             {
                 var jx = block.StartAddress;
-                for(var ix = 0; ix < block.Size; ix++)
+                for (var ix = 0; ix < block.Size; ix++)
                 {
                     RedirectionTable[jx++] = block;
                 }
@@ -63,7 +63,7 @@ namespace HardwareCore
         {
             var block = RedirectionTable[address];
 
-            if(block != null && block.CanRead)
+            if (block != null && block.CanRead)
             {
                 return block.Device.Read(block.BlockId, (ushort)(address - block.StartAddress));
             }
@@ -75,19 +75,19 @@ namespace HardwareCore
         {
             var block = RedirectionTable[address];
 
-            if(block != null && block.CanWrite)
+            if (block != null && block.CanWrite)
             {
                 block.Device.Write(block.BlockId, (ushort)(address - block.StartAddress), value);
             }
 
             Debug.WriteLine($"[{address:X4}] <- {value:X2}");
 
-            if(address < LowWaterMark)
+            if (address < LowWaterMark)
             {
                 LowWaterMark = address;
             }
 
-            if(address > HighWaterMark)
+            if (address > HighWaterMark)
             {
                 HighWaterMark = address;
             }
@@ -97,13 +97,13 @@ namespace HardwareCore
         {
             Debug.Assert(address < Size - 1);
             Write(address, (byte)(value & 0xff));
-            Write((ushort)(address+1), (byte)(value >> 8));
+            Write((ushort)(address + 1), (byte)(value >> 8));
         }
 
         public ushort ReadWord(ushort address)
         {
             Debug.Assert(address < Size - 1);
-            return (ushort)(Read(address) + 256 * Read((ushort)(address+1)));
+            return (ushort)(Read(address) + 256 * Read((ushort)(address + 1)));
         }
     }
 }

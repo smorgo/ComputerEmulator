@@ -27,6 +27,7 @@ namespace Tests
         {
             mem = new AddressMap();
             mem.Install(new Ram(0x0000, 0x10000));
+
             _display = new MemoryMappedDisplay(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
             await mem.Initialise();
@@ -44,6 +45,15 @@ namespace Tests
             mem.Labels.Add("NMI_VECTOR", _cpu.NMI_VECTOR);
         }
 
+        /*
+
+           I apologise in advance for using _ as a variable name.
+           
+           The loader instance just gets in the way, so assigning it
+           the variable name _ makes it much less intrusive.
+           But it might bother some people!
+        */
+
         [Test]
         public void CanReset()
         {
@@ -54,13 +64,12 @@ namespace Tests
         [Test]
         public void EmulatorReportsInvalidOpcodes()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(0xFF)
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x02)
-                              .Write(OPCODE.BRK);
+                _
+                .Write(0xFF)
+                .LDA_IMMEDIATE(0x02)
+                .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual(1, _cpu.EmulationErrorsCount);
@@ -70,11 +79,10 @@ namespace Tests
         [Test]
         public void CanLoadAccumulatorImmediate()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x34);
+                _
+                .LDA_IMMEDIATE(0x34);
             }
             _cpu.Reset();
             Assert.AreEqual(0x34, _cpu.A);
@@ -83,12 +91,12 @@ namespace Tests
         [Test]
         public void CanLoadAccumulatorZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDA_ZERO_PAGE)
-                              .Write(0x34)
-                              .Write(0x34, 0x56);
+                _
+                .LDA_ZERO_PAGE(0x34)
+                .BRK()
+                .Write(0x34, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.A);
@@ -97,14 +105,13 @@ namespace Tests
         [Test]
         public void CanLoadAccumulatorZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x1)
-                              .Write(OPCODE.LDA_ZERO_PAGE_X)
-                              .Write(0x34)
-                              .Write(0x35, 0x56);
+                _
+                .LDX_IMMEDIATE(0x1)
+                .LDA_ZERO_PAGE_X(0x34)
+                .BRK()
+                .Write(0x35, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.A);
@@ -113,12 +120,12 @@ namespace Tests
         [Test]
         public void CanLoadAccumulatorAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDA_ABSOLUTE)
-                              .WriteWord(0x2021)
-                              .Write(0x2021, 0x56);
+                _
+                .LDA_ABSOLUTE(0x2021)
+                .BRK()
+                .Write(0x2021, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.A);
@@ -127,14 +134,13 @@ namespace Tests
         [Test]
         public void CanLoadAccumulatorAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x1)
-                              .Write(OPCODE.LDA_ABSOLUTE_X)
-                              .WriteWord(0x2021)
-                              .Write(0x2022, 0x56);
+                _
+                .LDX_IMMEDIATE(0x1)
+                .LDA_ABSOLUTE_X(0x2021)
+                .BRK()
+                .Write(0x2022, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.A);
@@ -143,15 +149,14 @@ namespace Tests
         [Test]
         public void CanLoadAccumulatorIndirectX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x2)
-                              .Write(OPCODE.LDA_INDIRECT_X)
-                              .Write(0x80)
-                              .WriteWord(0x82, 0x2021)
-                              .Write(0x2021, 0x56);
+                _
+                .LDX_IMMEDIATE(0x2)
+                .LDA_INDIRECT_X(0x80)
+                .BRK()
+                .WriteWord(0x82, 0x2021)
+                .Write(0x2021, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.A);
@@ -160,15 +165,14 @@ namespace Tests
         [Test]
         public void CanLoadAccumulatorIndirectY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x2)
-                              .Write(OPCODE.LDA_INDIRECT_Y)
-                              .Write(0x80)
-                              .WriteWord(0x80, 0x2021)
-                              .Write(0x2023, 0x56);
+                _
+                .LDY_IMMEDIATE(0x2)
+                .LDA_INDIRECT_Y(0x80)
+                .BRK()
+                .WriteWord(0x80, 0x2021)
+                .Write(0x2023, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.A);
@@ -177,11 +181,10 @@ namespace Tests
         [Test]
         public void CanLoadXImmediate()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x34);
+                _
+                .LDX_IMMEDIATE(0x34);
             }
             _cpu.Reset();
             Assert.AreEqual(0x34, _cpu.X);
@@ -190,12 +193,12 @@ namespace Tests
         [Test]
         public void CanLoadXZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDX_ZERO_PAGE)
-                              .Write(0x34)
-                              .Write(0x34, 0x56);
+                _
+                .LDX_ZERO_PAGE(0x34)
+                .BRK()
+                .Write(0x34, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.X);
@@ -204,14 +207,13 @@ namespace Tests
         [Test]
         public void CanLoadXZeroPageY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x1)
-                              .Write(OPCODE.LDX_ZERO_PAGE_Y)
-                              .Write(0x34)
-                              .Write(0x35, 0x56);
+                _
+                .LDY_IMMEDIATE(0x1)
+                .LDX_ZERO_PAGE_Y(0x34)
+                .BRK()
+                .Write(0x35, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.X);
@@ -220,12 +222,12 @@ namespace Tests
         [Test]
         public void CanLoadXAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDX_ABSOLUTE)
-                              .WriteWord(0x2021)
-                              .Write(0x2021, 0x56);
+                _
+                .LDX_ABSOLUTE(0x2021)
+                .BRK()
+                .Write(0x2021, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.X);
@@ -234,14 +236,13 @@ namespace Tests
         [Test]
         public void CanLoadXAbsoluteY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x1)
-                              .Write(OPCODE.LDX_ABSOLUTE_Y)
-                              .WriteWord(0x2021)
-                              .Write(0x2022, 0x56);
+                _
+                .LDY_IMMEDIATE(0x1)
+                .LDX_ABSOLUTE_Y(0x2021)
+                .BRK()
+                .Write(0x2022, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.X);
@@ -250,11 +251,10 @@ namespace Tests
         [Test]
         public void CanLoadYImmediate()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x34);
+                _
+                .LDY_IMMEDIATE(0x34);
             }
             _cpu.Reset();
             Assert.AreEqual(0x34, _cpu.Y);
@@ -263,12 +263,12 @@ namespace Tests
         [Test]
         public void CanLoadYZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDY_ZERO_PAGE)
-                              .Write(0x34)
-                              .Write(0x34, 0x56);
+                _
+                .LDY_ZERO_PAGE(0x34)
+                .BRK()
+                .Write(0x34, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.Y);
@@ -277,14 +277,13 @@ namespace Tests
         [Test]
         public void CanLoadYZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x1)
-                              .Write(OPCODE.LDY_ZERO_PAGE_X)
-                              .Write(0x34)
-                              .Write(0x35, 0x56);
+                _
+                .LDX_IMMEDIATE(0x1)
+                .LDY_ZERO_PAGE_X(0x34)
+                .BRK()
+                .Write(0x35, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.Y);
@@ -293,12 +292,12 @@ namespace Tests
         [Test]
         public void CanLoadYAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDY_ABSOLUTE)
-                              .WriteWord(0x2021)
-                              .Write(0x2021, 0x56);
+                _
+                .LDY_ABSOLUTE(0x2021)
+                .BRK()
+                .Write(0x2021, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.Y);
@@ -307,14 +306,13 @@ namespace Tests
         [Test]
         public void CanLoadYAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x1)
-                              .Write(OPCODE.LDY_ABSOLUTE_X)
-                              .WriteWord(0x2021)
-                              .Write(0x2022, 0x56);
+                _
+                .LDX_IMMEDIATE(0x1)
+                .LDY_ABSOLUTE_X(0x2021)
+                .BRK()
+                .Write(0x2022, 0x56);
             }
             _cpu.Reset();
             Assert.AreEqual(0x56, _cpu.Y);
@@ -323,12 +321,12 @@ namespace Tests
         [Test]
         public void CanNoOperation()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.NOP)
-                              .Write(OPCODE.NOP)
-                              .Write(OPCODE.BRK);
+                _
+                .NOP()
+                .NOP()
+                .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual(PROG_START + 3, _cpu.PC);
@@ -337,12 +335,12 @@ namespace Tests
         [Test]
         public void CanBreak()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.NOP)
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.NOP);
+                _
+                .NOP()
+                .BRK()
+                .NOP();
             }
             _cpu.Reset();
             Assert.AreEqual(PROG_START + 2, _cpu.PC);
@@ -351,15 +349,12 @@ namespace Tests
         [Test]
         public void CanStoreAccumulatorZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.STA_ZERO_PAGE)
-                              .Write(0x10)
-                              .Write(OPCODE.LDY_ZERO_PAGE)
-                              .Write(0x10);
+                _
+                .LDA_IMMEDIATE((byte)'H')
+                .STA_ZERO_PAGE(0x10)
+                .LDY_ZERO_PAGE(0x10);
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.Y);
@@ -368,17 +363,13 @@ namespace Tests
         [Test]
         public void CanStoreAccumulatorZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x02)
-                              .Write(OPCODE.STA_ZERO_PAGE_X)
-                              .Write(0x10)
-                              .Write(OPCODE.LDY_ZERO_PAGE)
-                              .Write(0x12);
+                _
+                .LDA_IMMEDIATE((byte)'H')
+                .LDX_IMMEDIATE(0x02)
+                .STA_ZERO_PAGE_X(0x10)
+                .LDY_ZERO_PAGE(0x12);
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.Y);
@@ -387,16 +378,13 @@ namespace Tests
         [Test]
         public void CanStoreAccumulatorAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.STA_ABSOLUTE)
-                              .Ref("DISPLAY_BASE_ADDR")
-                              .Write(OPCODE.LDY_ABSOLUTE)
-                              .Ref("DISPLAY_BASE_ADDR")
-                              ;
+                _
+                .LDA_IMMEDIATE((byte)'H')
+                .STA_ABSOLUTE("DISPLAY_BASE_ADDR")
+                .LDY_ABSOLUTE("DISPLAY_BASE_ADDR")
+                .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'H', _cpu.Y);
@@ -405,9 +393,9 @@ namespace Tests
         [Test]
         public void CanStoreAccumulatorAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -423,9 +411,9 @@ namespace Tests
         [Test]
         public void CanStoreAccumulatorAbsoluteY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -441,9 +429,9 @@ namespace Tests
         [Test]
         public void CanStoreAccumulatorIndirectX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -460,9 +448,9 @@ namespace Tests
         [Test]
         public void CanStoreAccumulatorIndirectY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -479,9 +467,9 @@ namespace Tests
         [Test]
         public void CanStoreXZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.STX_ZERO_PAGE)
@@ -495,9 +483,9 @@ namespace Tests
         [Test]
         public void CanStoreXZeroPageY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -514,9 +502,9 @@ namespace Tests
         [Test]
         public void CanStoreXAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.STX_ABSOLUTE)
@@ -530,9 +518,9 @@ namespace Tests
         [Test]
         public void CanStoreYZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDY_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.STY_ZERO_PAGE)
@@ -546,9 +534,9 @@ namespace Tests
         [Test]
         public void CanStoreYZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDY_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -565,9 +553,9 @@ namespace Tests
         [Test]
         public void CanStoreYAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDY_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.STY_ABSOLUTE)
@@ -582,9 +570,9 @@ namespace Tests
         [Test]
         public void CanTransferAccumulatorToX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.TAX);
@@ -595,9 +583,9 @@ namespace Tests
         [Test]
         public void CanTransferAccumulatorToY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.TAY);
@@ -608,9 +596,9 @@ namespace Tests
         [Test]
         public void CanTransferXToAccumulator()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.TXA);
@@ -621,9 +609,9 @@ namespace Tests
         [Test]
         public void CanTransferYToAccumulator()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDY_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.TYA);
@@ -635,9 +623,9 @@ namespace Tests
         [Test]
         public void CanTransferStackPointerToX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x7F)
                               .Write(OPCODE.PHA)
@@ -652,9 +640,9 @@ namespace Tests
         [Test]
         public void CanTransferXToStackPointer()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x7F)
                               .Write(OPCODE.PHA)
@@ -671,9 +659,9 @@ namespace Tests
         [Test]
         public void CanPushAccumulator()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.PHA)
@@ -687,9 +675,9 @@ namespace Tests
         [Test]
         public void CanPushProcessorStatus()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x00)
                               .Write(OPCODE.PHP)
@@ -702,9 +690,9 @@ namespace Tests
         [Test]
         public void CanPullAccumulator()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.PHA)
@@ -719,9 +707,9 @@ namespace Tests
         [Test]
         public void CanPullProcessorStatus()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.PHA)
@@ -735,9 +723,9 @@ namespace Tests
         [Test]
         public void CanJumpAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.JMP_ABSOLUTE)
@@ -753,9 +741,9 @@ namespace Tests
         [Test]
         public void CanJumpIndirect()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.JMP_INDIRECT)
@@ -773,9 +761,9 @@ namespace Tests
         [Test]
         public void CanJumpToSubroutine()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.JSR)
@@ -794,9 +782,9 @@ namespace Tests
         [Test]
         public void CanReturnSubroutine()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.JSR)
@@ -817,9 +805,9 @@ namespace Tests
         [Test]
         public void CanSetCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.SEC);
             }
             _cpu.Reset();
@@ -829,9 +817,9 @@ namespace Tests
         [Test]
         public void CanClearCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.SEC)
                               .Write(OPCODE.CLC);
             }
@@ -842,9 +830,9 @@ namespace Tests
         [Test]
         public void CanClearOverflow()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x50)
                               .Write(OPCODE.ADC_IMMEDIATE)
@@ -858,9 +846,9 @@ namespace Tests
         [Test]
         public void CanSetInterruptDisable()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.SEI);
             }
             _cpu.Reset();
@@ -870,9 +858,9 @@ namespace Tests
         [Test]
         public void CanClearInterruptDisable()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.SEI)
                               .Write(OPCODE.CLI);
             }
@@ -883,9 +871,9 @@ namespace Tests
         [Test]
         public void CanSetDecimal()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.SED);
             }
             _cpu.Reset();
@@ -895,9 +883,9 @@ namespace Tests
         [Test]
         public void CanClearDecimal()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.SED)
                               .Write(OPCODE.CLD);
             }
@@ -908,9 +896,9 @@ namespace Tests
         [Test]
         public void CanBranchForwardsOnCarryClear()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.CLC)
                               .Write(OPCODE.BCC)
                               .RelativeRef("Cont")
@@ -929,9 +917,9 @@ namespace Tests
         [Test]
         public void CanBranchBackwardsOnCarryClear()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.JMP_ABSOLUTE)
                               .Ref("Continue")
                               .Write(OPCODE.LDA_IMMEDIATE, "Back")
@@ -952,9 +940,9 @@ namespace Tests
         [Test]
         public void CanBranchForwardsOnCarrySet()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.SEC)
                               .Write(OPCODE.BCS)
                               .RelativeRef("Cont")
@@ -973,9 +961,9 @@ namespace Tests
         [Test]
         public void CanBranchBackwardsOnCarrySet()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.JMP_ABSOLUTE)
                               .Ref("Continue")
                               .Write(OPCODE.LDA_IMMEDIATE, "Back")
@@ -996,9 +984,9 @@ namespace Tests
         [Test]
         public void CanBranchOnOverflowClear()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x22)
                               .Write(OPCODE.ADC_IMMEDIATE)
@@ -1021,9 +1009,9 @@ namespace Tests
         [Test]
         public void CanBranchOnOverflowSet()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x42)
                               .Write(OPCODE.ADC_IMMEDIATE)
@@ -1047,9 +1035,9 @@ namespace Tests
         [Test]
         public void CanBranchForwardsOnMinus()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x88)
                               .Write(OPCODE.BMI)
@@ -1069,9 +1057,9 @@ namespace Tests
         [Test]
         public void CanBranchBackwardsOnMinus()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.JMP_ABSOLUTE)
                               .Ref("Continue")
                               .Write(OPCODE.LDA_IMMEDIATE, "Back")
@@ -1093,9 +1081,9 @@ namespace Tests
         [Test]
         public void CanBranchForwardsOnPositive()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x08)
                               .Write(OPCODE.BPL)
@@ -1115,9 +1103,9 @@ namespace Tests
         [Test]
         public void CanBranchBackwardsOnPositive()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.JMP_ABSOLUTE)
                               .Ref("Start")
                               .Write(OPCODE.LDA_IMMEDIATE, "Back")
@@ -1139,9 +1127,9 @@ namespace Tests
         [Test]
         public void CanCompareImmediateEqual()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1156,9 +1144,9 @@ namespace Tests
         [Test]
         public void CanCompareImmediateLess()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x90)
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1173,9 +1161,9 @@ namespace Tests
         [Test]
         public void CanCompareImmediateGreater()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x90)
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1190,9 +1178,9 @@ namespace Tests
         [Test]
         public void CanCompareZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1208,9 +1196,9 @@ namespace Tests
         [Test]
         public void CanCompareZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1227,9 +1215,9 @@ namespace Tests
         [Test]
         public void CanCompareAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1247,9 +1235,9 @@ namespace Tests
         [Test]
         public void CanCompareAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1265,9 +1253,9 @@ namespace Tests
         [Test]
         public void CanCompareIndirectX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1284,9 +1272,9 @@ namespace Tests
         [Test]
         public void CanCompareIndirectY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1304,9 +1292,9 @@ namespace Tests
         [Test]
         public void CanCompareXImmediateEqual()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1321,9 +1309,9 @@ namespace Tests
         [Test]
         public void CanCompareXImmediateLess()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x90)
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1338,9 +1326,9 @@ namespace Tests
         [Test]
         public void CanCompareXImmediateGreater()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x90)
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1355,9 +1343,9 @@ namespace Tests
         [Test]
         public void CanCompareXZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1374,9 +1362,9 @@ namespace Tests
         [Test]
         public void CanCompareXAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1394,9 +1382,9 @@ namespace Tests
         [Test]
         public void CanCompareYImmediateEqual()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDY_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1411,9 +1399,9 @@ namespace Tests
         [Test]
         public void CanCompareYImmediateLess()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDY_IMMEDIATE)
                               .Write(0x90)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1428,9 +1416,9 @@ namespace Tests
         [Test]
         public void CanCompareYImmediateGreater()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDY_IMMEDIATE)
                               .Write(0x90)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1445,9 +1433,9 @@ namespace Tests
         [Test]
         public void CanCompareYZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDY_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1464,9 +1452,9 @@ namespace Tests
         [Test]
         public void CanCompareYAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDY_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1484,9 +1472,9 @@ namespace Tests
         [Test]
         public void CanBranchEquals()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.CMP_IMMEDIATE)
@@ -1506,9 +1494,9 @@ namespace Tests
         [Test]
         public void CanBranchNotEquals()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write('H')
                               .Write(OPCODE.CMP_IMMEDIATE)
@@ -1529,9 +1517,9 @@ namespace Tests
         [Test]
         public void CanBitTestAbsoluteAllMasked()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x0A)
                               .Write(OPCODE.BIT_ABSOLUTE)
@@ -1546,9 +1534,9 @@ namespace Tests
         [Test]
         public void CanBitTestAbsoluteNotAllMasked()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x1A)
                               .Write(OPCODE.BIT_ABSOLUTE)
@@ -1563,9 +1551,9 @@ namespace Tests
         [Test]
         public void CanAddWithCarryImmediate()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x01)
                               .Write(OPCODE.ADC_IMMEDIATE)
@@ -1598,9 +1586,9 @@ namespace Tests
 
         private void InnerAddWithCarry(byte v1, byte v2, byte expected, byte statusMask)
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(v1)
                               .Write(OPCODE.ADC_IMMEDIATE)
@@ -1619,9 +1607,9 @@ namespace Tests
         [TestCase(65535, 2, 1)]
         public void CanAddMultipleBytes(int v1, int v2, int expectedResult)
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.CLC)
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x00)
@@ -1653,9 +1641,9 @@ namespace Tests
         [Test]
         public void CanAddWithCarryZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x01)
                               .Write(OPCODE.ADC_ZERO_PAGE)
@@ -1672,9 +1660,9 @@ namespace Tests
         [Test]
         public void CanAddWithCarryZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x01)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1692,9 +1680,9 @@ namespace Tests
         [Test]
         public void CanAddWithCarryAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x01)
                               .Write(OPCODE.ADC_ABSOLUTE)
@@ -1711,9 +1699,9 @@ namespace Tests
         [Test]
         public void CanAddWithCarryAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x01)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1731,9 +1719,9 @@ namespace Tests
         [Test]
         public void CanSubtractWithCarryImmediate()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x03)
                               .Write(OPCODE.SBC_IMMEDIATE)
@@ -1753,9 +1741,9 @@ namespace Tests
         public void InnerSubtractWithCarry(byte v1, byte v2, byte expected, byte statusMask)
         {
             Console.WriteLine($"${v1:X2} - ${v2:X2} = ${expected:X2}? {(sbyte)v1}-{(sbyte)v2}={(sbyte)expected}");
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(v1)
                               .Write(OPCODE.SBC_IMMEDIATE)
@@ -1774,9 +1762,9 @@ namespace Tests
         [TestCase(2, 65535, 3)]
         public void CanSubtractMultipleBytes(int v1, int v2, int expectedResult)
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.CLC)
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x00)
@@ -1807,9 +1795,9 @@ namespace Tests
         [Test]
         public void CanSubtractWithCarryZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x05)
                               .Write(OPCODE.SBC_ZERO_PAGE)
@@ -1825,9 +1813,9 @@ namespace Tests
         [Test]
         public void CanSubtractWithCarryZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x05)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1845,9 +1833,9 @@ namespace Tests
         [Test]
         public void CanSubtractWithCarryAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x05)
                               .Write(OPCODE.SBC_ABSOLUTE)
@@ -1864,9 +1852,9 @@ namespace Tests
         [Test]
         public void CanSubtractWithCarryAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x05)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1884,9 +1872,9 @@ namespace Tests
         [Test]
         public void CanAddWithCarryAbsoluteY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x01)
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1904,9 +1892,9 @@ namespace Tests
         [Test]
         public void CanAddWithCarryIndirectX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x01)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1924,9 +1912,9 @@ namespace Tests
         [Test]
         public void CanAddWithCarryIndirectY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x01)
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -1945,9 +1933,9 @@ namespace Tests
         [Test]
         public void CanAndImmediate()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.AND_IMMEDIATE)
@@ -1961,9 +1949,9 @@ namespace Tests
         [Test]
         public void CanAndZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.AND_ZERO_PAGE)
@@ -1977,9 +1965,9 @@ namespace Tests
         [Test]
         public void CanAndZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -1995,9 +1983,9 @@ namespace Tests
         [Test]
         public void CanAndAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.AND_ABSOLUTE)
@@ -2011,9 +1999,9 @@ namespace Tests
         [Test]
         public void CanAndAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -2029,9 +2017,9 @@ namespace Tests
         [Test]
         public void CanAndAbsoluteY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -2048,9 +2036,9 @@ namespace Tests
         [Test]
         public void CanOrImmediate()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x0F)
                               .Write(OPCODE.ORA_IMMEDIATE)
@@ -2064,9 +2052,9 @@ namespace Tests
         [Test]
         public void CanOrZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x0F)
                               .Write(OPCODE.ORA_ZERO_PAGE)
@@ -2080,9 +2068,9 @@ namespace Tests
         [Test]
         public void CanOrZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x0F)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -2098,9 +2086,9 @@ namespace Tests
         [Test]
         public void CanOrAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x0F)
                               .Write(OPCODE.ORA_ABSOLUTE)
@@ -2114,9 +2102,9 @@ namespace Tests
         [Test]
         public void CanOrAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x0F)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -2132,9 +2120,9 @@ namespace Tests
         [Test]
         public void CanOrAbsoluteY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x0F)
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -2151,9 +2139,9 @@ namespace Tests
         [Test]
         public void CanAslAccumulator()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x88)
                               .Write(OPCODE.ASL_ACCUMULATOR)
@@ -2167,9 +2155,9 @@ namespace Tests
         [Test]
         public void CanAslZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.ASL_ZERO_PAGE)
                               .Write(0x20)
                               .Write(OPCODE.BRK)
@@ -2183,9 +2171,9 @@ namespace Tests
         [Test]
         public void CanAslZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x20)
                               .Write(OPCODE.ASL_ZERO_PAGE_X)
@@ -2201,9 +2189,9 @@ namespace Tests
         [Test]
         public void CanAslAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.ASL_ABSOLUTE)
                               .Ref("Data")
                               .Write(OPCODE.BRK)
@@ -2218,9 +2206,9 @@ namespace Tests
         [Test]
         public void CanAslAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x02)
                               .Write(OPCODE.ASL_ABSOLUTE_X)
@@ -2238,9 +2226,9 @@ namespace Tests
         [Test]
         public void CanLsrAccumulator()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x11)
                               .Write(OPCODE.LSR_ACCUMULATOR)
@@ -2254,9 +2242,9 @@ namespace Tests
         [Test]
         public void CanLsrZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LSR_ZERO_PAGE)
                               .Write(0x20)
                               .Write(OPCODE.BRK)
@@ -2270,9 +2258,9 @@ namespace Tests
         [Test]
         public void CanLsrZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x20)
                               .Write(OPCODE.LSR_ZERO_PAGE_X)
@@ -2288,9 +2276,9 @@ namespace Tests
         [Test]
         public void CanLsrAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LSR_ABSOLUTE)
                               .Ref("Data")
                               .Write(OPCODE.BRK)
@@ -2305,9 +2293,9 @@ namespace Tests
         [Test]
         public void CanLsrAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x02)
                               .Write(OPCODE.LSR_ABSOLUTE_X)
@@ -2325,9 +2313,9 @@ namespace Tests
         [Test]
         public void CanRolAccumulator()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x88)
                               .Write(OPCODE.SEC)
@@ -2342,9 +2330,9 @@ namespace Tests
         [Test]
         public void CanRolZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.SEC)
                               .Write(OPCODE.ROL_ZERO_PAGE)
                               .Write(0x20)
@@ -2359,9 +2347,9 @@ namespace Tests
         [Test]
         public void CanRolZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x20)
                               .Write(OPCODE.SEC)
@@ -2378,9 +2366,9 @@ namespace Tests
         [Test]
         public void CanRolAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.SEC)
                               .Write(OPCODE.ROL_ABSOLUTE)
                               .Ref("Data")
@@ -2396,9 +2384,9 @@ namespace Tests
         [Test]
         public void CanRolAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x02)
                               .Write(OPCODE.SEC)
@@ -2417,9 +2405,9 @@ namespace Tests
         [Test]
         public void CanRorAccumulatorNoCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x11)
                               .Write(OPCODE.ROR_ACCUMULATOR)
@@ -2433,9 +2421,9 @@ namespace Tests
         [Test]
         public void CanRorZeroPageNoCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.ROR_ZERO_PAGE)
                               .Write(0x20)
                               .Write(OPCODE.BRK)
@@ -2449,9 +2437,9 @@ namespace Tests
         [Test]
         public void CanRorZeroPageXNoCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x20)
                               .Write(OPCODE.ROR_ZERO_PAGE_X)
@@ -2467,9 +2455,9 @@ namespace Tests
         [Test]
         public void CanRorAbsoluteNoCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.ROR_ABSOLUTE)
                               .Ref("Data")
                               .Write(OPCODE.BRK)
@@ -2484,9 +2472,9 @@ namespace Tests
         [Test]
         public void CanRorAbsoluteXNoCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x02)
                               .Write(OPCODE.ROR_ABSOLUTE_X)
@@ -2504,9 +2492,9 @@ namespace Tests
         [Test]
         public void CanRorAccumulatorCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x11)
                               .Write(OPCODE.SEC)
@@ -2521,9 +2509,9 @@ namespace Tests
         [Test]
         public void CanRorZeroPageCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.SEC)
                               .Write(OPCODE.ROR_ZERO_PAGE)
                               .Write(0x20)
@@ -2538,9 +2526,9 @@ namespace Tests
         [Test]
         public void CanRorZeroPageXCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x20)
                               .Write(OPCODE.SEC)
@@ -2557,9 +2545,9 @@ namespace Tests
         [Test]
         public void CanRorAbsoluteCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.SEC)
                               .Write(OPCODE.ROR_ABSOLUTE)
                               .Ref("Data")
@@ -2575,9 +2563,9 @@ namespace Tests
         [Test]
         public void CanRorAbsoluteXCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x02)
                               .Write(OPCODE.SEC)
@@ -2596,9 +2584,9 @@ namespace Tests
         [Test]
         public void CanRolAccumulatorNoCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x88)
                               .Write(OPCODE.ROL_ACCUMULATOR)
@@ -2612,9 +2600,9 @@ namespace Tests
         [Test]
         public void CanRolZeroPageNoCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.ROL_ZERO_PAGE)
                               .Write(0x20)
                               .Write(OPCODE.BRK)
@@ -2628,9 +2616,9 @@ namespace Tests
         [Test]
         public void CanRolZeroPageXNoCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x20)
                               .Write(OPCODE.ROL_ZERO_PAGE_X)
@@ -2646,9 +2634,9 @@ namespace Tests
         [Test]
         public void CanRolAbsoluteNoCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.ROL_ABSOLUTE)
                               .Ref("Data")
                               .Write(OPCODE.BRK)
@@ -2663,9 +2651,9 @@ namespace Tests
         [Test]
         public void CanRolAbsoluteXNoCarry()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x02)
                               .Write(OPCODE.ROL_ABSOLUTE_X)
@@ -2683,9 +2671,9 @@ namespace Tests
         [Test]
         public void CanDecrementZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.DEC_ZERO_PAGE)
                               .Write(0x10)
                               .Write(OPCODE.LDA_ZERO_PAGE)
@@ -2700,9 +2688,9 @@ namespace Tests
         [Test]
         public void CanDecrementZeroPageFromZero()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.DEC_ZERO_PAGE)
                               .Write(0x10)
                               .Write(OPCODE.LDA_ZERO_PAGE)
@@ -2718,9 +2706,9 @@ namespace Tests
         [Test]
         public void CanDecrementZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x10)
                               .Write(OPCODE.DEC_ZERO_PAGE_X)
@@ -2737,9 +2725,9 @@ namespace Tests
         [Test]
         public void CanDecrementAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.DEC_ABSOLUTE)
                               .Ref("Data")
                               .Write(OPCODE.LDA_ABSOLUTE)
@@ -2755,9 +2743,9 @@ namespace Tests
         [Test]
         public void CanDecrementAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x02)
                               .Write(OPCODE.DEC_ABSOLUTE_X)
@@ -2776,9 +2764,9 @@ namespace Tests
         [Test]
         public void CanDecrementX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x80)
                               .Write(OPCODE.DEX)
@@ -2792,9 +2780,9 @@ namespace Tests
         [Test]
         public void CanDecrementY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDY_IMMEDIATE)
                               .Write(0x80)
                               .Write(OPCODE.DEY)
@@ -2808,9 +2796,9 @@ namespace Tests
         [Test]
         public void CanExclusiveOrImmediate()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.EOR_IMMEDIATE)
@@ -2824,9 +2812,9 @@ namespace Tests
         [Test]
         public void CanExclusiveOrZeroPage()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.EOR_ZERO_PAGE)
@@ -2841,9 +2829,9 @@ namespace Tests
         [Test]
         public void CanExclusiveOrZeroPageX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -2860,9 +2848,9 @@ namespace Tests
         [Test]
         public void CanExclusiveOrAbsolute()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.EOR_ABSOLUTE)
@@ -2878,9 +2866,9 @@ namespace Tests
         [Test]
         public void CanExclusiveOrAbsoluteX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -2899,9 +2887,9 @@ namespace Tests
         [Test]
         public void CanExclusiveOrIndirectX()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.LDX_IMMEDIATE)
@@ -2920,9 +2908,9 @@ namespace Tests
         [Test]
         public void CanExclusiveOrIndirectY()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0xFF)
                               .Write(OPCODE.LDY_IMMEDIATE)
@@ -2942,9 +2930,9 @@ namespace Tests
         [Test]
         public void CanCauseStackOverflow()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.JSR, "InfiniteLoop")
                               .Ref("InfiniteLoop")
                               ;
@@ -2956,9 +2944,9 @@ namespace Tests
         [Test]
         public void CanCauseStackUnderflow()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.RTS);
             }
             _cpu.Reset();
@@ -2970,9 +2958,9 @@ namespace Tests
         {
             // Manually push a return address and processor flags to the stack
             // to simulate an interrupt
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDA_IMMEDIATE)
                               .Write(0x90)
                               .Write(OPCODE.PHA)
@@ -2997,9 +2985,9 @@ namespace Tests
             _tickCount = 0;
             _interruptTickInterval = 600;
 
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x00)
                               .Write(OPCODE.LDY_IMMEDIATE, "LoopX")
@@ -3032,9 +3020,9 @@ namespace Tests
         [Test]
         public void LetsDoThis()
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               .Write(OPCODE.LDX_IMMEDIATE) // X will be our index into the data and the screen
                               .Write(0x00)
                               .Write(OPCODE.LDA_ABSOLUTE_X, "Loop")
@@ -3059,27 +3047,20 @@ namespace Tests
         [TestCase(1, 255, 256)]
         public void CanAdd16Bit(int v1, int v2, int expected)
         {
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
-                              .Write(OPCODE.CLC)
-                              .Write(OPCODE.LDA_ABSOLUTE)
-                              .Ref("v1")
-                              .Write(OPCODE.ADC_ABSOLUTE)
-                              .Ref("v2")
-                              .Write(OPCODE.STA_ABSOLUTE)
-                              .Ref("Result")
-                              .Write(OPCODE.LDA_ABSOLUTE)
-                              .Ref("v1", 1)
-                              .Write(OPCODE.ADC_ABSOLUTE)
-                              .Ref("v2", 1)
-                              .Write(OPCODE.STA_ABSOLUTE)
-                              .Ref("Result", 1)
-                              .Write(OPCODE.BRK)
-                              .WriteWord((ushort)v1, "v1")
-                              .WriteWord((ushort)v2, "v2")
-                              .WriteWord(0x8200, 0x0000, "Result")
-                              ;
+                _
+                    .CLC()
+                    .LDA_ABSOLUTE("v1")
+                    .ADC_ABSOLUTE("v2")
+                    .STA_ABSOLUTE("Result")
+                    .LDA_ABSOLUTE("v1+1")
+                    .ADC_ABSOLUTE("v2+1")
+                    .STA_ABSOLUTE("Result+1")
+                    .BRK()
+                    .WriteWord((ushort)v1, "v1")
+                    .WriteWord((ushort)v2, "v2")
+                    .WriteWord(0x8200, 0x0000, "Result");
             }
             _cpu.Reset();
             var result = mem.ReadWord(0x8200);
@@ -3095,9 +3076,9 @@ namespace Tests
             var h = _display.Mode.Height;
             var bpr = _display.Mode.BytesPerRow;
 
-            using (var loader = mem.Load(PROG_START))
+            using (var _ = mem.Load(PROG_START))
             {
-                loader
+                _
                               // Write column header
                               .Write(OPCODE.LDX_IMMEDIATE)
                               .Write(0x00)
