@@ -3076,86 +3076,71 @@ namespace Tests
             var h = _display.Mode.Height;
             var bpr = _display.Mode.BytesPerRow;
 
+            /*
+             * I'm using a different coding style here, with labels
+             * explicitly created using the .Label() method.
+             * The alternative, used elsewhere, is to add the label
+             * as the final parameter of the instruction that starts
+             * at the label address (so, the instruction that otherwise
+             * comes after the .Label() call).
+             */
+             
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              // Write column header
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.JSR)
-                              .Ref("ResetDigit")
+                    // Write column header
+                    .LDX_IMMEDIATE(0x00)
+                    .JSR("ResetDigit")
 
-                              .Write(OPCODE.LDA_ZERO_PAGE, "ColumnLoop")
-                              .ZeroPageRef("CurrentDigit")
-                              .Write(OPCODE.STA_ABSOLUTE_X)
-                              .WriteWord(DISPLAY_BASE_ADDR)
-                              .Write(OPCODE.INX)
-                              .Write(OPCODE.CPX_IMMEDIATE)
-                              .Write((byte)w)
-                              .Write(OPCODE.BCS)
-                              .RelativeRef("DoneColumns")
+                .Label("ColumnLoop")
+                    .LDA_ZERO_PAGE("CurrentDigit")
+                    .STA_ABSOLUTE_X(DISPLAY_BASE_ADDR)
+                    .INX()
+                    .CPX_IMMEDIATE((byte)w)
+                    .BCS("DoneColumns")
 
-                              .Write(OPCODE.JSR)
-                              .Ref("IncrementDigit")
-                              .Write(OPCODE.JMP_ABSOLUTE)
-                              .Ref("ColumnLoop")
+                    .JSR("IncrementDigit")
+                    .JMP_ABSOLUTE("ColumnLoop")
 
-                              // Write row labels
-                              .Write(OPCODE.JSR, "DoneColumns")
-                              .Ref("ResetDigit")
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(h - 1)
+                    // Write row labels
+                .Label("DoneColumns")
+                    .JSR("ResetDigit")
+                    .LDY_IMMEDIATE((byte)(h - 1))
 
-                              .Write(OPCODE.CLC, "IncrementRowAddress")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(bpr.Lsb())
-                              .Write(OPCODE.ADC_ZERO_PAGE)
-                              .ZeroPageRef("DisplayVector")
-                              .Write(OPCODE.STA_ZERO_PAGE)
-                              .ZeroPageRef("DisplayVector")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(bpr.Msb())
-                              .Write(OPCODE.ADC_ZERO_PAGE)
-                              .ZeroPageRef("DisplayVector", 1)
-                              .Write(OPCODE.STA_ZERO_PAGE)
-                              .ZeroPageRef("DisplayVector", 1)
+                .Label("IncrementRowAddress")
+                    .CLC()
+                    .LDA_IMMEDIATE(bpr.Lsb())
+                    .ADC_ZERO_PAGE("DisplayVector")
+                    .STA_ZERO_PAGE("DisplayVector")
+                    .LDA_IMMEDIATE(bpr.Msb())
+                    .ADC_ZERO_PAGE("DisplayVector+1")
+                    .STA_ZERO_PAGE("DisplayVector+1")
 
-                              .Write(OPCODE.JSR)
-                              .Ref("IncrementDigit")
+                    .JSR("IncrementDigit")
 
-                              .Write(OPCODE.LDA_ZERO_PAGE)
-                              .ZeroPageRef("CurrentDigit")
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.STA_INDIRECT_X)
-                              .ZeroPageRef("DisplayVector")
+                    .LDA_ZERO_PAGE("CurrentDigit")
+                    .LDX_IMMEDIATE(0x00)
+                    .STA_INDIRECT_X("DisplayVector")
 
-                              .Write(OPCODE.DEY)
-                              .Write(OPCODE.BNE)
-                              .RelativeRef("IncrementRowAddress")
-                              .Write(OPCODE.BRK, "Finished")
+                    .DEY()
+                    .BNE("IncrementRowAddress")
+                .Label("Finished")
+                    .BRK()
 
-                              // Subroutine ResetDigit
-                              .Write(OPCODE.LDA_IMMEDIATE, "ResetDigit")
-                              .Write('0')
-                              .Write(OPCODE.STA_ZERO_PAGE)
-                              .ZeroPageRef("CurrentDigit")
-                              .Write(OPCODE.RTS)
+                .Label("ResetDigit")
+                    .LDA_IMMEDIATE((byte)'0')
+                    .STA_ZERO_PAGE("CurrentDigit")
+                    .RTS()
 
-                              // Subroutine IncrementDigit
-                              .Write(OPCODE.LDA_ZERO_PAGE, "IncrementDigit")
-                              .ZeroPageRef("CurrentDigit")
-                              .Write(OPCODE.CMP_IMMEDIATE)
-                              .Write('9')
-                              .Write(OPCODE.BCS)
-                              .RelativeRef("ResetDigit") // Sneakily jump to the reset routine
-                              .Write(OPCODE.INC_ZERO_PAGE)
-                              .ZeroPageRef("CurrentDigit")
-                              .Write(OPCODE.RTS)
+                .Label("IncrementDigit")
+                    .LDA_ZERO_PAGE("CurrentDigit")
+                    .CMP_IMMEDIATE((byte)'9')
+                    .BCS("ResetDigit") // Sneakily jump to the reset routine
+                    .INC_ZERO_PAGE("CurrentDigit")
+                    .RTS()
 
-                              .Write(0x10, '0', "CurrentDigit")
-                              .WriteWord(0x12, DISPLAY_BASE_ADDR, "DisplayVector")
-                              ;
+                    .Write(0x10, '0', "CurrentDigit")
+                    .WriteWord(0x12, DISPLAY_BASE_ADDR, "DisplayVector");
             }
 
             _cpu.Reset();

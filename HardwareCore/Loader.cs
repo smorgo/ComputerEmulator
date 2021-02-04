@@ -227,6 +227,17 @@ namespace HardwareCore
             return Write(address, 0xff);
         }
 
+        public Loader Label(ushort address, string label)
+        {
+            AddLabel(label, address);
+            return this;
+        }
+
+        public Loader Label(string label)
+        {
+            return Label(Cursor, label);
+        }
+        
         private void AddLabel(string label, ushort address)
         {
             _fixupRequired = true;
