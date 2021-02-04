@@ -1549,6 +1549,36 @@ namespace Tests
         }
 
         [Test]
+        public void CanBitTestZeroPageAllMasked()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                    .LDA_IMMEDIATE(0x0A)
+                    .BIT_ZERO_PAGE(0x10)
+                    .BRK()
+                    .Write(0x10, 0xF0);
+            }
+            _cpu.Reset();
+            Assert.IsTrue(_cpu.P.Z);
+        }
+
+        [Test]
+        public void CanBitTestZeroPageNotAllMasked()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                    .LDA_IMMEDIATE(0x1A)
+                    .BIT_ZERO_PAGE(0x10)
+                    .BRK()
+                    .Write(0x10, 0xF0);
+            }
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.Z);
+        }
+
+        [Test]
         public void CanAddWithCarryImmediate()
         {
             using (var _ = mem.Load(PROG_START))
@@ -2034,6 +2064,45 @@ namespace Tests
         }
 
         [Test]
+        public void CanAndIndirectX()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                    .LDA_IMMEDIATE(0xFF)
+                    .LDX_IMMEDIATE(0x02)
+                    .AND_INDIRECT_X("Vector")
+                    .Write(OPCODE.BRK)
+                    
+                    // Data
+                    .WriteWord(0x10, 0xFFFF, "Vector")
+                    .WriteWord(0x1010)
+                    .Write(0x1010, 0x80);
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0x80, _cpu.A);
+        }
+
+        [Test]
+        public void CanAndIndirectY()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                    .LDA_IMMEDIATE(0xFF)
+                    .LDY_IMMEDIATE(0x02)
+                    .AND_INDIRECT_Y("Vector")
+                    .Write(OPCODE.BRK)
+                    
+                    // Data
+                    .WriteWord(0x10, 0x100E, "Vector")
+                    .Write(0x1010, 0x80);
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0x80, _cpu.A);
+        }
+
+        [Test]
         public void CanOrImmediate()
         {
             using (var _ = mem.Load(PROG_START))
@@ -2131,6 +2200,45 @@ namespace Tests
                               .WriteWord(0x1000)
                               .Write(OPCODE.BRK)
                               .Write(0x1010, 0x80);
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0x8F, _cpu.A);
+        }
+
+        [Test]
+        public void CanOrIndirectX()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                    .LDA_IMMEDIATE(0x0F)
+                    .LDX_IMMEDIATE(0x02)
+                    .ORA_INDIRECT_X("Vector")
+                    .Write(OPCODE.BRK)
+                    
+                    // Data
+                    .WriteWord(0x10, 0xFFFF, "Vector")
+                    .WriteWord(0x1010)
+                    .Write(0x1010, 0x80);
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0x8F, _cpu.A);
+        }
+
+        [Test]
+        public void CanOrIndirectY()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                    .LDA_IMMEDIATE(0x0F)
+                    .LDY_IMMEDIATE(0x02)
+                    .ORA_INDIRECT_Y("Vector")
+                    .Write(OPCODE.BRK)
+                    
+                    // Data
+                    .WriteWord(0x10, 0x100E, "Vector")
+                    .Write(0x1010, 0x80);
             }
             _cpu.Reset();
             Assert.AreEqual(0x8F, _cpu.A);
@@ -2794,6 +2902,131 @@ namespace Tests
         }
 
         [Test]
+        public void CanIncrementZeroPage()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                              .Write(OPCODE.INC_ZERO_PAGE)
+                              .Write(0x10)
+                              .Write(OPCODE.LDA_ZERO_PAGE)
+                              .Write(0x10)
+                              .Write(OPCODE.BRK)
+                              .Write(0x10, 0x80);
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0x81, _cpu.A);
+        }
+
+        [Test]
+        public void CanIncrementZeroPageFromMinus1()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                              .Write(OPCODE.INC_ZERO_PAGE)
+                              .Write(0x10)
+                              .Write(OPCODE.LDA_ZERO_PAGE)
+                              .Write(0x10)
+                              .Write(OPCODE.BRK)
+                              .Write(0x10, 0xFF);
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0x0, _cpu.A);
+            Assert.IsFalse(_cpu.P.N);
+        }
+
+        [Test]
+        public void CanIncrementZeroPageX()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                              .Write(OPCODE.LDX_IMMEDIATE)
+                              .Write(0x10)
+                              .Write(OPCODE.INC_ZERO_PAGE_X)
+                              .Write(0x00)
+                              .Write(OPCODE.LDA_ZERO_PAGE)
+                              .Write(0x10)
+                              .Write(OPCODE.BRK)
+                              .Write(0x10, 0x80);
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0x81, _cpu.A);
+        }
+
+        [Test]
+        public void CanIncrementAbsolute()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                              .Write(OPCODE.INC_ABSOLUTE)
+                              .Ref("Data")
+                              .Write(OPCODE.LDA_ABSOLUTE)
+                              .Ref("Data")
+                              .Write(OPCODE.BRK)
+                              .Write(0x1010, 0x80, "Data")
+                              ;
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0x81, _cpu.A);
+        }
+
+        [Test]
+        public void CanIncrementAbsoluteX()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                              .Write(OPCODE.LDX_IMMEDIATE)
+                              .Write(0x02)
+                              .Write(OPCODE.INC_ABSOLUTE_X)
+                              .Ref("Data")
+                              .Write(OPCODE.LDA_ABSOLUTE_X)
+                              .Ref("Data")
+                              .Write(OPCODE.BRK)
+                              .WriteWord(0x1010, 0x5555, "Data")
+                              .Write(0x80)
+                              ;
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0x81, _cpu.A);
+        }
+
+        [Test]
+        public void CanIncrementX()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                              .Write(OPCODE.LDX_IMMEDIATE)
+                              .Write(0x80)
+                              .Write(OPCODE.INX)
+                              .Write(OPCODE.BRK);
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0x81, _cpu.X);
+            Assert.IsTrue(_cpu.P.N);
+        }
+
+        [Test]
+        public void CanIncrementY()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                              .Write(OPCODE.LDY_IMMEDIATE)
+                              .Write(0x80)
+                              .Write(OPCODE.INY)
+                              .Write(OPCODE.BRK);
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0x81, _cpu.Y);
+            Assert.IsTrue(_cpu.P.N);
+        }
+
+        [Test]
         public void CanExclusiveOrImmediate()
         {
             using (var _ = mem.Load(PROG_START))
@@ -2879,6 +3112,23 @@ namespace Tests
                               .WriteWord(0x1010, 0xFFFF, "Data")
                               .Write(0x55)
                               ;
+            }
+            _cpu.Reset();
+            Assert.AreEqual(0xAA, _cpu.A);
+        }
+
+        [Test]
+        public void CanExclusiveOrAbsoluteY()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                    .LDA_IMMEDIATE(0xFF)
+                    .LDY_IMMEDIATE(0x02)
+                    .EOR_ABSOLUTE_Y("Data")
+                    .BRK()
+                    .WriteWord(0x1010, 0xFFFF, "Data")
+                    .Write(0x55);
             }
             _cpu.Reset();
             Assert.AreEqual(0xAA, _cpu.A);
@@ -3084,7 +3334,7 @@ namespace Tests
              * at the label address (so, the instruction that otherwise
              * comes after the .Label() call).
              */
-             
+
             using (var _ = mem.Load(PROG_START))
             {
                 _
