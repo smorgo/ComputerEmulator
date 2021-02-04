@@ -1900,6 +1900,26 @@ namespace Tests
         }
 
         [Test]
+        public void CanSubtractWithCarryAbsoluteY()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                              .Write(OPCODE.LDA_IMMEDIATE)
+                              .Write(0x05)
+                              .Write(OPCODE.LDY_IMMEDIATE)
+                              .Write(0x01)
+                              .Write(OPCODE.SBC_ABSOLUTE_Y)
+                              .WriteWord(0x1004)
+                              .Write(OPCODE.BRK)
+                              .Write(0x1005, 0x02);
+            }
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
+            Assert.AreEqual(0x03, _cpu.A);
+        }
+
+        [Test]
         public void CanAddWithCarryAbsoluteY()
         {
             using (var _ = mem.Load(PROG_START))
@@ -1958,6 +1978,49 @@ namespace Tests
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C | _cpu.P.Z | _cpu.P.V | _cpu.P.N);
             Assert.AreEqual(0x03, _cpu.A);
+        }
+
+        [Test]
+        public void CanSubtractWithCarryIndirectX()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                              .Write(OPCODE.LDA_IMMEDIATE)
+                              .Write(0x01)
+                              .Write(OPCODE.LDX_IMMEDIATE)
+                              .Write(0x02)
+                              .Write(OPCODE.SBC_INDIRECT_X)
+                              .Write(0x00)
+                              .Write(OPCODE.BRK)
+                              .WriteWord(0x02, 0x1234)
+                              .Write(0x1234, 0x02);
+            }
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.Z);
+            Assert.IsTrue(_cpu.P.C & _cpu.P.V & _cpu.P.N);
+            Assert.AreEqual(0xFF, _cpu.A);
+        }
+        [Test]
+        public void CanSubtractWithCarryIndirectY()
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                              .Write(OPCODE.LDA_IMMEDIATE)
+                              .Write(0x01)
+                              .Write(OPCODE.LDY_IMMEDIATE)
+                              .Write(0x02)
+                              .Write(OPCODE.SBC_INDIRECT_Y)
+                              .Write(0x08)
+                              .Write(OPCODE.BRK)
+                              .WriteWord(0x08, 0x1234)
+                              .Write(0x1236, 0x02);
+            }
+            _cpu.Reset();
+            Assert.IsFalse(_cpu.P.Z);
+            Assert.IsTrue(_cpu.P.C & _cpu.P.V & _cpu.P.N);
+            Assert.AreEqual(0xFF, _cpu.A);
         }
 
         [Test]
@@ -3315,6 +3378,30 @@ namespace Tests
             _cpu.Reset();
             var result = mem.ReadWord(0x8200);
             Assert.AreEqual(expected, result);
+        }
+
+        [TestCase(127, 128, -1)]
+        [TestCase(-1, -255, 254)]
+        public void CanSubtract16Bit(int v1, int v2, int expected)
+        {
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                    .CLC()
+                    .LDA_ABSOLUTE("v1")
+                    .SBC_ABSOLUTE("v2")
+                    .STA_ABSOLUTE("Result")
+                    .LDA_ABSOLUTE("v1+1")
+                    .SBC_ABSOLUTE("v2+1")
+                    .STA_ABSOLUTE("Result+1")
+                    .BRK()
+                    .WriteWord((ushort)v1, "v1")
+                    .WriteWord((ushort)v2, "v2")
+                    .WriteWord(0x8200, 0x0000, "Result");
+            }
+            _cpu.Reset();
+            var result = mem.ReadWord(0x8200);
+            Assert.AreEqual((ushort)expected, (ushort)result);
         }
 
         [Test]
