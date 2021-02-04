@@ -9,14 +9,32 @@ namespace KeyboardConnector
 {
     public class MemoryMappedKeyboard : IAddressAssignment, IAddressableBlock, IKeyboardInput
     {
-        private static string _synclock = "Lock";
+        public class KeyboardEvent
+        {
+            public byte Status {get; private set;}
+            public byte Data {get; private set;}
+            public byte ScanCode {get; private set;}
+
+            public KeyboardEvent()
+            {
+            }
+
+            public KeyboardEvent(byte status, byte data, byte scanCode)
+            {
+                Status = status;
+                Data = data;
+                ScanCode = scanCode;
+            }
+        }
         public EventHandler RequestInterrupt {get; set;}
         public const ushort STATUS_REGISTER = 0x0000;
         public const ushort CONTROL_REGISTER = 0x0001;
         public const ushort DATA_REGISTER = 0x0002;
         public const ushort SCAN_CODE_REGISTER = 0x0003;
-
-        private bool _isKeyDown = false;
+        private int _lastKeyPressId = int.MinValue;
+        private FifoBuffer<KeyboardEvent> _eventBuffer;
+        private KeyboardEvent _current;
+        private byte _controlRegister = 0x00;
 
         [Flags]
         public enum StatusBits
@@ -56,8 +74,6 @@ namespace KeyboardConnector
 
         public int BlockId => 0;
 
-        private byte[] _registers = new byte[4];
-//        private HubConnection _connection;
         private IRemoteConnection _connection;
         private IRemoteKeyboard _keyboard;
 
@@ -66,14 +82,15 @@ namespace KeyboardConnector
             StartAddress = startAddress;
             _connection = connection;
             _keyboard = (IRemoteKeyboard)connection;
+            _eventBuffer = new FifoBuffer<KeyboardEvent>(16);
         }
 
         public async Task Initialise()
         {
-            _registers[0] = 0x00;
-            _registers[1] = 0x00;
-            _registers[2] = 0x00;
-            _registers[3] = 0x00;
+            _eventBuffer.Clear();
+            _controlRegister = 0x00;
+
+            _current = null;
 
             _keyboard.OnKeyUp += async (s,e) => {await OnKeyUp(e);}; 
             _keyboard.OnKeyDown += async (s,e) => {await OnKeyDown(e);}; 
@@ -84,45 +101,69 @@ namespace KeyboardConnector
 
             await SendControlRegister();
         }
-        private async Task OnKeyUp(string key)
+        private async Task OnKeyUp(KeyPress keyPress)
         {
-            lock(_synclock)
+            lock(this)
             {
-                if(!_isKeyDown) return;
-                _isKeyDown = false;
+                var key = keyPress.Key;
 
+                if(keyPress.Id == _lastKeyPressId)
+                {
+                    Debug.WriteLine("Ignoring duplicate keypress");
+                    return;
+                }
+
+                _lastKeyPressId = keyPress.Id;
+
+                Debug.WriteLine("OnKeyUp");
                 byte keyCode = 0x00;
                 if(key.Length == 1)
                 {
                     keyCode = (byte)key[0];
                 }
+
+                _eventBuffer.Write(
+                    new KeyboardEvent(
+                        (byte)(StatusBits.AsciiAvailable | StatusBits.KeyUp | StatusBits.ScanCodeAvailable),
+                        keyCode,
+                        keyCode));
+
                 KeyUp?.Invoke(this, keyCode);
 
-                _registers[DATA_REGISTER] = keyCode;
-                _registers[SCAN_CODE_REGISTER] = keyCode;
-                _registers[STATUS_REGISTER] = (byte)(StatusBits.AsciiAvailable | StatusBits.KeyUp | StatusBits.ScanCodeAvailable);
                 RequestInterrupt?.Invoke(this,null);
             }
             await Task.Delay(0);
         }
 
-        private async Task OnKeyDown(string key)
+        private async Task OnKeyDown(KeyPress keyPress)
         {
-            lock(_synclock)
+            lock(this)
             {
-                if(_isKeyDown) return;
-                _isKeyDown = true;
+                var key = keyPress.Key;
 
+                if(keyPress.Id == _lastKeyPressId)
+                {
+                    Debug.WriteLine("Ignoring duplicate keypress");
+                    return;
+                }
+
+                _lastKeyPressId = keyPress.Id;
+
+                Debug.WriteLine("OnKeyDown");
                 byte keyCode = 0x00;
                 if(key.Length == 1)
                 {
                     keyCode = (byte)key[0];
                 }
+
+                _eventBuffer.Write(
+                    new KeyboardEvent(
+                        (byte)(StatusBits.AsciiAvailable | StatusBits.KeyDown | StatusBits.ScanCodeAvailable),
+                        keyCode,
+                        keyCode));
+
                 KeyDown?.Invoke(this, keyCode);
 
-                _registers[DATA_REGISTER] = keyCode;
-                _registers[SCAN_CODE_REGISTER] = keyCode;
-                _registers[STATUS_REGISTER] = (byte)(StatusBits.AsciiAvailable | StatusBits.KeyDown | StatusBits.ScanCodeAvailable);
                 RequestInterrupt?.Invoke(this,null);
             }
 
@@ -133,7 +174,7 @@ namespace KeyboardConnector
         {
             try
             {
-                await _keyboard.SendControlRegister(_registers[CONTROL_REGISTER]);
+                await _keyboard.SendControlRegister(_controlRegister);
             }
             catch (Exception ex)
             {                
@@ -142,21 +183,55 @@ namespace KeyboardConnector
         }
         public byte Read(ushort address)
         {
-            Debug.Assert(address < Size);
+            lock(this)
+            {
+                Debug.Assert(address < Size);
+                KeyboardEvent evt;
 
-            return _registers[address];
+                switch(address)
+                {
+                    case CONTROL_REGISTER:
+                        return _controlRegister;
+                    case STATUS_REGISTER:
+                        if(_eventBuffer.Read(out evt))
+                        {
+                            _current = evt;
+                            return evt.Status;
+                        }        
+                        _current = null;
+                        break;
+                    case DATA_REGISTER:
+                        if(_current != null)
+                        {
+                            return _current.Data;
+                        }
+                        return 0x00;
+                    case SCAN_CODE_REGISTER:
+                        if(_current != null)
+                        {
+                            return _current.Data;
+                        }
+                        return 0x00;
+                }
+            }
+
+            return 0x00;
         }
 
         public void Write(ushort address, byte value)
         {
-            if(address == CONTROL_REGISTER)
+            lock(this)
             {
-                _registers[CONTROL_REGISTER] = (byte)(value & 0x7);
-                Task.Run(SendControlRegister);
-            }
-            else
-            {
-                _registers[address] = value;
+                switch(address)
+                {
+                    case STATUS_REGISTER:
+                        _current = null;
+                        break;
+                    case CONTROL_REGISTER:
+                        _controlRegister = (byte)(value & 0x7);
+                        Task.Run(SendControlRegister);
+                        break;
+                }
             }
         }
 

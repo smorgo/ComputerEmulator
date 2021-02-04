@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using HardwareCore;
 
 namespace _6502
@@ -19,6 +21,8 @@ namespace _6502
         public Byte Y;
         public CpuFlags P = new CpuFlags();
         public DebugLevel DebugLevel {get;set;} = DebugLevel.Errors;
+        public int NopDelayMilliseconds {get; set;} = 0;
+        public DateTime? _sleepUntil = null;
         private IAddressMap _addressMap;
         public int EmulationErrorsCount {get; private set;}
         public HaltReason HaltReason {get; private set;}
@@ -37,12 +41,13 @@ namespace _6502
 
         // Generate a maskable interrupt
         // The arguments allow this method to be hooked to an event handler
-        public void Interrupt(object sender = null, object e = null)
+        public async Task Interrupt(object sender = null, object e = null)
         {
-            if(!P.I)
+            while(P.I)
             {
-                InterruptPending = true;
+                await Task.Delay(1);
             }
+            InterruptPending = true;
         }
 
         public void NonMaskableInterrupt()
@@ -256,8 +261,13 @@ namespace _6502
             _addressMap.WriteWord(NMI_VECTOR, 0xFFF0);
             _addressMap.WriteWord(0xFFF0, (byte)OPCODE.RTI);
         }
-
+        
         public void Reset(TimeSpan? maxDuration = null)
+        {
+            AsyncUtil.RunSync(() => ResetAsync(maxDuration));
+        }
+
+        public async Task ResetAsync(TimeSpan? maxDuration = null)
         {
             Log(DebugLevel.Information, "\r\n6502 CPU Emulator");
             // Get the reset vector
@@ -285,12 +295,32 @@ namespace _6502
                 _terminateAfter = DateTime.MaxValue;
             }
 
-            Run();
+            await Run();
             Log(DebugLevel.Information, "HALT");
         }
 
-        private void Run()
+        private bool Waiting()
         {
+            if(_sleepUntil.HasValue)
+            {
+                if(DateTime.Now >= _sleepUntil.Value)
+                {
+                    _sleepUntil = null;
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private async Task Run()
+        {
+            _sleepUntil = null; 
+
             OnStarted?.Invoke(this, null);
             while(true)
             {
@@ -304,29 +334,15 @@ namespace _6502
                 {
                     ServiceInterrupt();
                 }
-                else
+                else if(!Waiting()  || InterruptServicing)
                 {
-                    StartLogInstruction(PC);
-                    var OpCode = Fetch();
+                    await RunCurrentInstruction();
+                }
 
-                    var handler = OpCodeTable[OpCode];
-
-                    if(handler == null)
-                    {
-                        Log(DebugLevel.Warnings, $"OpCode {OpCode} not handled");
-                        EmulationErrorsCount++;
-                    }
-                    else
-                    {
-                        handler();
-                        EndLogInstruction((OPCODE)OpCode);
-
-                        if(P.B)
-                        {
-                            // Break
-                            return;
-                        }
-                    }
+                if(P.B)
+                {
+                    // Break
+                    return;
                 }
 
                 if(DateTime.Now > _terminateAfter)
@@ -336,6 +352,27 @@ namespace _6502
                     return;
                 }
             }
+        }
+
+        private async Task RunCurrentInstruction()
+        {
+            StartLogInstruction(PC);
+            var OpCode = Fetch();
+
+            var handler = OpCodeTable[OpCode];
+
+            if(handler == null)
+            {
+                Log(DebugLevel.Warnings, $"OpCode {OpCode} not handled");
+                EmulationErrorsCount++;
+            }
+            else
+            {
+                handler();
+                EndLogInstruction((OPCODE)OpCode);
+            }
+
+            await Task.Delay(0);
         }
 
         private void ServiceNmi()
@@ -1139,6 +1176,12 @@ namespace _6502
         private void NoOperation()
         {
             // Do nothing
+
+            // Except we can slow down execution (outside of interrupt service routines)
+            if(!InterruptServicing && NopDelayMilliseconds > 0)
+            {
+                _sleepUntil = DateTime.Now + TimeSpan.FromMilliseconds(NopDelayMilliseconds);
+            }
         }
         private void OrIndirectY()
         {
@@ -1203,6 +1246,7 @@ namespace _6502
             PC = address;
             ClearInterruptDisableFlag();
             InterruptServicing = false;
+            _sleepUntil = null;
         }
 
         private void ReturnFromSubroutine()

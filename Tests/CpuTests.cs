@@ -2981,7 +2981,8 @@ namespace Tests
         [Test]
         public void CanServiceInterrupt()
         {
-            _cpu.OnTick += TriggerInterrupt;
+            _cpu.OnTick += async (s,e) => {await TriggerInterrupt(s,e);};
+
             _tickCount = 0;
             _interruptTickInterval = 600;
 
@@ -3012,7 +3013,6 @@ namespace Tests
                               ;
             }
             _cpu.Reset();
-            _cpu.OnTick -= TriggerInterrupt;
             var result = mem.Read(0x7800);
             Assert.AreEqual(42, result);
         }
@@ -3164,13 +3164,13 @@ namespace Tests
             Assert.AreEqual(expected, mem.Read((ushort)(DISPLAY_BASE_ADDR + (h - 1) * w)));
         }
 
-        private void TriggerInterrupt(object sender, EventArgs e)
+        private async Task TriggerInterrupt(object sender, EventArgs e)
         {
             _tickCount++;
             if (_tickCount >= _interruptTickInterval)
             {
                 _tickCount = 0;
-                _cpu.Interrupt();
+                await _cpu.Interrupt();
             }
         }
     }

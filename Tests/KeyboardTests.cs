@@ -41,7 +41,7 @@ namespace Tests
             _display.Clear();
             _cpu = new CPU6502(mem);
             _cpu.DebugLevel = DebugLevel.Verbose;
-            _keyboard.RequestInterrupt = _cpu.Interrupt;
+            _keyboard.RequestInterrupt += async (s,e) => {await _cpu.Interrupt(s,e);};
 
             mem.WriteWord(_cpu.RESET_VECTOR, PROG_START);
 
@@ -122,6 +122,7 @@ namespace Tests
         public async Task CanGetKeyInInterruptServiceRoutine()
         {
             mem.Labels.Push();
+            _cpu.NopDelayMilliseconds = 100;
 
             using(var loader = mem.Load(0x8000))
             {
@@ -180,7 +181,10 @@ namespace Tests
                 AutoReset = false
             };
 
-            timer.Elapsed += async (s,e) => {await _signalr.KeyUp("a");};
+            timer.Elapsed += async (s,e) => 
+            {
+                await _signalr.KeyUp("a");
+            };
 
             _cpu.OnStarted += (s,e) => {timer.Start();};
 

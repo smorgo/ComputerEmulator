@@ -7,10 +7,11 @@ namespace Tests
 {
     public class MockRemoteKeyboardConnection : IRemoteConnection, IRemoteKeyboard, IDisposable
     {
+        private int _lastKeyPressId = 0;
         public bool IsConnected {get; private set;}
 
-        public EventHandler<string> OnKeyUp { get; set; }
-        public EventHandler<string> OnKeyDown { get; set; }
+        public EventHandler<KeyPress> OnKeyUp { get; set; }
+        public EventHandler<KeyPress> OnKeyDown { get; set; }
         public EventHandler OnRequestControl { get; set; }
 
         public async Task ConnectAsync(string url)
@@ -25,12 +26,12 @@ namespace Tests
 
         public void KeyUp(string key)
         {
-            OnKeyUp?.Invoke(this, key);
+            OnKeyUp?.Invoke(this, new KeyPress(key, _lastKeyPressId++));
         }
 
         public void KeyDown(string key)
         {
-            OnKeyDown?.Invoke(this, key);
+            OnKeyDown?.Invoke(this, new KeyPress(key, _lastKeyPressId++));
         }
 
         public void RequestControl()

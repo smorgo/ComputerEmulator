@@ -6,6 +6,7 @@ var charHeight = 16;
 var width = 40;
 var height = 25;
 const SVG_NS = "http://www.w3.org/2000/svg";
+var keyId = 0;
 
 connection.on("ReceiveMessage", function (user, message) {
     var msg = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -60,11 +61,13 @@ connection.on("Write", function (offset, value) {
 connection.start().then(function () {
     document.onkeydown = function(evt) {
         var key = evt.key;
-        connection.invoke("KeyDown", key); 
+        connection.invoke("KeyDown", key, keyId);
+        keyId++; 
         }
     document.onkeyup = function(evt) {
         var key = evt.key;
-        connection.invoke("KeyUp", key); 
+        connection.invoke("KeyUp", key, keyId);
+        keyId++; 
         }
     connection.invoke("RequestControl");
 });

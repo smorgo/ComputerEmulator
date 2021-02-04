@@ -1,4 +1,3 @@
-using NUnit.Framework;
 using _6502;
 using HardwareCore;
 using System;
@@ -8,15 +7,14 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Timers;
 
-namespace Tests
+namespace Repl
 {
-    public class ReplTests
+    public class ReplHost
     {
         private CPU6502 _cpu;
         private MemoryMappedDisplay _display;
         private MemoryMappedKeyboard _keyboard;
         private IRemoteConnection _keyboardConnection;
-        private SignalRIntegration _signalr;
         private AddressMap mem;
         const ushort DISPLAY_BASE_ADDR = 0xF000;
         const ushort KEYBOARD_BASE_ADDR = 0x84;
@@ -27,8 +25,7 @@ namespace Tests
         const byte NoCarryOverflow = 0x40;
         const byte CarryOverflow = 0x41;
 
-        [SetUp]
-        public async Task Setup()
+        public async Task Initialise()
         {
             mem = new AddressMap();
             mem.Install(new Ram(0x0000, 0x10000));
@@ -43,7 +40,7 @@ namespace Tests
             _display.Clear();
             _cpu = new CPU6502(mem);
             _cpu.DebugLevel = DebugLevel.Verbose;
-            _keyboard.RequestInterrupt = _cpu.Interrupt;
+            _keyboard.RequestInterrupt += async (s,e) => {await _cpu.Interrupt();};
 
             mem.WriteWord(_cpu.RESET_VECTOR, PROG_START);
 
@@ -62,12 +59,19 @@ namespace Tests
             mem.Labels.Add("IRQ_VECTOR", _cpu.IRQ_VECTOR);
             mem.Labels.Add("NMI_VECTOR", _cpu.NMI_VECTOR);
 
-            _signalr = new SignalRIntegration(_keyboardConnection);
-            await _signalr.Initialise();
         }
 
-        [Test]
-        public async Task CanEchoTypedCharacterToDisplay()
+        public async Task Run()
+        {
+           Load();
+
+            _cpu.Reset(TimeSpan.FromHours(1)); // Run for a maximum of one hour
+
+ 
+            await Task.Delay(0);
+        }
+
+        public void Load()
         {
             mem.Labels.Push();
 
@@ -83,10 +87,12 @@ namespace Tests
                 .STA_ABSOLUTE("CURSOR_Y_REGISTER")
 
                 .LDA_ABSOLUTE("CharacterBuffer", "LoopStart")
-                .BEQ("LoopStart")
+                .BNE("CharacterInBuffer")
+                .NOP()
+                .JMP_ABSOLUTE("LoopStart")
 
                 // There is a character in the input buffer (which is now in the accumulator)
-                .JSR("PrintCharacter")
+                .JSR("PrintCharacter", "CharacterInBuffer")
                 .LDA_IMMEDIATE(0x00)
                 .STA_ABSOLUTE("CharacterBuffer")
                 .JMP_ABSOLUTE("LoopStart")
@@ -113,7 +119,7 @@ namespace Tests
                 .PHA()
 
                 // Check for keyboard data
-                .LDA_ZERO_PAGE("KEYBOARD_STATUS_REGISTER")
+                .LDA_ZERO_PAGE("KEYBOARD_STATUS_REGISTER", "CheckKeyboard")
                 .AND_IMMEDIATE((byte)MemoryMappedKeyboard.StatusBits.KeyUp) // Only interested in KeyUp events
                 .BEQ("NoKeyboardCharacter")
 
@@ -124,7 +130,7 @@ namespace Tests
                 // Clear the keyboard status bits
                 .LDA_IMMEDIATE(0x00)
                 .STA_ZERO_PAGE("KEYBOARD_STATUS_REGISTER")
-
+                
                 // Done
                 .PLA("NoKeyboardCharacter")
                 .TAY()
@@ -152,13 +158,8 @@ namespace Tests
                 .Ref(_cpu.IRQ_VECTOR, "ISR");
             }
 
-            _cpu.Reset(TimeSpan.FromMinutes(10)); // Run for a maximum of one minute
+           mem.Labels.Pop();
 
-            Assert.Pass();
-
-            mem.Labels.Pop();
-
-            await Task.Delay(0);
         }
     }
 }

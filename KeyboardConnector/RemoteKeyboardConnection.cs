@@ -6,10 +6,11 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 namespace KeyboardConnector
 {
+
     public class RemoteKeyboardConnection : IRemoteConnection, IRemoteKeyboard, IDisposable
     {
-        public EventHandler<string> OnKeyUp {get; set;}
-        public EventHandler<string> OnKeyDown {get; set;}
+        public EventHandler<KeyPress> OnKeyUp {get; set;}
+        public EventHandler<KeyPress> OnKeyDown {get; set;}
         public EventHandler OnRequestControl {get; set;}
 
         private HubConnection _connection;
@@ -40,8 +41,8 @@ namespace KeyboardConnector
                 }
             };
 
-            _connection.On<string>("KeyUp", (e) => OnKeyUp?.Invoke(this, e)); 
-            _connection.On<string>("KeyDown", (e) => OnKeyDown?.Invoke(this, e)); 
+            _connection.On<string, int>("KeyUp", (e,i) => OnKeyUp?.Invoke(this, new KeyPress(e,i))); 
+            _connection.On<string, int>("KeyDown", (e,i) => OnKeyDown?.Invoke(this, new KeyPress(e,i))); 
             _connection.On("RequestControl", () => OnRequestControl?.Invoke(this, null)); 
 
             try
