@@ -140,11 +140,7 @@ namespace Tests
 
                 // ISR
                 // Save the registers (P and SP are already saved)
-                .PHA("ISR")
-                .TXA()
-                .PHA()
-                .TYA()
-                .PHA()
+                .Macro(SaveRegisters, "ISR")
 
                 // Check for keyboard data
                 .LDA_ZERO_PAGE("KEYBOARD_STATUS_REGISTER")
@@ -160,12 +156,7 @@ namespace Tests
                 .STA_ZERO_PAGE("KEYBOARD_STATUS_REGISTER")
 
                 // Done
-                .PLA("NoKeyboardCharacter")
-                .TAY()
-                .PLA()
-                .TAX()
-                .PLA()
-                .RTI()
+                .Macro(RestoreRegisters, "NoKeyboardCharacter")
 
                 // Data
                 .Write(0xE00, 0x00, "CharacterBuffer")
@@ -197,6 +188,25 @@ namespace Tests
             mem.Labels.Pop();
 
             await Task.Delay(0);
+        }
+
+        private void SaveRegisters(ushort address, Loader _)
+        {
+            _
+                .PHA()
+                .TXA()
+                .PHA()
+                .TYA()
+                .PHA();
+        }
+        private void RestoreRegisters(ushort address, Loader _)
+        {
+            _
+                .PLA()
+                .TAY()
+                .PLA()
+                .TAX()
+                .PLA();
         }
     }
 }

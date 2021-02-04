@@ -237,7 +237,19 @@ namespace HardwareCore
         {
             return Label(Cursor, label);
         }
-        
+
+        public Loader Macro(ushort address, Action<ushort, Loader> macro, string label = null)
+        {
+            AddLabel(label);
+            macro.Invoke(address, this);
+            return this;
+        }
+
+        public Loader Macro(Action<ushort, Loader>macro, string label = null)
+        {
+            return Macro(Cursor, macro, label);
+        }
+
         private void AddLabel(string label, ushort address)
         {
             _fixupRequired = true;
