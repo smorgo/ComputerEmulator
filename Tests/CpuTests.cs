@@ -2033,10 +2033,9 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x88)
-                              .Write(OPCODE.ASL_ACCUMULATOR)
-                              .Write(OPCODE.BRK);
+                    .LDA_IMMEDIATE(0x88)
+                    .ASL_ACCUMULATOR()
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
@@ -2049,10 +2048,9 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.ASL_ZERO_PAGE)
-                              .Write(0x20)
-                              .Write(OPCODE.BRK)
-                              .Write(0x20, 0x88);
+                    .ASL_ZERO_PAGE(0x20)
+                    .BRK()
+                    .Write(0x20, 0x88);
             }
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
@@ -2065,12 +2063,10 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x20)
-                              .Write(OPCODE.ASL_ZERO_PAGE_X)
-                              .Write(0x00)
-                              .Write(OPCODE.BRK)
-                              .Write(0x20, 0x88);
+                    .LDX_IMMEDIATE(0x20)
+                    .ASL_ZERO_PAGE_X(0x00)
+                    .BRK()
+                    .Write(0x20, 0x88);
             }
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
@@ -2083,11 +2079,9 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.ASL_ABSOLUTE)
-                              .Ref("Data")
-                              .Write(OPCODE.BRK)
-                              .Write(0x1020, 0x88, "Data")
-                              ;
+                    .ASL_ABSOLUTE("Data")
+                    .BRK()
+                    .Write(0x1020, 0x88, "Data");
             }
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
@@ -2100,14 +2094,11 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x02)
-                              .Write(OPCODE.ASL_ABSOLUTE_X)
-                              .Ref("Data")
-                              .Write(OPCODE.BRK)
-                              .WriteWord(0x1020, 0x00, "Data")
-                              .Write(0x88)
-                              ;
+                    .LDX_IMMEDIATE(0x02)
+                    .ASL_ABSOLUTE_X("Data")
+                    .BRK()
+                    .WriteWord(0x1020, 0x00, "Data")
+                    .Write(0x88);
             }
             _cpu.Reset();
             Assert.AreEqual(0x10, _cpu.A);
