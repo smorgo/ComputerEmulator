@@ -56,6 +56,11 @@ namespace Tests
         [Test]
         public void CanSaveTestProgram()
         {
+            DoSave();
+        }
+
+        private void DoSave()
+        {
             Assert.IsTrue(_display.Mode.Type == DisplayMode.RenderType.Text);
 
             var w = _display.Mode.Width;
@@ -129,6 +134,8 @@ namespace Tests
         {
             Assert.IsTrue(_display.Mode.Type == DisplayMode.RenderType.Text);
 
+            DoSave();
+            
             var w = _display.Mode.Width;
             var h = _display.Mode.Height;
 
