@@ -287,7 +287,7 @@ namespace _6502
         public static Loader CPX_ABSOLUTE(this Loader loader, string refLabel, string label = null)
         {
             loader.Write(OPCODE.CPX_ABSOLUTE, label);
-            loader.ZeroPageRef(refLabel);
+            loader.Ref(refLabel);
             return loader;
         }
 

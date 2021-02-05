@@ -749,7 +749,7 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.SEC);
+                    .SEC();
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C);
@@ -761,8 +761,8 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.SEC)
-                              .Write(OPCODE.CLC);
+                    .SEC()
+                    .CLC();
             }
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.C);
@@ -774,11 +774,9 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x50)
-                              .Write(OPCODE.ADC_IMMEDIATE)
-                              .Write(0x50)
-                              .Write(OPCODE.CLV);
+                    .LDA_IMMEDIATE(0x50)
+                    .ADC_IMMEDIATE(0x50)
+                    .CLV();
             }
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.V);
@@ -790,7 +788,7 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.SEI);
+                    .SEI();
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.I);
@@ -802,8 +800,8 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.SEI)
-                              .Write(OPCODE.CLI);
+                    .SEI()
+                    .CLI();
             }
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.I);
@@ -815,7 +813,7 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.SED);
+                    .SED();
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.D);
@@ -827,8 +825,8 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.SED)
-                              .Write(OPCODE.CLD);
+                    .SED()
+                    .CLD();
             }
             _cpu.Reset();
             Assert.IsFalse(_cpu.P.D);
@@ -840,16 +838,12 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.CLC)
-                              .Write(OPCODE.BCC)
-                              .RelativeRef("Cont")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.LDA_IMMEDIATE, "Cont")
-                              .Write('e')
-                              .Write(OPCODE.BRK)
-                              ;
+                    .CLC()
+                    .BCC("Cont")
+                    .LDA_IMMEDIATE('H')
+                    .BRK()
+                    .LDA_IMMEDIATE('e', "Cont")
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -861,18 +855,13 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.JMP_ABSOLUTE)
-                              .Ref("Continue")
-                              .Write(OPCODE.LDA_IMMEDIATE, "Back")
-                              .Write('e')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.CLC, "Continue")
-                              .Write(OPCODE.BCC)
-                              .RelativeRef("Back")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK)
-                              ;
+                    .JMP_ABSOLUTE("Continue")
+                    .LDA_IMMEDIATE('e', "Back")
+                    .BRK()
+                    .CLC("Continue")
+                    .BCC("Back")
+                    .LDA_IMMEDIATE('H')
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -884,16 +873,12 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.SEC)
-                              .Write(OPCODE.BCS)
-                              .RelativeRef("Cont")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.LDA_IMMEDIATE, "Cont")
-                              .Write('e')
-                              .Write(OPCODE.BRK)
-                              ;
+                    .SEC()
+                    .BCS("Cont")
+                    .LDA_IMMEDIATE('H')
+                    .BRK()
+                    .LDA_IMMEDIATE('e', "Cont")
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -905,18 +890,13 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.JMP_ABSOLUTE)
-                              .Ref("Continue")
-                              .Write(OPCODE.LDA_IMMEDIATE, "Back")
-                              .Write('e')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.SEC, "Continue")
-                              .Write(OPCODE.BCS)
-                              .RelativeRef("Back")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK)
-                              ;
+                    .JMP_ABSOLUTE("Continue")
+                    .LDA_IMMEDIATE('e', "Back")
+                    .BRK()
+                    .SEC("Continue")
+                    .BCS("Back")
+                    .LDA_IMMEDIATE('H')
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -928,20 +908,14 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x22)
-                              .Write(OPCODE.ADC_IMMEDIATE)
-                              .Write(0x23)
-                              .Write(OPCODE.ASL_ACCUMULATOR)
-                              .Write(OPCODE.BVC)
-                              .RelativeRef("Cont")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.LDA_IMMEDIATE, "Cont")
-                              .Write('e')
-                              .Write(OPCODE.BRK)
-                              ;
+                    .LDA_IMMEDIATE(0x22)
+                    .ADC_IMMEDIATE(0x23)
+                    .ASL_ACCUMULATOR()
+                    .BVC("Cont")
+                    .LDA_IMMEDIATE('H')
+                    .BRK()
+                    .LDA_IMMEDIATE('e', "Cont")
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -953,25 +927,18 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x42)
-                              .Write(OPCODE.ADC_IMMEDIATE)
-                              .Write(0x43)
-                              .Write(OPCODE.ASL_ACCUMULATOR)
-                              .Write(OPCODE.BVS)
-                              .RelativeRef("Cont")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.LDA_IMMEDIATE, "Cont")
-                              .Write('e')
-                              .Write(OPCODE.BRK)
-                              ;
+                    .LDA_IMMEDIATE(0x42)
+                    .ADC_IMMEDIATE(0x43)
+                    .ASL_ACCUMULATOR()
+                    .BVS("Cont")
+                    .LDA_IMMEDIATE('H')
+                    .BRK()
+                    .LDA_IMMEDIATE('e', "Cont")
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
         }
-
 
         [Test]
         public void CanBranchForwardsOnMinus()
@@ -979,17 +946,12 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x88)
-                              .Write(OPCODE.BMI)
-                              .RelativeRef("Cont")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.LDA_IMMEDIATE, "Cont")
-                              .Write('e')
-                              .Write(OPCODE.BRK)
-                              ;
+                    .LDA_IMMEDIATE(0x88)
+                    .BMI("Cont")
+                    .LDA_IMMEDIATE('H')
+                    .BRK()
+                    .LDA_IMMEDIATE('e', "Cont")
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -1001,19 +963,13 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.JMP_ABSOLUTE)
-                              .Ref("Continue")
-                              .Write(OPCODE.LDA_IMMEDIATE, "Back")
-                              .Write('e')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.LDA_IMMEDIATE, "Continue")
-                              .Write(0x88)
-                              .Write(OPCODE.BMI)
-                              .RelativeRef("Back")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK)
-                              ;
+                    .JMP_ABSOLUTE("Continue")
+                    .LDA_IMMEDIATE('e', "Back")
+                    .BRK()
+                    .LDA_IMMEDIATE(0x88, "Continue")
+                    .BMI("Back")
+                    .LDA_IMMEDIATE('H')
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -1025,17 +981,12 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x08)
-                              .Write(OPCODE.BPL)
-                              .RelativeRef("Cont")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.LDA_IMMEDIATE, "Cont")
-                              .Write('e')
-                              .Write(OPCODE.BRK)
-                              ;
+                    .LDA_IMMEDIATE(0x08)
+                    .BPL("Cont")
+                    .LDA_IMMEDIATE('H')
+                    .BRK()
+                    .LDA_IMMEDIATE('e', "Cont")
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -1047,19 +998,13 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.JMP_ABSOLUTE)
-                              .Ref("Start")
-                              .Write(OPCODE.LDA_IMMEDIATE, "Back")
-                              .Write('e')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x08)
-                              .Write(OPCODE.BPL, "Start")
-                              .RelativeRef("Back")
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK)
-                              ;
+                    .JMP_ABSOLUTE("Start")
+                    .LDA_IMMEDIATE('e', "Back")
+                    .BRK()
+                    .LDA_IMMEDIATE(0x08)
+                    .BPL("Back", "Start")
+                    .LDA_IMMEDIATE('H')
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'e', _cpu.A);
@@ -1071,30 +1016,25 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CMP_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK);
+                    .LDA_IMMEDIATE('H')
+                    .LDY_IMMEDIATE(0x00)
+                    .CMP_IMMEDIATE('H')
+                    .BRK();
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
         }
+
         [Test]
         public void CanCompareImmediateLess()
         {
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x90)
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CMP_IMMEDIATE)
-                              .Write(0xFF)
-                              .Write(OPCODE.BRK);
+                    .LDA_IMMEDIATE(0x90)
+                    .LDY_IMMEDIATE(0x00)
+                    .CMP_IMMEDIATE(0xFF)
+                    .BRK();
             }
             _cpu.Reset();
             Assert.IsTrue(!_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
@@ -1105,13 +1045,10 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x90)
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CMP_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.BRK);
+                    .LDA_IMMEDIATE(0x90)
+                    .LDY_IMMEDIATE(0x00)
+                    .CMP_IMMEDIATE(0x00)
+                    .BRK();
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
@@ -1122,14 +1059,11 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CMP_ZERO_PAGE)
-                              .Write(0x10)
-                              .Write(OPCODE.BRK)
-                              .Write(0x10, 'H');
+                    .LDA_IMMEDIATE('H')
+                    .LDY_IMMEDIATE(0x00)
+                    .CMP_ZERO_PAGE(0x10)
+                    .BRK()
+                    .Write(0x10, 'H');
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1140,14 +1074,11 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x02)
-                              .Write(OPCODE.CMP_ZERO_PAGE_X)
-                              .Write(0x10)
-                              .Write(OPCODE.BRK)
-                              .Write(0x12, 'H');
+                    .LDA_IMMEDIATE('H')
+                    .LDX_IMMEDIATE(0x02)
+                    .CMP_ZERO_PAGE_X(0x10)
+                    .BRK()
+                    .Write(0x12, 'H');
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1159,15 +1090,11 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CMP_ABSOLUTE)
-                              .Ref("Data")
-                              .Write(OPCODE.BRK)
-                              .Write(0x1010, 'H', "Data")
-                              ;
+                    .LDA_IMMEDIATE('H')
+                    .LDY_IMMEDIATE(0x00)
+                    .CMP_ABSOLUTE("Data")
+                    .BRK()
+                    .Write(0x1010, 'H', "Data");
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1179,14 +1106,11 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x10)
-                              .Write(OPCODE.CMP_ABSOLUTE_X)
-                              .WriteWord(0x1000)
-                              .Write(OPCODE.BRK)
-                              .Write(0x1010, 'H');
+                    .LDA_IMMEDIATE('H')
+                    .LDX_IMMEDIATE(0x10)
+                    .CMP_ABSOLUTE_X(0x1000)
+                    .BRK()
+                    .Write(0x1010, 'H');
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1197,15 +1121,12 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x02)
-                              .Write(OPCODE.CMP_INDIRECT_X)
-                              .Write(0x0E)
-                              .Write(OPCODE.BRK)
-                              .Write(0x1010, 'H')
-                              .WriteWord(0x0010, 0x1010);
+                    .LDA_IMMEDIATE('H')
+                    .LDX_IMMEDIATE(0x02)
+                    .CMP_INDIRECT_X(0x0E)
+                    .BRK()
+                    .Write(0x1010, 'H')
+                    .WriteWord(0x0010, 0x1010);
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1216,15 +1137,12 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x02)
-                              .Write(OPCODE.CMP_INDIRECT_Y)
-                              .Write(0x10)
-                              .Write(OPCODE.BRK)
-                              .Write(0x1012, 'H')
-                              .WriteWord(0x0010, 0x1010);
+                    .LDA_IMMEDIATE('H')
+                    .LDY_IMMEDIATE(0x02)
+                    .CMP_INDIRECT_Y(0x10)
+                    .BRK()
+                    .Write(0x1012, 'H')
+                    .WriteWord(0x0010, 0x1010);
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1236,13 +1154,10 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CPX_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK);
+                    .LDX_IMMEDIATE('H')
+                    .LDY_IMMEDIATE(0x00)
+                    .CPX_IMMEDIATE('H')
+                    .BRK();
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1253,13 +1168,10 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x90)
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CPX_IMMEDIATE)
-                              .Write(0xFF)
-                              .Write(OPCODE.BRK);
+                    .LDX_IMMEDIATE(0x90)
+                    .LDY_IMMEDIATE(0x00)
+                    .CPX_IMMEDIATE(0xFF)
+                    .BRK();
             }
             _cpu.Reset();
             Assert.IsTrue(!_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
@@ -1270,13 +1182,10 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x90)
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CPX_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.BRK);
+                    .LDX_IMMEDIATE(0x90)
+                    .LDY_IMMEDIATE(0x00)
+                    .CPX_IMMEDIATE(0x00)
+                    .BRK();
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
@@ -1287,14 +1196,11 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CPX_ZERO_PAGE)
-                              .Write(0x10)
-                              .Write(OPCODE.BRK)
-                              .Write(0x10, 'H');
+                    .LDX_IMMEDIATE('H')
+                    .LDY_IMMEDIATE(0x00)
+                    .CPX_ZERO_PAGE(0x10)
+                    .BRK()
+                    .Write(0x10, 'H');
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1306,15 +1212,11 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CPX_ABSOLUTE)
-                              .Ref("Data")
-                              .Write(OPCODE.BRK)
-                              .Write(0x1010, 'H', "Data")
-                              ;
+                    .LDX_IMMEDIATE('H')
+                    .LDY_IMMEDIATE(0x00)
+                    .CPX_ABSOLUTE("Data")
+                    .BRK()
+                    .Write(0x1010, 'H', "Data");
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1326,13 +1228,10 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CPY_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BRK);
+                    .LDY_IMMEDIATE('H')
+                    .LDX_IMMEDIATE(0x00)
+                    .CPY_IMMEDIATE('H')
+                    .BRK();
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1343,13 +1242,10 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x90)
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CPY_IMMEDIATE)
-                              .Write(0xFF)
-                              .Write(OPCODE.BRK);
+                    .LDY_IMMEDIATE(0x90)
+                    .LDX_IMMEDIATE(0x00)
+                    .CPY_IMMEDIATE(0xFF)
+                    .BRK();
             }
             _cpu.Reset();
             Assert.IsTrue(!_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
@@ -1360,13 +1256,10 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x90)
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CPY_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.BRK);
+                    .LDY_IMMEDIATE(0x90)
+                    .LDX_IMMEDIATE(0x00)
+                    .CPY_IMMEDIATE(0x00)
+                    .BRK();
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && !_cpu.P.Z && _cpu.P.N);
@@ -1377,14 +1270,11 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CPY_ZERO_PAGE)
-                              .Write(0x10)
-                              .Write(OPCODE.BRK)
-                              .Write(0x10, 'H');
+                    .LDY_IMMEDIATE('H')
+                    .LDX_IMMEDIATE(0x00)
+                    .CPY_ZERO_PAGE(0x10)
+                    .BRK()
+                    .Write(0x10, 'H');
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1396,15 +1286,11 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.CPY_ABSOLUTE)
-                              .Ref("Data")
-                              .Write(OPCODE.BRK)
-                              .Write(0x1010, 'H', "Data")
-                              ;
+                    .LDY_IMMEDIATE('H')
+                    .LDX_IMMEDIATE(0x00)
+                    .CPY_ABSOLUTE("Data")
+                    .BRK()
+                    .Write(0x1010, 'H', "Data");
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.P.C && _cpu.P.Z && !_cpu.P.N);
@@ -1416,18 +1302,13 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.CMP_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.BEQ)
-                              .Write(0x03)
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('N')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('Y')
-                              .Write(OPCODE.BRK);
+                    .LDA_IMMEDIATE('H')
+                    .CMP_IMMEDIATE('H')
+                    .BEQ("Next")
+                    .LDA_IMMEDIATE('N')
+                    .BRK()
+                    .LDA_IMMEDIATE('Y', "Next")
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'Y', _cpu.A);
@@ -1438,18 +1319,13 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('H')
-                              .Write(OPCODE.CMP_IMMEDIATE)
-                              .Write('e')
-                              .Write(OPCODE.BNE)
-                              .Write(0x03)
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('N')
-                              .Write(OPCODE.BRK)
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write('Y')
-                              .Write(OPCODE.BRK);
+                    .LDA_IMMEDIATE('H')
+                    .CMP_IMMEDIATE('e')
+                    .BNE("Next")
+                    .LDA_IMMEDIATE('N')
+                    .BRK()
+                    .LDA_IMMEDIATE('Y', "Next")
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual((byte)'Y', _cpu.A);
@@ -3256,7 +3132,7 @@ namespace Tests
             }
             _cpu.Reset();
             var result = mem.Read(0x7800);
-            Assert.AreEqual(42, result);
+            Assert.AreEqual(56, result);
         }
 
         [Test]
