@@ -94,7 +94,7 @@ namespace HardwareCore
         private Dictionary<ushort, ReferenceDescriptor> _labelReferences;
         public ushort Cursor {get; private set;}
         private IAddressMap _addressMap;
-
+        public IAddressMap Memory => _addressMap;
         public bool HasErrors {get; private set;}
 
         public Loader(IAddressMap addressMap, ushort cursor, LabelTable labels)
