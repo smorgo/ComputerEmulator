@@ -1,6 +1,7 @@
 # Welcome to my '70s/'80s Computer Emulator
 
 ![Build Status](https://github.com/smorgo/ComputerEmulator/workflows/.NET/badge.svg)
+![Code Quality](https://github.com/smorgo/ComputerEmulator/workflows/CodeQL/badge.svg)
 
 This is very much a fun, vanity project.
 
