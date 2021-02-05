@@ -2,6 +2,7 @@ using HardwareCore;
 
 namespace _6502
 {
+    
     public static partial class LoaderExensions6502
     {
         public static Loader ADC_IMMEDIATE(this Loader loader, byte operand, string label = null)
@@ -9,6 +10,11 @@ namespace _6502
             loader.Write(OPCODE.ADC_IMMEDIATE, label);
             loader.Write(operand);
             return loader;
+        }
+
+        public static Loader ADC_IMMEDIATE(this Loader loader, char operand, string label = null)
+        {
+            return ADC_IMMEDIATE(loader, (byte)operand, label);
         }
 
         public static Loader ADC_ZERO_PAGE(this Loader loader, byte operand, string label = null)
@@ -67,6 +73,11 @@ namespace _6502
             return loader;
         }
         
+        public static Loader AND_IMMEDIATE(this Loader loader, char operand, string label = null)
+        {
+            return AND_IMMEDIATE(loader, (byte)operand, label);
+        }
+
         public static Loader AND_ZERO_PAGE(this Loader loader, byte operand, string label = null)
         {
             loader.Write(OPCODE.AND_ZERO_PAGE, label);
@@ -256,7 +267,11 @@ namespace _6502
             loader.Write(operand);
             return loader;
         }
-        
+        public static Loader CMP_IMMEDIATE(this Loader loader, char operand, string label = null)
+        {
+            return CMP_IMMEDIATE(loader, (byte)operand, label);
+        }
+
         public static Loader CMP_ZERO_PAGE(this Loader loader, byte operand, string label = null)
         {
             loader.Write(OPCODE.CMP_ZERO_PAGE, label);
@@ -313,6 +328,11 @@ namespace _6502
             return loader;
         }
         
+        public static Loader CPX_IMMEDIATE(this Loader loader, char operand, string label = null)
+        {
+            return CPX_IMMEDIATE(loader, (byte)operand, label);
+        }
+
         public static Loader CPX_ZERO_PAGE(this Loader loader, byte operand, string label = null)
         {
             loader.Write(OPCODE.CPX_ZERO_PAGE, label);
@@ -334,6 +354,11 @@ namespace _6502
             return loader;
         }
         
+        public static Loader CPY_IMMEDIATE(this Loader loader, char operand, string label = null)
+        {
+            return CPY_IMMEDIATE(loader, (byte)operand, label);
+        }
+
         public static Loader CPY_ZERO_PAGE(this Loader loader, byte operand, string label = null)
         {
             loader.Write(OPCODE.CPY_ZERO_PAGE, label);
@@ -395,6 +420,11 @@ namespace _6502
             return loader;
         }
         
+        public static Loader EOR_IMMEDIATE(this Loader loader, char operand, string label = null)
+        {
+            return EOR_IMMEDIATE(loader, (byte)operand, label);
+        }
+
         public static Loader EOR_ZERO_PAGE(this Loader loader, byte operand, string label = null)
         {
             loader.Write(OPCODE.EOR_ZERO_PAGE, label);
@@ -512,6 +542,11 @@ namespace _6502
             return loader;
         }
         
+        public static Loader LDA_IMMEDIATE(this Loader loader, char operand, string label = null)
+        {
+            return LDA_IMMEDIATE(loader, (byte)operand, label);
+        }
+
         public static Loader LDA_ZERO_PAGE(this Loader loader, byte operand, string label = null)
         {
             loader.Write(OPCODE.LDA_ZERO_PAGE, label);
@@ -561,6 +596,11 @@ namespace _6502
             return loader;
         }
         
+        public static Loader LDX_IMMEDIATE(this Loader loader, char operand, string label = null)
+        {
+            return LDX_IMMEDIATE(loader, (byte)operand, label);
+        }
+
         public static Loader LDX_ZERO_PAGE(this Loader loader, byte operand, string label = null)
         {
             loader.Write(OPCODE.LDX_ZERO_PAGE, label);
@@ -596,6 +636,11 @@ namespace _6502
             return loader;
         }
         
+        public static Loader LDY_IMMEDIATE(this Loader loader, char operand, string label = null)
+        {
+            return LDY_IMMEDIATE(loader, (byte)operand, label);
+        }
+
         public static Loader LDY_ZERO_PAGE(this Loader loader, byte operand, string label = null)
         {
             loader.Write(OPCODE.LDY_ZERO_PAGE, label);
@@ -670,6 +715,11 @@ namespace _6502
             loader.Write(operand);
             return loader;
         }
+        public static Loader ORA_IMMEDIATE(this Loader loader, char operand, string label = null)
+        {
+            return ORA_IMMEDIATE(loader, (byte)operand, label);
+        }
+
         
         public static Loader ORA_ZERO_PAGE(this Loader loader, byte operand, string label = null)
         {
@@ -831,6 +881,11 @@ namespace _6502
             return loader;
         }
         
+        public static Loader SBC_IMMEDIATE(this Loader loader, char operand, string label = null)
+        {
+            return SBC_IMMEDIATE(loader, (byte)operand, label);
+        }
+
         public static Loader SBC_ZERO_PAGE(this Loader loader, byte operand, string label = null)
         {
             loader.Write(OPCODE.SBC_ZERO_PAGE, label);
