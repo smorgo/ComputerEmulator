@@ -2620,12 +2620,10 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.INC_ZERO_PAGE)
-                              .Write(0x10)
-                              .Write(OPCODE.LDA_ZERO_PAGE)
-                              .Write(0x10)
-                              .BRK()
-                              .Write(0x10, 0x80);
+                    .INC_ZERO_PAGE(0x10)
+                    .LDA_ZERO_PAGE(0x10)
+                    .BRK()
+                    .Write(0x10, 0x80);
             }
             _cpu.Reset();
             Assert.AreEqual(0x81, _cpu.A);
@@ -2637,12 +2635,10 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.INC_ZERO_PAGE)
-                              .Write(0x10)
-                              .Write(OPCODE.LDA_ZERO_PAGE)
-                              .Write(0x10)
-                              .BRK()
-                              .Write(0x10, 0xFF);
+                    .INC_ZERO_PAGE(0x10)
+                    .LDA_ZERO_PAGE(0x10)
+                    .BRK()
+                    .Write(0x10, 0xFF);
             }
             _cpu.Reset();
             Assert.AreEqual(0x0, _cpu.A);
@@ -2655,14 +2651,11 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x10)
-                              .Write(OPCODE.INC_ZERO_PAGE_X)
-                              .Write(0x00)
-                              .Write(OPCODE.LDA_ZERO_PAGE)
-                              .Write(0x10)
-                              .BRK()
-                              .Write(0x10, 0x80);
+                    .LDX_IMMEDIATE(0x10)
+                    .INC_ZERO_PAGE_X(0x00)
+                    .LDA_ZERO_PAGE(0x10)
+                    .BRK()
+                    .Write(0x10, 0x80);
             }
             _cpu.Reset();
             Assert.AreEqual(0x81, _cpu.A);
@@ -2674,13 +2667,10 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.INC_ABSOLUTE)
-                              .Ref("Data")
-                              .Write(OPCODE.LDA_ABSOLUTE)
-                              .Ref("Data")
-                              .BRK()
-                              .Write(0x1010, 0x80, "Data")
-                              ;
+                    .INC_ABSOLUTE("Data")
+                    .LDA_ABSOLUTE("Data")
+                    .BRK()
+                    .Write(0x1010, 0x80, "Data");
             }
             _cpu.Reset();
             Assert.AreEqual(0x81, _cpu.A);
@@ -2692,16 +2682,12 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x02)
-                              .Write(OPCODE.INC_ABSOLUTE_X)
-                              .Ref("Data")
-                              .Write(OPCODE.LDA_ABSOLUTE_X)
-                              .Ref("Data")
-                              .BRK()
-                              .WriteWord(0x1010, 0x5555, "Data")
-                              .Write(0x80)
-                              ;
+                    .LDX_IMMEDIATE(0x02)
+                    .INC_ABSOLUTE_X("Data")
+                    .LDA_ABSOLUTE_X("Data")
+                    .BRK()
+                    .WriteWord(0x1010, 0x5555, "Data")
+                    .Write(0x80);
             }
             _cpu.Reset();
             Assert.AreEqual(0x81, _cpu.A);
@@ -2713,10 +2699,9 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x80)
-                              .Write(OPCODE.INX)
-                              .BRK();
+                    .LDX_IMMEDIATE(0x80)
+                    .INX()
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual(0x81, _cpu.X);
@@ -2729,10 +2714,9 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDY_IMMEDIATE)
-                              .Write(0x80)
-                              .Write(OPCODE.INY)
-                              .BRK();
+                    .LDY_IMMEDIATE(0x80)
+                    .INY()
+                    .BRK();
             }
             _cpu.Reset();
             Assert.AreEqual(0x81, _cpu.Y);
