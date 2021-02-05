@@ -1,5 +1,7 @@
 # Welcome to my '70s/'80s Computer Emulator
 
+![Build Status](https://github.com/smorgo/ComputerEmulator/workflows/.NET/badge.svg)
+
 This is very much a fun, vanity project.
 
 Like many people in IT, I grew up with the Home Computer boom of the late 1970s and early 1980s. I cut my teeth on the Commodore PET 3032 and really started to develop my skills with the introduction of the BBC Micro.
