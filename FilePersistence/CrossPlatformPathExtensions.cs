@@ -19,7 +19,7 @@ namespace FilePersistence
             return current;
         }
 
-        private static string ResolveCrossPlatformPart(string part)
+        public static string ResolveCrossPlatformPart(string part)
         {
             if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {

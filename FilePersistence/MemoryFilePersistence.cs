@@ -63,6 +63,13 @@ namespace FilePersistence
         }
         public void Save(string name, ushort startAddress, ushort length, IAddressMap mem)
         {
+            var folder = CrossPlatformPathExtensions.ResolveCrossPlatformPart(WorkingDirectory);
+
+            if(!Directory.Exists(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+            
             var combined = CrossPlatformPathExtensions.Combine(WorkingDirectory, name);
             var filename = Path.GetFullPath(combined);
 
