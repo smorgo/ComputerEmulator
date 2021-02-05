@@ -3187,9 +3187,7 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.JSR, "InfiniteLoop")
-                              .Ref("InfiniteLoop")
-                              ;
+                    .JSR("InfiniteLoop", "InfiniteLoop");
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.HaltReason == HaltReason.StackOverflow);
@@ -3201,7 +3199,7 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.RTS);
+                    .RTS();
             }
             _cpu.Reset();
             Assert.IsTrue(_cpu.HaltReason == HaltReason.StackUnderflow);
@@ -3215,17 +3213,14 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x90)
-                              .Write(OPCODE.PHA)
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.PHA)
-                              .Write(OPCODE.LDA_IMMEDIATE)
-                              .Write(0x55)
-                              .Write(OPCODE.PHA)
-                              .Write(OPCODE.RTI)
-                              .Write(0x9000, OPCODE.BRK);
+                    .LDA_IMMEDIATE(0x90)
+                    .PHA()
+                    .LDA_IMMEDIATE(0x00)
+                    .PHA()
+                    .LDA_IMMEDIATE(0x55)
+                    .PHA()
+                    .RTI()
+                    .Write(0x9000, OPCODE.BRK);
             }
             _cpu.Reset();
             Assert.AreEqual(0x9000, _cpu.PC);
@@ -3243,28 +3238,21 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE)
-                              .Write(0x00)
-                              .Write(OPCODE.LDY_IMMEDIATE, "LoopX")
-                              .Write(0x20)
-                              .Write(OPCODE.TXA, "LoopY")
-                              .Write(OPCODE.STA_INDIRECT_Y)
-                              .Write(0x10)    // Holds vector for data block to write
-                              .Write(OPCODE.DEY)
-                              .Write(OPCODE.BNE)
-                              .Write(-5)
-                              .Write(OPCODE.INX)
-                              .Write(OPCODE.BNE)
-                              .Write(-11)
-                              .Write(OPCODE.BRK)
-                              .Write(0xFF00, OPCODE.INC_ABSOLUTE)
-                              .WriteWord(0x7800)
-                              .Write(OPCODE.RTI)
-                              .Write(0x7000, 0x00, "Block")
-                              .Write(0x7800, 0x00) // ISR will increment this
-                              .Ref(0x10, "Block")
-                              .WriteWord(_cpu.IRQ_VECTOR, 0xFF00)
-                              ;
+                    .LDX_IMMEDIATE(0x00)
+                    .LDY_IMMEDIATE(0x20, "LoopX")
+                    .TXA("LoopY")
+                    .STA_INDIRECT_Y(0x10)    // Holds vector for data block to write
+                    .DEY()
+                    .BNE("LoopY")
+                    .INX()
+                    .BNE("LoopX")
+                    .BRK()
+                    .INC_ABSOLUTE(0x7800, "ISR")
+                    .RTI()
+                    .Write(0x7000, 0x00, "Block")
+                    .Write(0x7800, 0x00) // ISR will increment this
+                    .Ref(0x10, "Block")
+                    .Ref(_cpu.IRQ_VECTOR, "ISR"); // Write the address of the ISR into the Interrupt Vector
             }
             _cpu.Reset();
             var result = mem.Read(0x7800);
@@ -3277,21 +3265,15 @@ namespace Tests
             using (var _ = mem.Load(PROG_START))
             {
                 _
-                              .Write(OPCODE.LDX_IMMEDIATE) // X will be our index into the data and the screen
-                              .Write(0x00)
-                              .Write(OPCODE.LDA_ABSOLUTE_X, "Loop")
-                              .Ref("Data")
-                              .Write(OPCODE.BEQ)
-                              .RelativeRef("Finished")
-                              .Write(OPCODE.STA_ABSOLUTE_X)
-                              .WriteWord(DISPLAY_BASE_ADDR)
-                              .Write(OPCODE.INX)
-                              .Write(OPCODE.BNE)
-                              .RelativeRef("Loop")
-                              .Write(OPCODE.BRK, "Finished")
-                              .WriteString("Hello, World!", "Data")
-                              .Write(0x00)
-                              ;
+                    .LDX_IMMEDIATE(0x00) // X will be our index into the data and the screen
+                    .LDA_ABSOLUTE_X("Data", "Loop")
+                    .BEQ("Finished")
+                    .STA_ABSOLUTE_X(DISPLAY_BASE_ADDR)
+                    .INX()
+                    .BNE("Loop")
+                    .BRK("Finished")
+                    .WriteString("Hello, World!", "Data")
+                    .Write(0x00);
             }
             _cpu.Reset();
             Assert.AreEqual('H', mem.Read(DISPLAY_BASE_ADDR));
