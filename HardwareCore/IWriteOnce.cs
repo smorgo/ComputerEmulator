@@ -2,6 +2,6 @@ namespace HardwareCore
 {
     public interface IWriteOnce
     {
-        void Burn(byte[] content, ushort startAddress);
+        void BurnContent(byte[] content, ushort startAddress);
     }
 }

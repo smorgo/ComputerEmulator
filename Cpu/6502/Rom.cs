@@ -8,9 +8,38 @@ namespace _6502
 {
     public class Rom : IAddressAssignment, IAddressableBlock, IWriteOnce, IErasable
     {
-        private bool Burned = false;
+        private bool _burn;
+        public bool Burn 
+        {
+            get
+            {
+                return _burn;
+            }
+            set
+            {
+                if(value != _burn)
+                {
+                    if(value)
+                    {
+                        if(Burned)
+                        {
+                            throw new InvalidOperationException("ROM must be erased before it can be re-burned");
+                        }
+
+                        _burn = value;
+                    }
+                    else
+                    {
+                        Burned = true;
+                        _burn = value;
+                    }
+                }
+            }
+        }
+
+        public bool Burned {get; private set;}
         public bool CanRead => true;
-        public bool CanWrite => false;
+        public bool CanWrite => Burn;
         public ushort StartAddress {get; private set;}
         public UInt32 Size {get; private set;}
 
@@ -34,7 +63,10 @@ namespace _6502
         {
             // address is now relative to start address
             Debug.Assert(address < Size);
-            // Don't write anything
+            if(Burn)
+            {
+                Memory[address] = value;
+            }
         }
 
         public byte Read(ushort address)
@@ -46,26 +78,29 @@ namespace _6502
 
         public void Erase()
         {
-            for(var ix = 0; ix < Size; ix++)
-            {
-                Memory[ix] = 0x00;
-            }
+            Array.Fill<byte>(Memory, 0xFF);
 
             Burned = false;
+            Burn = false;
         }
 
-        public void Burn(byte[] content, ushort startAddress)
+        public void BurnContent(byte[] content, ushort startAddress)
         {
-            Debug.Assert(!Burned);
+            if(Burned)
+            {
+                throw new InvalidOperationException("Cannot burn an already burned ROM");
+            }
 
-            Array.Copy(content, 0, Memory, startAddress, content.Length); // Check if there's a risk of overflow.
+            var bytesToBurn = Math.Min(content.Length, Size - startAddress);
+
+            Array.Copy(content, 0, Memory, startAddress, bytesToBurn); // Check if there's a risk of overflow.
 
             Burned = true;
         }
 
         public async Task Initialise()
         {
-            Array.Fill<byte>(Memory, 0xFF);
+            Erase();
             await Task.Delay(0);
         }
 
