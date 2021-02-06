@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 
 namespace Debugger
 {
@@ -50,9 +51,129 @@ namespace Debugger
                 return;
             }
 
-            _formatter.LogError("Command not recognise: {command}");
+            if(ParseAdd(command))
+            {
+                return;
+            }
+
+            if(ParseDelete(command))
+            {
+                return;
+            }
+            _formatter.LogError($"Command not recognise: {command}");
         }
 
+        // Allow shortcuts by just typing the start of the keyword
+        private bool KeywordMatches(string keyword, string value, int minLength = 1)
+        {
+            keyword = keyword.Trim().ToUpper();
+            value = value.Trim().ToUpper();
+
+            if(value.Length > keyword.Length || value.Length < minLength)
+            {
+                return false;
+            }
+
+            return keyword.StartsWith(value);
+        }
+        private bool ParseAddBreakpoint(string command)
+        {
+            // We already know we're in a ADD
+            var resource = command.Before(" ");
+
+            if(!KeywordMatches("breakpoint", resource))
+            {
+                return false;
+            }
+
+            return ParseAddBreakpointAddress(command.After(" "));
+        }
+        private bool ParseAddBreakpointAddress(string command)
+        {
+            command = command.Trim();
+            ushort address;
+
+            if(TryParseAddress(command, out address))
+            {
+                _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(address));
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool ParseAdd(string command)
+        {
+            var instruction = command.Before(" ");
+
+            if(!KeywordMatches("add", instruction))
+            {
+                return false;
+            }
+
+            if(ParseAddBreakpoint(command.After(" ")))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        private bool ParseDeleteBreakpoint(string command)
+        {
+            // We already know we're in a ADD
+            var resource = command.Before(" ");
+
+            if(!KeywordMatches("breakpoint", resource))
+            {
+                return false;
+            }
+
+            return ParseDeleteBreakpointAddress(command.After(" "));
+        }
+        private bool ParseDeleteBreakpointAddress(string command)
+        {
+            command = command.Trim();
+            ushort address;
+            var result = false;
+            if(TryParseAddress(command, out address))
+            {
+                ProgramAddressBreakpoint breakpoint;
+
+                do
+                {
+                    breakpoint = (ProgramAddressBreakpoint)_cpuDebug.Breakpoints.FirstOrDefault(x => (x as ProgramAddressBreakpoint)?.Address == address);
+
+                    if(breakpoint != null)
+                    {
+                        if(_cpuDebug.DeleteBreakpoint(breakpoint))
+                        {
+                            result = true;
+                        }
+                    }
+                }
+                while(breakpoint != null);
+                return result;
+            }
+
+            return false;
+        }
+
+        private bool ParseDelete(string command)
+        {
+            var instruction = command.Before(" ");
+
+            if(!KeywordMatches("delete", instruction))
+            {
+                return false;
+            }
+
+            if(ParseDeleteBreakpoint(command.After(" ")))
+            {
+                return true;
+            }
+
+            return false;
+        }
         private bool ParsePeek(string command)
         {
             if(!command.StartsWith('?'))

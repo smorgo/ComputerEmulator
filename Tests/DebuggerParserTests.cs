@@ -145,6 +145,48 @@ namespace Tests
             Assert.Pass();
             Assert.IsTrue(output.Contains("[1244]                  44 45 46 47 48 49 4A 4B 4C 4D 4E 4F 50 51"));
         }
+        [Test]
+        public void CanAddBreakpoint()
+        {
+            var command = "add breakpoint 1234";
+            _parser.Parse(command);
+            Assert.AreEqual("", _logFormatter.ToString());
+            Assert.AreEqual(0x1234, ((ProgramAddressBreakpoint)(_cpuDebug.Breakpoints[0])).Address);
+        }
+        [Test]
+        public void CanAddBreakpointShortforms()
+        {
+            _labels.Add(new Label("test", 0x1234));
+            var command = "a b test";
+            _parser.Parse(command);
+            Assert.AreEqual("", _logFormatter.ToString());
+            Assert.AreEqual(0x1234, ((ProgramAddressBreakpoint)(_cpuDebug.Breakpoints[0])).Address);
+        }
+        [Test]
+        public void CanDeleteBreakpoint()
+        {
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x1234));
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x2345));
 
+            var command = "delete breakpoint 1234";
+            _parser.Parse(command);
+            Assert.AreEqual("", _logFormatter.ToString());
+            Assert.AreEqual(1, _cpuDebug.Breakpoints.Count);
+            Assert.AreEqual(0x2345, ((ProgramAddressBreakpoint)(_cpuDebug.Breakpoints[0])).Address);
+        }
+        [Test]
+        public void CanDeleteBreakpointShortForms()
+        {
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x1234));
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x2345));
+            _labels.Add(new Label("test1", 0x1234));
+            _labels.Add(new Label("test2", 0x2345));
+
+            var command = "d b test2";
+            _parser.Parse(command);
+            Assert.AreEqual("", _logFormatter.ToString());
+            Assert.AreEqual(1, _cpuDebug.Breakpoints.Count);
+            Assert.AreEqual(0x1234, ((ProgramAddressBreakpoint)(_cpuDebug.Breakpoints[0])).Address);
+        }
     }
 }

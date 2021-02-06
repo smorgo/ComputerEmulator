@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Debugger
 {
@@ -21,5 +22,9 @@ namespace Debugger
         bool N {get; set;}
         bool B {get;set;}
         bool B2 {get;set;}
+        IList<ProgramBreakpoint> Breakpoints {get; }
+        void ClearBreakpoints();
+        bool AddBreakpoint(ProgramBreakpoint breakpoint);
+        bool DeleteBreakpoint(ProgramBreakpoint breakpoint);
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Debugger;
 
 namespace Tests
@@ -22,5 +23,27 @@ namespace Tests
         public bool N { get; set; }
         public bool B { get; set; }
         public bool B2 { get; set; }
+        private List<ProgramBreakpoint> _breakpoints = new List<ProgramBreakpoint>();
+        public IList<ProgramBreakpoint> Breakpoints => _breakpoints;
+        public void ClearBreakpoints()
+        {
+            _breakpoints.Clear();
+        }
+        public bool AddBreakpoint(ProgramBreakpoint breakpoint)
+        {
+            // Should ensure it's not a duplicate
+            _breakpoints.Add(breakpoint);
+            return true;
+        }
+        public bool DeleteBreakpoint(ProgramBreakpoint breakpoint)
+        {
+            if(_breakpoints.Contains(breakpoint))
+            {
+                _breakpoints.Remove(breakpoint);
+                return true;
+            }
+
+            return false;
+        }
     }
 }

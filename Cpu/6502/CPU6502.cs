@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using HardwareCore;
 using Debugger;
+using System.Collections.Generic;
 
 namespace _6502
 {
@@ -33,6 +34,12 @@ namespace _6502
         public bool DebugStop { get; set; }
         public EventHandler HasExecuted { get; set; }
         public EventHandler<CpuLog> Log { get; set; }
+        private List<ProgramBreakpoint> _breakpoints = new List<ProgramBreakpoint>();
+        public IList<ProgramBreakpoint> Breakpoints => _breakpoints;
+        public void ClearBreakpoints()
+        {
+            _breakpoints.Clear();
+        }
         public int Verbosity
         {
             get
@@ -368,7 +375,22 @@ namespace _6502
             OpCodeTable[(int)OPCODE.TXS] = TransferXToStackPointer;
             OpCodeTable[(int)OPCODE.TYA] = TransferYToAccumulator;
         }
+        public bool AddBreakpoint(ProgramBreakpoint breakpoint)
+        {
+            // Should ensure it's not a duplicate
+            _breakpoints.Add(breakpoint);
+            return true;
+        }
+        public bool DeleteBreakpoint(ProgramBreakpoint breakpoint)
+        {
+            if(_breakpoints.Contains(breakpoint))
+            {
+                _breakpoints.Remove(breakpoint);
+                return true;
+            }
 
+            return false;
+        }
         public void InitialiseVectors()
         {
             _addressMap.WriteWord(RESET_VECTOR, 0x8000);
