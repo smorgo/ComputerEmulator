@@ -71,6 +71,10 @@ namespace Debugger
         {
             Output.Add($"ERROR: {message}");
         }
+        public void Log(string message)
+        {
+            Output.Add(message);
+        }
 
         public override string ToString()
         {

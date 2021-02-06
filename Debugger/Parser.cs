@@ -25,7 +25,7 @@ namespace Debugger
          *
          * ?<expression>
          * <id>=<expression>
-         * list breakpoint|watch
+         * list breakpoint|watch|all
          * add breakpoint|watch <breakpoint expression>
          * delete breakpoint|watch <expression>
          * disable breakpoint|watch <expression>
@@ -60,6 +60,12 @@ namespace Debugger
             {
                 return;
             }
+
+            if(ParseList(command))
+            {
+                return;
+            }
+
             _formatter.LogError($"Command not recognise: {command}");
         }
 
@@ -75,6 +81,56 @@ namespace Debugger
             }
 
             return keyword.StartsWith(value);
+        }
+        private bool ParseList(string command)
+        {
+            var instruction = command.Before(" ");
+
+            if(!KeywordMatches("list", instruction))
+            {
+                return false;
+            }
+
+            var remain = command.After(" ").Trim().ToLower();
+
+            if(remain.Length == 0 || KeywordMatches("all", remain))
+            {
+                ListAll();
+                return true;
+            }
+
+            if(KeywordMatches("breakpoints", remain))
+            {
+                ListBreakpoints();
+                return true;
+            }
+
+            if(KeywordMatches("watches", remain))
+            {
+                ListWatches();
+                return true;
+            }
+
+            return false;
+        }
+
+        private void ListAll()
+        {
+            ListBreakpoints();
+            ListWatches();
+        }
+
+        private void ListBreakpoints()
+        {
+            foreach(var breakpoint in _cpuDebug.Breakpoints)
+            {
+                _formatter.Log(breakpoint.Description);
+            }
+        }
+
+        private void ListWatches()
+        {
+
         }
         private bool ParseAddBreakpoint(string command)
         {

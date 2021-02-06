@@ -188,5 +188,66 @@ namespace Tests
             Assert.AreEqual(1, _cpuDebug.Breakpoints.Count);
             Assert.AreEqual(0x1234, ((ProgramAddressBreakpoint)(_cpuDebug.Breakpoints[0])).Address);
         }
+        [Test]
+        public void CanListBreakpoints()
+        {
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x1234));
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x2345));
+
+            var command = "list breakpoints";
+            _parser.Parse(command);
+            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$1234 (4660)\nPC==$2345 (9029)"));
+        }
+        [Test]
+        public void CanListBreakpointsShortForm()
+        {
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x1234));
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x2345));
+
+            var command = "l b";
+            _parser.Parse(command);
+            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$1234 (4660)\nPC==$2345 (9029)"));
+        }
+        [Test]
+        public void CanListAll()
+        {
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x1234));
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x2345));
+
+            var command = "list all";
+            _parser.Parse(command);
+            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$1234 (4660)\nPC==$2345 (9029)"));
+        }
+        [Test]
+        public void CanListAllShortForm()
+        {
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x1234));
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x2345));
+
+            var command = "l a";
+            _parser.Parse(command);
+            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$1234 (4660)\nPC==$2345 (9029)"));
+        }
+        [Test]
+        public void CanListDefault()
+        {
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x1234));
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x2345));
+
+            var command = "list";
+            _parser.Parse(command);
+            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$1234 (4660)\nPC==$2345 (9029)"));
+        }
+        [Test]
+        public void CanListDefaultShortForm()
+        {
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x1234));
+            _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x2345));
+
+            var command = "l";
+            _parser.Parse(command);
+            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$1234 (4660)\nPC==$2345 (9029)"));
+        }
+
     }
 }
