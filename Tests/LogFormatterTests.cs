@@ -27,7 +27,7 @@ namespace Tests
         public void CanLogBytes()
         {
             _labels.Add(new Label("Start", 0x1000));
-            _labels.Add(new Label("MySubroutine", 0x1010));
+            _labels.Add(new Label("MySubroutine", 0x1012));
 
             ushort address = 0x1000;
             ushort size = 50;
@@ -37,7 +37,7 @@ namespace Tests
             Console.WriteLine(""); // Clear the hanging line
             Debug.WriteLine(output);
             Console.WriteLine(output);
-            Assert.IsTrue(output.Contains("[1010] MySubroutine:"));
+            Assert.IsTrue(output.Contains("[1012] MySubroutine:"));
         }
 
         [Test]
@@ -61,6 +61,27 @@ namespace Tests
             Console.WriteLine(output);
             Assert.IsTrue(output.Contains("A = $80 (128)"));
         }
+
+        [Test]
+        public void CanLogManyLabels()
+        {
+            _labels.Add(new Label("ZeroPage", 0x00));
+            _labels.Add(new Label("AddOperand1", 0x00));
+            _labels.Add(new Label("MultiplyFactor", 0x02));
+            _labels.Add(new Label("ArithResult", 0x04));
+            _labels.Add(new Label("DisplayVector", 0x06));
+
+            ushort address = 0x00;
+            ushort size = 0x100;
+            var bytes = _memoryDebug.ReadBlock(address, (ushort)(address+size-1));
+            _logFormatter.LogBytes(address, bytes);
+            var output = _logFormatter.ToString();
+            Console.WriteLine(""); // Clear the hanging line
+            Debug.WriteLine(output);
+            Console.WriteLine(output);
+            Assert.IsTrue(output.Contains("[0006] DisplayVector:"));
+        }
+
 
     }
 }

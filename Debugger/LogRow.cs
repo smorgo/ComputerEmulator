@@ -56,7 +56,7 @@ namespace Debugger
                     buffer.Append(ch);
                 }
 
-                return buffer.ToString().PadRight(MaxBytes).Substring(0,MaxBytes);
+                return buffer.ToString();
             }
         }
 
@@ -64,7 +64,12 @@ namespace Debugger
         {
             get
             {
-                return (string.IsNullOrEmpty(Label) ? "" : (Label + ":")).PadRight(16).Substring(0,16);
+                var label = Label;
+                if(label != null && label.Length > 19)
+                {
+                    label = label.Substring(0,17) + "..";
+                }
+                return (string.IsNullOrEmpty(label) ? "" : (label + ":")).PadRight(20).Substring(0,20);
             }
         }
 
