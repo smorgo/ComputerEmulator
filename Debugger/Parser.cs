@@ -34,11 +34,11 @@ namespace Debugger
          * clear all
          * go
          * step
-         * stop
+         * quit
          * help
          *
          * <expression> = <address>, <address range>, <word address>
-         * <address> = <label name>, <hex>, <int>
+         * <address> = <label name>, <hex>
          * <address range> = <address>-<address>, <address>:<length>
          * <word address> = &<address>
          */
