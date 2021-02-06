@@ -31,7 +31,7 @@ namespace Tests
             _display = new MemoryMappedDisplay(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
             await mem.Initialise();
-            _display.Clear();
+            await _display.Clear();
             _cpu = new CPU6502(mem);
             _cpu.DebugLevel = DebugLevel.Verbose;
             mem.WriteWord(_cpu.RESET_VECTOR, PROG_START);
@@ -2049,6 +2049,7 @@ namespace Tests
             {
                 _
                     .ASL_ZERO_PAGE(0x20)
+                    .LDA_ZERO_PAGE(0x20)
                     .BRK()
                     .Write(0x20, 0x88);
             }
@@ -2065,6 +2066,7 @@ namespace Tests
                 _
                     .LDX_IMMEDIATE(0x20)
                     .ASL_ZERO_PAGE_X(0x00)
+                    .LDA_ZERO_PAGE_X(0x00)
                     .BRK()
                     .Write(0x20, 0x88);
             }
@@ -2080,6 +2082,7 @@ namespace Tests
             {
                 _
                     .ASL_ABSOLUTE("Data")
+                    .LDA_ABSOLUTE("Data")
                     .BRK()
                     .Write(0x1020, 0x88, "Data");
             }
@@ -2096,6 +2099,7 @@ namespace Tests
                 _
                     .LDX_IMMEDIATE(0x02)
                     .ASL_ABSOLUTE_X("Data")
+                    .LDA_ABSOLUTE_X("Data")
                     .BRK()
                     .WriteWord(0x1020, 0x00, "Data")
                     .Write(0x88);
@@ -2127,6 +2131,7 @@ namespace Tests
             {
                 _
                     .LSR_ZERO_PAGE(0x20)
+                    .LDA_ZERO_PAGE(0x20)
                     .BRK()
                     .Write(0x20, 0x11);
             }
@@ -2143,6 +2148,7 @@ namespace Tests
                 _
                     .LDX_IMMEDIATE(0x20)
                     .LSR_ZERO_PAGE_X(0x00)
+                    .LDA_ZERO_PAGE_X(0x00)
                     .BRK()
                     .Write(0x20, 0x11);
             }
@@ -2158,6 +2164,7 @@ namespace Tests
             {
                 _
                     .LSR_ABSOLUTE("Data")
+                    .LDA_ABSOLUTE("Data")
                     .BRK()
                     .Write(0x1020, 0x11, "Data");
             }
@@ -2174,6 +2181,7 @@ namespace Tests
                 _
                     .LDX_IMMEDIATE(0x02)
                     .LSR_ABSOLUTE_X("Data")
+                    .LDA_ABSOLUTE_X("Data")
                     .BRK()
                     .WriteWord(0x1020, 0x00, "Data")
                     .Write(0x11);
@@ -2207,6 +2215,7 @@ namespace Tests
                 _
                     .SEC()
                     .ROL_ZERO_PAGE(0x20)
+                    .LDA_ZERO_PAGE(0x20)
                     .BRK()
                     .Write(0x20, 0x88);
             }
@@ -2224,6 +2233,7 @@ namespace Tests
                     .LDX_IMMEDIATE(0x20)
                     .SEC()
                     .ROL_ZERO_PAGE_X(0x00)
+                    .LDA_ZERO_PAGE_X(0x00)
                     .BRK()
                     .Write(0x20, 0x88);
             }
@@ -2240,6 +2250,7 @@ namespace Tests
                 _
                     .SEC()
                     .ROL_ABSOLUTE("Data")
+                    .LDA_ABSOLUTE("Data")
                     .BRK()
                     .Write(0x1020, 0x88, "Data");
             }
@@ -2257,6 +2268,7 @@ namespace Tests
                     .LDX_IMMEDIATE(0x02)
                     .SEC()
                     .ROL_ABSOLUTE_X("Data")
+                    .LDA_ABSOLUTE_X("Data")
                     .BRK()
                     .WriteWord(0x1020, 0x00, "Data")
                     .Write(0x88);
@@ -2288,6 +2300,7 @@ namespace Tests
             {
                 _
                     .ROR_ZERO_PAGE(0x20)
+                    .LDA_ZERO_PAGE(0x20)
                     .BRK()
                     .Write(0x20, 0x11);
             }
@@ -2304,6 +2317,7 @@ namespace Tests
                 _
                     .LDX_IMMEDIATE(0x20)
                     .ROR_ZERO_PAGE_X(0x00)
+                    .LDA_ZERO_PAGE_X(0x00)
                     .BRK()
                     .Write(0x20, 0x11);
             }
@@ -2319,6 +2333,7 @@ namespace Tests
             {
                 _
                     .ROR_ABSOLUTE("Data")
+                    .LDA_ABSOLUTE("Data")
                     .BRK()
                     .Write(0x1020, 0x11, "Data");
             }
@@ -2335,6 +2350,7 @@ namespace Tests
                 _
                     .LDX_IMMEDIATE(0x02)
                     .ROR_ABSOLUTE_X("Data")
+                    .LDA_ABSOLUTE_X("Data")
                     .BRK()
                     .WriteWord(0x1020, 0x00, "Data")
                     .Write(0x11);
@@ -2352,7 +2368,7 @@ namespace Tests
                 _
                     .LDA_IMMEDIATE(0x11)
                     .SEC()
-                    .Write(OPCODE.ROR_ACCUMULATOR)
+                    .ROR_ACCUMULATOR()
                     .BRK();
             }
             _cpu.Reset();
@@ -2368,6 +2384,7 @@ namespace Tests
                 _
                     .SEC()
                     .ROR_ZERO_PAGE(0x20)
+                    .LDA_ZERO_PAGE(0x20)
                     .BRK()
                     .Write(0x20, 0x11);
             }
@@ -2385,6 +2402,7 @@ namespace Tests
                     .LDX_IMMEDIATE(0x20)
                     .SEC()
                     .ROR_ZERO_PAGE_X(0x00)
+                    .LDA_ZERO_PAGE_X(0x00)
                     .BRK()
                     .Write(0x20, 0x11);
             }
@@ -2401,6 +2419,7 @@ namespace Tests
                 _
                     .SEC()
                     .ROR_ABSOLUTE("Data")
+                    .LDA_ABSOLUTE("Data")
                     .BRK()
                     .Write(0x1020, 0x11, "Data");
             }
@@ -2418,6 +2437,7 @@ namespace Tests
                     .LDX_IMMEDIATE(0x02)
                     .SEC()
                     .ROR_ABSOLUTE_X("Data")
+                    .LDA_ABSOLUTE_X("Data")
                     .BRK()
                     .WriteWord(0x1020, 0x00, "Data")
                     .Write(0x11);
@@ -2449,6 +2469,7 @@ namespace Tests
             {
                 _
                     .ROL_ZERO_PAGE(0x20)
+                    .LDA_ZERO_PAGE(0x20)
                     .BRK()
                     .Write(0x20, 0x88);
             }
@@ -2465,6 +2486,7 @@ namespace Tests
                 _
                     .LDX_IMMEDIATE(0x20)
                     .ROL_ZERO_PAGE_X(0x00)
+                    .LDA_ZERO_PAGE_X(0x00)
                     .BRK()
                     .Write(0x20, 0x88);
             }
@@ -2480,6 +2502,7 @@ namespace Tests
             {
                 _
                     .ROL_ABSOLUTE("Data")
+                    .LDA_ABSOLUTE("Data")
                     .BRK()
                     .Write(0x1020, 0x88, "Data");
             }
@@ -2496,6 +2519,7 @@ namespace Tests
                 _
                     .LDX_IMMEDIATE(0x02)
                     .ROL_ABSOLUTE_X("Data")
+                    .LDA_ABSOLUTE_X("Data")
                     .BRK()
                     .WriteWord(0x1020, 0x00, "Data")
                     .Write(0x88);

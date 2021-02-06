@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,6 +33,7 @@ namespace _6502
         public EventHandler OnTick;
         public EventHandler OnStarted;
         private DateTime _terminateAfter;
+        public List<ushort> Breakpoints {get; set;}
         public CPU6502(IAddressMap addressMap)
         {
             _addressMap = addressMap;    
@@ -317,6 +319,15 @@ namespace _6502
             return false;
         }
 
+        public bool IsBreakpoint(ushort address)
+        {
+            if(Breakpoints == null)
+            {
+                return false;
+            }
+
+            return Breakpoints.Contains(address);
+        }
         private async Task Run()
         {
             _sleepUntil = null; 
@@ -324,6 +335,8 @@ namespace _6502
             OnStarted?.Invoke(this, null);
             while(true)
             {
+                var currentPC = PC;
+
                 OnTick?.Invoke(this, null);
 
                 if(NmiPending && !InterruptServicing)
@@ -337,6 +350,11 @@ namespace _6502
                 else if(!Waiting()  || InterruptServicing)
                 {
                     await RunCurrentInstruction();
+                }
+
+                if(IsBreakpoint(currentPC))
+                {
+                    Debugger.Break();
                 }
 
                 if(P.B)
@@ -490,6 +508,13 @@ namespace _6502
         private void Write(ushort address, byte value)
         {
             _addressMap.Write(address, value);
+        }
+
+        private void WriteWithRegisters(ushort address, byte value)
+        {
+            Write(address, value);
+            P.Z = (value == 0);
+            P.N = 128 == (value & 128);
         }
 
         private ushort FetchAbsoluteAddress()
@@ -654,7 +679,7 @@ namespace _6502
             LoadAccumulator(result);
         }
 
-        private void Asl(byte value)
+        private void AslAccumulator(byte value)
         {
             var carry = value.Bit(7);
             value = (byte)(value << 1);
@@ -662,7 +687,17 @@ namespace _6502
             P.C = carry != 0;
         }
 
-        private void Rol(byte value)
+        private void AslMemory(ushort address)
+        {
+            var value = Read(address);
+            var carry = value.Bit(7);
+            value = (byte)(value << 1);
+            WriteWithRegisters(address, value);
+            P.C = carry != 0;
+        }
+
+
+        private void RolAccumulator(byte value)
         {
             var carry = value.Bit(7);
             value = (byte)(value << 1);
@@ -674,7 +709,22 @@ namespace _6502
             P.C = carry != 0;
         }
 
-        private void Lsr(byte value)
+        private void RolMemory(ushort address)
+        {
+            var value = Read(address);
+
+            var carry = value.Bit(7);
+            value = (byte)(value << 1);
+            if(P.C)
+            {
+                value++;
+            }
+
+            WriteWithRegisters(address, value);
+            P.C = carry != 0;
+        }
+
+        private void LsrAccumulator(byte value)
         {
             var carry = value.Bit(0);
             value = (byte)(value >> 1);
@@ -682,7 +732,16 @@ namespace _6502
             P.C = carry != 0;
         }
 
-        private void Ror(byte value)
+        private void LsrMemory(ushort address)
+        {
+            var value = Read(address);
+            var carry = value.Bit(0);
+            value = (byte)(value >> 1);
+            WriteWithRegisters(address, value);
+            P.C = carry != 0;
+        }
+
+        private void RorAccumulator(byte value)
         {
             var carry = value.Bit(0);
             value = (byte)(value >> 1);
@@ -691,6 +750,20 @@ namespace _6502
                 value |= 0x80;
             }
             LoadAccumulator(value);
+            P.C = carry != 0;
+        }
+
+
+        private void RorMemory(ushort address)
+        {
+            var value = Read(address);
+            var carry = value.Bit(0);
+            value = (byte)(value >> 1);
+            if(P.C)
+            {
+                value |= 0x80;
+            }
+            WriteWithRegisters(address, value);
             P.C = carry != 0;
         }
 
@@ -812,27 +885,27 @@ namespace _6502
         }
         private void AslAbsoluteX()
         {
-            Asl(Read(FetchAbsoluteAddressX()));
+            AslMemory(FetchAbsoluteAddressX());
         }
 
         private void AslAbsolute()
         {
-            Asl(Read(FetchAbsoluteAddress()));
+            AslMemory(FetchAbsoluteAddress());
         }
 
         private void AslZeroPageX()
         {
-            Asl(Read(FetchZeroPageAddressX()));
+            AslMemory(FetchZeroPageAddressX());
         }
 
         private void AslZeroPage()
         {
-            Asl(Read(FetchZeroPageAddress()));
+            AslMemory(FetchZeroPageAddress());
         }
 
         private void AslAccumulator()
         {
-            Asl(A);
+            AslAccumulator(A);
         }
         private void BitTestAbsolute()
         {
@@ -1151,27 +1224,27 @@ namespace _6502
         }
         private void LsrAbsoluteX()
         {
-            Lsr(Read(FetchAbsoluteAddressX()));
+            LsrMemory(FetchAbsoluteAddressX());
         }
 
         private void LsrAbsolute()
         {
-            Lsr(Read(FetchAbsoluteAddress()));
+            LsrMemory(FetchAbsoluteAddress());
         }
 
         private void LsrZeroPageX()
         {
-            Lsr(Read(FetchZeroPageAddressX()));
+            LsrMemory(FetchZeroPageAddressX());
         }
 
         private void LsrZeroPage()
         {
-            Lsr(Read(FetchZeroPageAddress()));
+            LsrMemory(FetchZeroPageAddress());
         }
 
         private void LsrAccumulator()
         {
-            Lsr(A);
+            LsrAccumulator(A);
         }
         private void NoOperation()
         {
@@ -1257,51 +1330,51 @@ namespace _6502
         }
         private void RolAbsoluteX()
         {
-            Rol(Read(FetchAbsoluteAddressX()));
+            RolMemory(FetchAbsoluteAddressX());
         }
 
         private void RolAbsolute()
         {
-            Rol(Read(FetchAbsoluteAddress()));
+            RolMemory(FetchAbsoluteAddress());
         }
 
         private void RolZeroPageX()
         {
-            Rol(Read(FetchZeroPageAddressX()));
+            RolMemory(FetchZeroPageAddressX());
         }
 
         private void RolZeroPage()
         {
-            Rol(Read(FetchZeroPageAddress()));
+            RolMemory(FetchZeroPageAddress());
         }
 
         private void RolAccumulator()
         {
-            Rol(A);
+            RolAccumulator(A);
         }
         private void RorAbsoluteX()
         {
-            Ror(Read(FetchAbsoluteAddressX()));
+            RorMemory(FetchAbsoluteAddressX());
         }
 
         private void RorAbsolute()
         {
-            Ror(Read(FetchAbsoluteAddress()));
+            RorMemory(FetchAbsoluteAddress());
         }
 
         private void RorZeroPageX()
         {
-            Ror(Read(FetchZeroPageAddressX()));
+            RorMemory(FetchZeroPageAddressX());
         }
 
         private void RorZeroPage()
         {
-            Ror(Read(FetchZeroPageAddress()));
+            RorMemory(FetchZeroPageAddress());
         }
 
         private void RorAccumulator()
         {
-            Ror(A);
+            RorAccumulator(A);
         }
         private void SetCarryFlag()
         {

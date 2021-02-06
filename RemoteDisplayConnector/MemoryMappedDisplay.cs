@@ -49,8 +49,7 @@ namespace RemoteDisplayConnector
             Debug.WriteLine("Clear screen");
             try
             {
-                _videoRam.Clear();
-                await _connection.InvokeAsync("Clear");
+                await Clear();
             }
             catch (Exception ex)
             {                
@@ -161,9 +160,13 @@ namespace RemoteDisplayConnector
             return block.Read(address);
         }
 
-        public void Clear()
+        public async Task Clear()
         {
             _videoRam.Clear();
+            _controlBlock.CursorX = 0;
+            _controlBlock.CursorY = 0;
+            _controlBlock.CursorEnabled = true;
+            await _connection.InvokeAsync("Clear");
         }
     }
 }

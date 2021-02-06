@@ -36,6 +36,68 @@ namespace RemoteDisplayConnector
         public uint Size => 4;
         public Byte[] Memory {get; private set;}
 
+        public byte CursorX 
+        {
+            get 
+            {
+                return Memory[CURSOR_X_ADDR];
+            }
+
+            set
+            {
+                Memory[CURSOR_X_ADDR] = value;
+            }
+        }
+        public byte CursorY
+        {
+            get 
+            {
+                return Memory[CURSOR_Y_ADDR];
+            }
+
+            set
+            {
+                Memory[CURSOR_Y_ADDR] = value;
+            }
+        }
+        public bool CursorEnabled
+        {
+            get
+            {
+                return ((Memory[CONTROL_ADDR] & ControlBits.CURSOR_ENABLED) == ControlBits.CURSOR_ENABLED);
+            }
+
+            set
+            {
+                if(value)
+                {
+                    Memory[CONTROL_ADDR] |= ControlBits.CURSOR_ENABLED;
+                }
+                else
+                {
+                    Memory[CONTROL_ADDR] &= (byte)(~(uint)ControlBits.CURSOR_ENABLED & 0xFF);
+                }
+            }
+        }
+        public bool CursorFlashing
+        {
+            get
+            {
+                return ((Memory[CONTROL_ADDR] & ControlBits.CURSOR_FLASHING) == ControlBits.CURSOR_FLASHING);
+            }
+
+            set
+            {
+                if(value)
+                {
+                    Memory[CONTROL_ADDR] |= ControlBits.CURSOR_FLASHING;
+                }
+                else
+                {
+                    Memory[CONTROL_ADDR] &= (byte)(~(uint)ControlBits.CURSOR_FLASHING & 0xFF);
+                }
+            }
+        }
         public DisplayControlBlock(IAddressAssignment device, int blockId, ushort startAddress)
         {
             Device = device;

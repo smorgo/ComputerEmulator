@@ -321,7 +321,7 @@ namespace HardwareCore
                 }
                 else
                 {
-                    Console.WriteLine($"Error: 0x{reference.Key:X4} Label '{reference.Value} is not defined");
+                    Console.WriteLine($"Error: 0x{reference.Key:X4} Label '{reference.Value.Label} is not defined");
                     HasErrors = true;
                 }
             }

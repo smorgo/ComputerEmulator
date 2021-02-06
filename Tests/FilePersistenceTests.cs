@@ -28,7 +28,7 @@ namespace Tests
             _display = new MemoryMappedDisplay(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
             await _display.Initialise();
-            _display.Clear();
+            await _display.Clear();
 
             _cpu = new CPU6502(mem);
             _cpu.DebugLevel = DebugLevel.Verbose;

@@ -38,7 +38,7 @@ namespace Tests
             _keyboard = new MemoryMappedKeyboard(KEYBOARD_BASE_ADDR, _keyboardConnection);
             mem.Install(_keyboard);
             await mem.Initialise();
-            _display.Clear();
+            await _display.Clear();
             _cpu = new CPU6502(mem);
             _cpu.DebugLevel = DebugLevel.Verbose;
             _keyboard.RequestInterrupt += async (s,e) => {await _cpu.Interrupt(s,e);};
