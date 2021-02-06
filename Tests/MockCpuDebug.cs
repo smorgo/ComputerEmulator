@@ -8,7 +8,7 @@ namespace Tests
         public bool DebugStop { get; set; }
         public EventHandler HasExecuted { get; set; }
         public EventHandler<CpuLog> Log { get; set; }
-        public int Debug {get; set;}
+        public int Verbosity {get; set;}
         public ushort PC { get; set; }
         public byte SP { get; set; }
         public byte A { get; set; }

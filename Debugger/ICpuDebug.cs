@@ -7,7 +7,7 @@ namespace Debugger
         bool DebugStop {get; set;}
         EventHandler HasExecuted {get; set;}
         EventHandler<CpuLog> Log {get; set;}
-        int Debug {get;}
+        int Verbosity {get;set;}
         ushort PC {get; set;}
         byte SP {get; set;}
         byte A {get;set;}

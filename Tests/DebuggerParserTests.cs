@@ -6,12 +6,13 @@ using System.Diagnostics;
 
 namespace Tests
 {
-    public class LogFormatterTests
+    public class DebuggerParserTests
     {
         private ICpuDebug _cpuDebug;
         private IMemoryDebug _memoryDebug;
         private ILogFormatter _logFormatter;
         private Labels _labels;
+        private Parser _parser;
 
         [SetUp]
         public async Task Setup()
@@ -20,46 +21,129 @@ namespace Tests
             _memoryDebug = new MockMemoryDebug();
             _labels = new Labels();
             _logFormatter = new DebugLogFormatter(_labels);
+            _parser = new Parser(_cpuDebug, _memoryDebug, _labels, _logFormatter);
+
             await Task.Delay(0);
         }
 
         [Test]
-        public void CanLogBytes()
+        public void CanPeekA()
         {
-            _labels.Add(new Label("Start", 0x1000));
-            _labels.Add(new Label("MySubroutine", 0x1010));
-
-            ushort address = 0x1000;
-            ushort size = 50;
-            var bytes = _memoryDebug.ReadBlock(address, (ushort)(address+size-1));
-            _logFormatter.LogBytes(address, bytes);
+            _cpuDebug.A = 0xAA;
+            var command = "?A";
+            _parser.Parse(command);
             var output = _logFormatter.ToString();
-            Console.WriteLine(""); // Clear the hanging line
-            Debug.WriteLine(output);
             Console.WriteLine(output);
-            Assert.IsTrue(output.Contains("[1010] MySubroutine:"));
+            Assert.IsTrue(output.Contains("A = $AA (170)"));
         }
-
         [Test]
-        public void CanLogWord()
+        public void CanPeekX()
         {
-            _logFormatter.LogWord(0x1234, 0xFEDC);
+            _cpuDebug.X = 0xAB;
+            var command = "?X";
+            _parser.Parse(command);
             var output = _logFormatter.ToString();
-            Console.WriteLine(""); // Clear the hanging line
-            Debug.WriteLine(output);
             Console.WriteLine(output);
-            Assert.IsTrue(output.Contains("$[1234] = $FEDC (65244)"));
+            Assert.IsTrue(output.Contains("X = $AB (171)"));
         }
-
         [Test]
-        public void CanLogRegister()
+        public void CanPeekY()
         {
-            _logFormatter.LogRegister("A", 128, "80");
+            _cpuDebug.Y = 0xAC;
+            var command = "?Y";
+            _parser.Parse(command);
             var output = _logFormatter.ToString();
-            Console.WriteLine(""); // Clear the hanging line
-            Debug.WriteLine(output);
             Console.WriteLine(output);
-            Assert.IsTrue(output.Contains("A = $80 (128)"));
+            Assert.IsTrue(output.Contains("Y = $AC (172)"));
+        }
+        [Test]
+        public void CanPeekByte()
+        {
+            var command = "?1234";
+            _parser.Parse(command);
+            var output = _logFormatter.ToString();
+            Console.WriteLine("");
+            Console.WriteLine(output);
+            Assert.IsTrue(output.Contains("$34 (52)"));
+        }
+        [Test]
+        public void CanPeekWord()
+        {
+            var command = "?&1234";
+            _parser.Parse(command);
+            var output = _logFormatter.ToString();
+            Console.WriteLine("");
+            Console.WriteLine(output);
+            Assert.IsTrue(output.Contains("$[1234] = $3534 (13620)"));
+        }
+        [Test]
+        public void CanPeekRange()
+        {
+            var command = "?1234-2345";
+            _parser.Parse(command);
+            var output = _logFormatter.ToString();
+            Console.WriteLine("");
+            Console.WriteLine(output);
+            Assert.IsTrue(output.Contains("[2344]                  44 45"));
+        }
+        [Test]
+        public void CanPeekBlock()
+        {
+            var command = "?1234:30";
+            _parser.Parse(command);
+            var output = _logFormatter.ToString();
+            Console.WriteLine("");
+            Console.WriteLine(output);
+            Assert.Pass();
+            Assert.IsTrue(output.Contains("[1244]                  44 45 46 47 48 49 4A 4B 4C 4D 4E 4F 50 51"));
+        }
+        [Test]
+        public void CanPeekWordByLabel()
+        {
+            _labels.Add(new Label("TEST", 0x1234));
+
+            var command = "?&TEST";
+            _parser.Parse(command);
+            var output = _logFormatter.ToString();
+            Console.WriteLine("");
+            Console.WriteLine(output);
+            Assert.IsTrue(output.Contains("$[1234] = $3534 (13620)"));
+        }
+        [Test]
+        public void CanPeekByteByLabel()
+        {
+            _labels.Add(new Label("TEST", 0x1234));
+
+            var command = "?TEST";
+            _parser.Parse(command);
+            var output = _logFormatter.ToString();
+            Console.WriteLine("");
+            Console.WriteLine(output);
+            Assert.IsTrue(output.Contains("$34 (52)"));
+        }
+        [Test]
+        public void CanPeekRangeByLabel()
+        {
+            _labels.Add(new Label("start", 0x1234));
+            _labels.Add(new Label("end", 0x2345));
+            var command = "?start-end";
+            _parser.Parse(command);
+            var output = _logFormatter.ToString();
+            Console.WriteLine("");
+            Console.WriteLine(output);
+            Assert.IsTrue(output.Contains("[2344]                  44 45"));
+        }
+        [Test]
+        public void CanPeekBlockByLabel()
+        {
+            _labels.Add(new Label("start", 0x1234));
+            var command = "?start:30";
+            _parser.Parse(command);
+            var output = _logFormatter.ToString();
+            Console.WriteLine("");
+            Console.WriteLine(output);
+            Assert.Pass();
+            Assert.IsTrue(output.Contains("[1244]                  44 45 46 47 48 49 4A 4B 4C 4D 4E 4F 50 51"));
         }
 
     }

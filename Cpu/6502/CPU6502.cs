@@ -3,22 +3,23 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using HardwareCore;
+using Debugger;
 
 namespace _6502
 {
 
-    public partial class CPU6502
+    public partial class CPU6502 : ICpuDebug
     {
         public ushort IRQ_VECTOR = 0xFFFE;
         public ushort NMI_VECTOR = 0xFFFA;
         public ushort RESET_VECTOR = 0xFFFC;
         public static UInt32 MAX_MEMORY = 0x10000;
         public static ushort STACK_BASE = 0x100;
-        public ushort PC;
-        public Byte SP;
-        public Byte A;
-        public Byte X;
-        public Byte Y;
+        public ushort PC {get; set;}
+        public Byte SP {get; set;}
+        public Byte A {get; set;}
+        public Byte X {get; set;}
+        public Byte Y {get; set;}
         public CpuFlags P = new CpuFlags();
         public DebugLevel DebugLevel {get;set;} = DebugLevel.Errors;
         public int NopDelayMilliseconds {get; set;} = 0;
@@ -29,6 +30,120 @@ namespace _6502
         public bool InterruptPending {get; private set;}
         public bool InterruptServicing {get; private set;}
         public bool NmiPending {get; private set;}
+        public bool DebugStop { get; set; }
+        public EventHandler HasExecuted { get; set; }
+        public EventHandler<CpuLog> Log { get; set; }
+        public int Verbosity
+        {
+            get
+            {
+                return (int)DebugLevel;
+            }
+
+            set
+            {
+                DebugLevel = (DebugLevel)value;
+            }
+        }
+        public bool C 
+        { 
+            get
+            {
+                return P.C;
+            }
+
+            set
+            {
+                P.C = value;
+            }
+        }
+
+        public bool Z 
+        { 
+            get
+            {
+                return P.Z;
+            }
+
+            set
+            {
+                P.Z = value;
+            }
+        }
+
+        public bool D 
+        { 
+            get
+            {
+                return P.D;
+            }
+
+            set
+            {
+                P.D = value;
+            }
+        }
+        public bool I
+        { 
+            get
+            {
+                return P.I;
+            }
+
+            set
+            {
+                P.I = value;
+            }
+        }
+        public bool V 
+        { 
+            get
+            {
+                return P.V;
+            }
+
+            set
+            {
+                P.V = value;
+            }
+        }
+        public bool N 
+        { 
+            get
+            {
+                return P.N;
+            }
+
+            set
+            {
+                P.N = value;
+            }
+        }
+        public bool B 
+        { 
+            get
+            {
+                return P.B;
+            }
+
+            set
+            {
+                P.B = value;
+            }
+        }
+        public bool B2 
+        { 
+            get
+            {
+                return P.B2;
+            }
+
+            set
+            {
+                P.B2 = value;
+            }
+        }
+
         public EventHandler OnTick;
         public EventHandler OnStarted;
         private DateTime _terminateAfter;
@@ -56,7 +171,7 @@ namespace _6502
         }
 
 #region Helpers
-        private void Log(DebugLevel level, string message)
+        private void LogInternal(DebugLevel level, string message)
         {
             if((int)level <= (int)DebugLevel)
             {
@@ -92,7 +207,7 @@ namespace _6502
         {
             var instruction = (opcode.ToString() + " " + logParams + new string(' ', 40)).Substring(0,40);
 
-            Log(DebugLevel.Trace, $"[{pc:X4}] {instruction} -> PC:{PC:X4} A:{A:X2} X:{X:X2} Y:{Y:X2} SP:{SP:X2} P:{P}");
+            LogInternal(DebugLevel.Trace, $"[{pc:X4}] {instruction} -> PC:{PC:X4} A:{A:X2} X:{X:X2} Y:{Y:X2} SP:{SP:X2} P:{P}");
         }
 
         private void LoadOpCodes()
@@ -269,10 +384,10 @@ namespace _6502
 
         public async Task ResetAsync(TimeSpan? maxDuration = null)
         {
-            Log(DebugLevel.Information, "\r\n6502 CPU Emulator");
+            LogInternal(DebugLevel.Information, "\r\n6502 CPU Emulator");
             // Get the reset vector
             PC = _addressMap.ReadWord(0xFFFC);
-            Log(DebugLevel.Information, $"RESET VECTOR [FFFC] is [{PC:X4}]");
+            LogInternal(DebugLevel.Information, $"RESET VECTOR [FFFC] is [{PC:X4}]");
             SP = 0xFF;
             A = 0x00;
             X = 0x00;
@@ -296,7 +411,7 @@ namespace _6502
             }
 
             await Run();
-            Log(DebugLevel.Information, "HALT");
+            LogInternal(DebugLevel.Information, "HALT");
         }
 
         private bool Waiting()
@@ -363,7 +478,7 @@ namespace _6502
 
             if(handler == null)
             {
-                Log(DebugLevel.Warnings, $"OpCode {OpCode} not handled");
+                LogInternal(DebugLevel.Warnings, $"OpCode {OpCode} not handled");
                 EmulationErrorsCount++;
             }
             else
@@ -388,7 +503,7 @@ namespace _6502
         {
             InterruptServicing = true;
             InterruptPending = false;
-            Log(DebugLevel.Information, "Interrupt!");
+            LogInternal(DebugLevel.Information, "Interrupt!");
             SetInterruptDisableFlag();
             PushWord(PC);
             PushProcessorStatus();
@@ -590,7 +705,7 @@ namespace _6502
             Write((ushort)(STACK_BASE + SP), value);
             if(SP == 0)
             {
-                Log(DebugLevel.Errors, "STACK OVERFLOW!");
+                LogInternal(DebugLevel.Errors, "STACK OVERFLOW!");
                 Break(HaltReason.StackOverflow);
             }
             SP--;
@@ -605,7 +720,7 @@ namespace _6502
         {
             if(SP == 0xff)
             {
-                Log(DebugLevel.Errors, "STACK UNDERFLOW!");
+                LogInternal(DebugLevel.Errors, "STACK UNDERFLOW!");
                 Break(HaltReason.StackUnderflow);
             }
             SP++;

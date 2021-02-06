@@ -48,7 +48,7 @@ namespace Debugger
                 {
                     var ch = (char)value;
 
-                    if(ch < ' ' || ch > 0x7F)
+                    if(ch < ' ' || ch > 0x7E)
                     {
                         ch = '.';
                     }

@@ -14,6 +14,8 @@ namespace Tests
 
         public byte[] ReadBlock(ushort startAddress, ushort endAddress)
         {
+            var start = Math.Min(startAddress, endAddress);
+            var end = Math.Max(startAddress, endAddress);
             var size = endAddress - startAddress + 1;
             var buffer = new byte[size];
             for(var ix = 0; ix < size; ix++)

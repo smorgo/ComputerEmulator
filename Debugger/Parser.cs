@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace Debugger
 {
@@ -48,6 +49,8 @@ namespace Debugger
             {
                 return;
             }
+
+            _formatter.LogError("Command not recognise: {command}");
         }
 
         private bool ParsePeek(string command)
@@ -184,7 +187,7 @@ namespace Debugger
         private void LogByte(ushort address)
         {
             var value = _memoryDebug.Read(address);
-            _formatter.LogBytes(address, new byte[] { value });
+            _formatter.LogByte(value);
         }
         private void LogWord(ushort address)
         {
@@ -193,13 +196,6 @@ namespace Debugger
         }
         private void LogMemory(int startAddress, int endAddress)
         {
-            if(startAddress < endAddress)
-            {
-                var temp = startAddress;
-                startAddress = endAddress;
-                endAddress = temp;
-            }
-
             _formatter.LogBytes((ushort)startAddress, _memoryDebug.ReadBlock((ushort)startAddress, (ushort)endAddress));
         }
         private bool TryParseAddress(string expression, out ushort address)
@@ -212,8 +208,7 @@ namespace Debugger
             }
 
             uint value;
-
-            if(uint.TryParse($"0x{expression}", out value))
+            if(uint.TryParse(expression, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out value))
             {
                 if(value >= 0 && value < 0x10000)
                 {
@@ -298,8 +293,8 @@ namespace Debugger
                     value = _cpuDebug.B2 ? 1 : 0;
                     hexValue = $"{value}";
                     break;
-                case "DEBUG":
-                    value = (ushort)_cpuDebug.Debug;
+                case "VERBOSITY":
+                    value = (ushort)_cpuDebug.Verbosity;
                     hexValue = $"{value}";
                     break;
                 default:

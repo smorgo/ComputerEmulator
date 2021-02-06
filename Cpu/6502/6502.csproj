@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\HardwareCore\HardwareCore.csproj" />
+    <ProjectReference Include="..\..\Debugger\Debugger.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

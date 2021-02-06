@@ -57,9 +57,19 @@ namespace Debugger
             Output.Add($"{register} = ${hexValue} ({value})");
         }
 
+        public void LogByte(byte value)
+        {
+            Output.Add($"${value:X2} ({value})");
+        }
+
         public void LogWord(ushort address, ushort value)
         {
             Output.Add($"$[{address:X4}] = ${value:X4} ({value})");
+        }
+
+        public void LogError(string message)
+        {
+            Output.Add($"ERROR: {message}");
         }
 
         public override string ToString()
