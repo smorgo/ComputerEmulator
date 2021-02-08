@@ -8,17 +8,17 @@ namespace Tests
 {
     public class LogFormatterTests
     {
-        private ICpuDebug _cpuDebug;
+        private IDebuggableCpu _cpuDebug;
         private IMemoryDebug _memoryDebug;
         private ILogFormatter _logFormatter;
-        private Labels _labels;
+        private LabelMap _labels;
 
         [SetUp]
         public async Task Setup()
         {
             _cpuDebug = new MockCpuDebug();
             _memoryDebug = new MockMemoryDebug();
-            _labels = new Labels();
+            _labels = new LabelMap();
             _logFormatter = new DebugLogFormatter(_labels);
             await Task.Delay(0);
         }

@@ -3,27 +3,51 @@ using System.Threading.Tasks;
 using System;
 using Debugger;
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using System.Threading;
+using HardwareCore;
+using Microsoft.Extensions.Logging;
 
 namespace Tests
 {
     public class DebuggerParserTests
     {
-        private ICpuDebug _cpuDebug;
+        private IDebuggableCpu _cpuDebug;
         private IMemoryDebug _memoryDebug;
         private ILogFormatter _logFormatter;
-        private Labels _labels;
-        private Parser _parser;
+        private ILabelMap _labels;
+        private IParser _parser;
+        private ServiceProvider _serviceProvider;
 
-        [SetUp]
-        public async Task Setup()
+        public DebuggerParserTests()
         {
-            _cpuDebug = new MockCpuDebug();
-            _memoryDebug = new MockMemoryDebug();
-            _labels = new Labels();
-            _logFormatter = new DebugLogFormatter(_labels);
-            _parser = new Parser(_cpuDebug, _memoryDebug, _labels, _logFormatter);
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+            _serviceProvider = serviceCollection.BuildServiceProvider();
+            ServiceProviderLocator.ServiceProvider = _serviceProvider;
+        }
 
-            await Task.Delay(0);
+        private static void ConfigureServices(IServiceCollection services)
+        {
+            services
+                 .AddLogging(cfg => cfg.AddConsole().AddDebug())    
+                 .AddScoped<IDebuggableCpu, MockCpuDebug>()
+                 .AddScoped<IMemoryDebug, MockMemoryDebug>()
+                 .AddScoped<ILabelMap, LabelMap>()
+                 .AddScoped<CpuHoldEvent,CpuHoldEvent>()
+                 .AddScoped<ILogFormatter, DebugLogFormatter>()
+                 .AddScoped<IParser, Parser>()
+                 .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
+        }
+        [SetUp]
+        public void Setup()
+        {
+            _cpuDebug = _serviceProvider.GetService<IDebuggableCpu>();
+            _memoryDebug = _serviceProvider.GetService<IMemoryDebug>();
+            _labels = _serviceProvider.GetService<ILabelMap>();
+            _labels.Clear();
+            _logFormatter = _serviceProvider.GetService<ILogFormatter>();
+            _parser = _serviceProvider.GetService<IParser>();
         }
 
         [Test]
@@ -84,7 +108,7 @@ namespace Tests
             var output = _logFormatter.ToString();
             Console.WriteLine("");
             Console.WriteLine(output);
-            Assert.IsTrue(output.Contains("[2344]                  44 45"));
+            Assert.IsTrue(output.Replace(" ","").Contains("[2344]4445"));
         }
         [Test]
         public void CanPeekBlock()
@@ -131,7 +155,7 @@ namespace Tests
             var output = _logFormatter.ToString();
             Console.WriteLine("");
             Console.WriteLine(output);
-            Assert.IsTrue(output.Contains("[2344]                  44 45"));
+            Assert.IsTrue(output.Contains("[2345] end:                 45"));
         }
         [Test]
         public void CanPeekBlockByLabel()

@@ -95,7 +95,7 @@ namespace KeyboardConnector
             _keyboard.OnKeyUp += async (s,e) => {await OnKeyUp(e);}; 
             _keyboard.OnKeyDown += async (s,e) => {await OnKeyDown(e);}; 
             _keyboard.OnRequestControl += async (s,e) => {await SendControlRegister();}; 
-    
+
             await _connection.ConnectAsync("https://localhost:5001/display");
             Debug.Assert(_connection.IsConnected);
 

@@ -7,7 +7,8 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 namespace RemoteDisplayConnector
 {
-    public class MemoryMappedDisplay : IAddressAssignment
+
+    public class MemoryMappedDisplay : IAddressAssignment, IMemoryMappedDisplay
     {
         public const ushort DISPLAY_CONTROL_BLOCK_ADDR = 0x80;
         private VideoRam _videoRam;
@@ -24,19 +25,21 @@ namespace RemoteDisplayConnector
             }
         }
 
-        public List<IAddressableBlock> Blocks {get; private set;}
-
-        public MemoryMappedDisplay(ushort absoluteAddress, UInt32 size) 
+        public List<IAddressableBlock> Blocks { get; private set; }
+        public MemoryMappedDisplay()
         {
-            Debug.Assert(absoluteAddress + size <= 0x10000);
-            _videoRam = new VideoRam(this, 0, absoluteAddress, size);
+        }
+
+        public void Locate(ushort address, UInt32 size)
+        {
+            _videoRam = new VideoRam(this, 0, address, size);
             _videoRam.OnRender += OnRender;
             _controlBlock = new DisplayControlBlock(this, 1, DISPLAY_CONTROL_BLOCK_ADDR);
             _controlBlock.OnControlChanged += OnControlChanged;
             _controlBlock.OnModeChanged += OnModeChanged;
             _controlBlock.OnCursorMoved += OnCursorMoved;
-            _controlBlock.OnClearScreen += async (s,e) => {await OnClearScreen();};
-            
+            _controlBlock.OnClearScreen += async (s, e) => { await OnClearScreen(); };
+
             Blocks = new List<IAddressableBlock>
             {
                 _videoRam,
@@ -53,7 +56,7 @@ namespace RemoteDisplayConnector
                 await _connection.InvokeAsync("Clear");
             }
             catch (Exception ex)
-            {                
+            {
                 Debug.WriteLine(ex.Message);
             }
         }
@@ -78,16 +81,16 @@ namespace RemoteDisplayConnector
             _connection = new HubConnectionBuilder()
                 .WithUrl("https://localhost:5001/display")
                 .Build();
-        
+
             _connection.Closed += async (error) =>
             {
-                await Task.Delay(new Random().Next(0,5) * 1000);
+                await Task.Delay(new Random().Next(0, 5) * 1000);
                 try
                 {
                     await _connection.StartAsync();
                     Debug.Assert(_connection.State == HubConnectionState.Connected);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Debug.WriteLine(ex.Message);
                     Console.WriteLine("Unable to reach remote display");
@@ -99,7 +102,7 @@ namespace RemoteDisplayConnector
                 await _connection.StartAsync();
                 Debug.Assert(_connection.State == HubConnectionState.Connected);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
                 Console.WriteLine("Unable to reach remote display");
@@ -118,7 +121,7 @@ namespace RemoteDisplayConnector
                 await _connection.InvokeAsync("SetMode", _mode);
             }
             catch (Exception ex)
-            {                
+            {
                 Debug.WriteLine(ex.Message);
             }
         }
@@ -146,11 +149,11 @@ namespace RemoteDisplayConnector
         {
             try
             {
-                await _connection.InvokeAsync("Write", 
+                await _connection.InvokeAsync("Write",
                     address, value);
             }
             catch (Exception ex)
-            {                
+            {
                 Debug.WriteLine(ex.Message);
             }
         }

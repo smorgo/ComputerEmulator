@@ -1,17 +1,18 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 
 namespace HardwareCore
 {
-    public class Loader : IDisposable
+    public class Loader : IDisposable, ILoader
     {
         public class ReferenceDescriptor
         {
-            public string Label {get; private set;}
-            public bool Relative {get; private set;}
-            public bool OneByte {get; private set;}
-            public ByteSelector ByteSelector {get; private set;}
-            public int Offset {get; private set;}
+            public string Label { get; private set; }
+            public bool Relative { get; private set; }
+            public bool OneByte { get; private set; }
+            public ByteSelector ByteSelector { get; private set; }
+            public int Offset { get; private set; }
             public ReferenceDescriptor(string label, bool relative = false, bool oneByte = false, int offset = 0)
             {
                 Offset = offset; // This may be modified by ParseLabel
@@ -24,15 +25,15 @@ namespace HardwareCore
             {
                 var ix = label.IndexOf(":");
 
-                if(ix < 0)
+                if (ix < 0)
                 {
                     ByteSelector = ByteSelector.Both;
                     return ParseLabelOffset(label);
                 }
 
-                var byteSpec = label.Substring(ix+1).ToUpper();
+                var byteSpec = label.Substring(ix + 1).ToUpper();
 
-                switch(byteSpec)
+                switch (byteSpec)
                 {
                     case "LO":
                         ByteSelector = ByteSelector.Low;
@@ -51,12 +52,12 @@ namespace HardwareCore
             {
                 var ix = label.IndexOf("+");
 
-                if(ix < 0)
+                if (ix < 0)
                 {
                     return ParseLabelNegativeOffset(label);
                 }
 
-                Offset += int.Parse(label.Substring(ix+1));
+                Offset += int.Parse(label.Substring(ix + 1));
 
                 return label.Substring(0, ix);
             }
@@ -65,7 +66,7 @@ namespace HardwareCore
             {
                 var ix = label.IndexOf("-");
 
-                if(ix < 0)
+                if (ix < 0)
                 {
                     return label;
                 }
@@ -77,7 +78,7 @@ namespace HardwareCore
 
             public int Select(int address)
             {
-                switch(ByteSelector)
+                switch (ByteSelector)
                 {
                     case ByteSelector.Low:
                         return (ushort)(address & 0xff);
@@ -90,22 +91,27 @@ namespace HardwareCore
         }
 
         private bool _fixupRequired = false;
-        private LabelTable _labels;
+        private ILoaderLabelTable _labels;
         private Dictionary<ushort, ReferenceDescriptor> _labelReferences;
-        public ushort Cursor {get; private set;}
+        public ushort Cursor { get; set; }
         private IAddressMap _addressMap;
         public IAddressMap Memory => _addressMap;
-        public bool HasErrors {get; private set;}
-
-        public Loader(IAddressMap addressMap, ushort cursor, LabelTable labels)
+        public bool HasErrors { get; private set; }
+        public ILogger<Loader> _logger;
+        public Loader(IAddressMap addressMap, ILoaderLabelTable labels, ILogger<Loader> logger)
         {
             _addressMap = addressMap;
-            Cursor = cursor;
             _labels = labels;
             _labelReferences = new Dictionary<ushort, ReferenceDescriptor>();
             HasErrors = false;
+            _logger = logger;
         }
 
+        public void Clear()
+        {
+            _labels?.Clear();
+            _labelReferences = new Dictionary<ushort, ReferenceDescriptor>();
+        }
         public Loader Write(ushort address, byte value, string label = null)
         {
             AddLabel(label, address);
@@ -123,7 +129,7 @@ namespace HardwareCore
         {
             return Write(address, (byte)opcode, label);
         }
-        
+
         public Loader Write(OPCODE opcode, string label = null)
         {
             return Write((byte)opcode, label);
@@ -132,7 +138,7 @@ namespace HardwareCore
         {
             return Write(address, (byte)value, label);
         }
-        
+
         public Loader Write(int value, string label = null)
         {
             return Write((byte)value, label);
@@ -154,7 +160,7 @@ namespace HardwareCore
         public Loader WriteString(ushort address, string content, string label = null)
         {
             AddLabel(label, address);
-            foreach(var ch in content)
+            foreach (var ch in content)
             {
                 Write((byte)ch);
             }
@@ -245,7 +251,7 @@ namespace HardwareCore
             return this;
         }
 
-        public Loader Macro(Action<ushort, Loader>macro, string label = null)
+        public Loader Macro(Action<ushort, Loader> macro, string label = null)
         {
             return Macro(Cursor, macro, label);
         }
@@ -253,11 +259,11 @@ namespace HardwareCore
         private void AddLabel(string label, ushort address)
         {
             _fixupRequired = true;
-            if(!string.IsNullOrWhiteSpace(label))
+            if (!string.IsNullOrWhiteSpace(label))
             {
-                if(!_labels.Add(label, address))
+                if (!_labels.Add(label, address))
                 {
-                    Console.WriteLine($"Label '{label}' already defined");
+                    _logger.LogError($"Label '{label}' already defined");
                     HasErrors = true;
                 }
             }
@@ -268,7 +274,7 @@ namespace HardwareCore
             AddLabel(label, Cursor);
         }
 
-        public Loader Fixup(out LabelTable exportLabels)
+        public Loader Fixup(out ILoaderLabelTable exportLabels)
         {
             Fixup();
             exportLabels = _labels;
@@ -279,28 +285,28 @@ namespace HardwareCore
         {
             ushort labelAddress;
 
-            foreach(var reference in _labelReferences)
+            foreach (var reference in _labelReferences)
             {
-                if(_labels.TryResolve(reference.Value.Label, out labelAddress))
+                if (_labels.TryResolve(reference.Value.Label, out labelAddress))
                 {
                     var descriptor = reference.Value;
 
-                    if(descriptor.Relative)
+                    if (descriptor.Relative)
                     {
-                        short relAddress = (short)(descriptor.Select(labelAddress - reference.Key -1));
+                        short relAddress = (short)(descriptor.Select(labelAddress - reference.Key - 1));
                         _addressMap.Write(reference.Key, (byte)relAddress);
                     }
-                    else if(descriptor.OneByte)
+                    else if (descriptor.OneByte)
                     {
                         var addressToUse = descriptor.Select(labelAddress + reference.Value.Offset);
 
-                        if(addressToUse >= 0 && addressToUse < 0x100)
+                        if (addressToUse >= 0 && addressToUse < 0x100)
                         {
                             _addressMap.Write(reference.Key, (byte)addressToUse);
                         }
                         else
                         {
-                            Console.WriteLine($"FIXUP ERROR at ${reference.Key:X4} - label '{reference.Value.Label}' at ${addressToUse:X4} is not a single byte");
+                            _logger.LogError($"FIXUP ERROR at ${reference.Key:X4} - label '{reference.Value.Label}' at ${addressToUse:X4} is not a single byte");
                             HasErrors = true;
                         }
                     }
@@ -308,27 +314,27 @@ namespace HardwareCore
                     {
                         var offsetAddress = descriptor.Select(labelAddress + reference.Value.Offset);
 
-                        if(offsetAddress >= 0 && offsetAddress < 0x10000)
+                        if (offsetAddress >= 0 && offsetAddress < 0x10000)
                         {
-                            _addressMap.WriteWord(reference.Key, (ushort)offsetAddress );
+                            _addressMap.WriteWord(reference.Key, (ushort)offsetAddress);
                         }
                         else
                         {
-                            Console.WriteLine($"FIXUP ERROR at ${reference.Key:X4} - label '{reference.Value.Label}' at ${offsetAddress:X8} is not valid");
+                            _logger.LogError($"FIXUP ERROR at ${reference.Key:X4} - label '{reference.Value.Label}' at ${offsetAddress:X8} is not valid");
                             HasErrors = true;
                         }
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"Error: 0x{reference.Key:X4} Label '{reference.Value} is not defined");
+                    _logger.LogError($"Error: 0x{reference.Key:X4} Label '{reference.Value} is not defined");
                     HasErrors = true;
                 }
             }
 
             _fixupRequired = false;
 
-            if(HasErrors)
+            if (HasErrors)
             {
                 throw new InvalidProgramException("There were errors in the loader");
             }
@@ -338,7 +344,7 @@ namespace HardwareCore
 
         public void Dispose()
         {
-            if(_fixupRequired)
+            if (_fixupRequired)
             {
                 Fixup();
             }

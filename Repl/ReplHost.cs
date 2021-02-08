@@ -6,16 +6,23 @@ using RemoteDisplayConnector;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Timers;
+using Debugger;
+using System.Threading;
+using Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Repl
 {
-    public class ReplHost
+    public class ReplHost : IEmulatorHost
     {
         private CPU6502 _cpu;
-        private MemoryMappedDisplay _display;
+        public IDebuggableCpu Cpu => _cpu;
+        private IMemoryMappedDisplay _display;
         private MemoryMappedKeyboard _keyboard;
         private IRemoteConnection _keyboardConnection;
-        private AddressMap mem;
+        private IAddressMap mem;
+        public IMemoryDebug Memory => (IMemoryDebug)mem;
+        public ILabelMap Labels {get; private set;}
         const ushort DISPLAY_BASE_ADDR = 0xF000;
         const ushort KEYBOARD_BASE_ADDR = 0x84;
         const ushort PROG_START = 0x8000;
@@ -24,27 +31,46 @@ namespace Repl
         const byte CarryNoOverflow = 0x01;
         const byte NoCarryOverflow = 0x40;
         const byte CarryOverflow = 0x41;
+        private readonly CancellationTokenWrapper _cancellationToken;
+        private readonly CpuHoldEvent _debuggerSyncEvent;
 
-        public async Task Initialise()
+        public bool Running {get; private set;}
+        public ReplHost(
+            ILabelMap labels, 
+            CancellationTokenWrapper cancellationToken, 
+            CpuHoldEvent debuggerSyncEvent, 
+            IDebuggableCpu cpu,
+            IAddressMap addressMap,
+            IRemoteConnection remoteKeyboardConnection,
+            IMemoryMappedDisplay memoryMappedDisplay)
         {
-            mem = new AddressMap();
+            Labels = labels;
+            _cancellationToken = cancellationToken;
+            _debuggerSyncEvent = debuggerSyncEvent;
+            _cpu = (CPU6502)cpu;
+            mem = addressMap;
+            _keyboardConnection = remoteKeyboardConnection;
+            _display = memoryMappedDisplay;
+        }
+
+        public void Start()
+        {
             mem.Install(new Ram(0x0000, 0x10000));
-            _display = new MemoryMappedDisplay(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
+            _display.Locate(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
 
             // This is interactive, so we want the RemoteKeyboardConnection
-            _keyboardConnection = new RemoteKeyboardConnection();
             _keyboard = new MemoryMappedKeyboard(KEYBOARD_BASE_ADDR, _keyboardConnection);
             mem.Install(_keyboard);
-            await mem.Initialise();
+            AsyncUtil.RunSync(() => mem.Initialise());
             _display.Clear();
-            _cpu = new CPU6502(mem);
-            _cpu.DebugLevel = DebugLevel.Verbose;
+            _cpu.LogLevel = LogLevel.Trace;
+
             _keyboard.RequestInterrupt += async (s,e) => {await _cpu.Interrupt();};
 
             mem.WriteWord(_cpu.RESET_VECTOR, PROG_START);
 
-            mem.Labels = new LabelTable();
+            mem.Labels.Clear();
             mem.Labels.Add("DISPLAY_CONTROL_ADDR", MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR);
             mem.Labels.Add("DISPLAY_CONTROL_REGISTER", MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR + DisplayControlBlock.CONTROL_ADDR);
             mem.Labels.Add("CURSOR_X_REGISTER", MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR + DisplayControlBlock.CURSOR_X_ADDR);
@@ -59,16 +85,16 @@ namespace Repl
             mem.Labels.Add("IRQ_VECTOR", _cpu.IRQ_VECTOR);
             mem.Labels.Add("NMI_VECTOR", _cpu.NMI_VECTOR);
 
+            Run();
         }
 
-        public async Task Run()
+        public void Run()
         {
-           Load();
+            Load();
+
+            Running = true;
 
             _cpu.Reset(TimeSpan.FromHours(1)); // Run for a maximum of one hour
-
- 
-            await Task.Delay(0);
         }
 
         public void Load()
@@ -158,8 +184,17 @@ namespace Repl
                 .Ref(_cpu.IRQ_VECTOR, "ISR");
             }
 
-           mem.Labels.Pop();
+            GenerateDebuggerLabels();
+            mem.Labels.Pop();
 
+        }
+
+        private void GenerateDebuggerLabels()
+        {
+            foreach(var name in mem.Labels.Names)
+            {
+                Labels.Add(new Label(name, mem.Labels.Resolve(name)));
+            }            
         }
     }
 }

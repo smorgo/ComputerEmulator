@@ -10,7 +10,7 @@ namespace HardwareCore
         uint Size { get; }
         ushort LowWaterMark { get; }
         ushort HighWaterMark { get; }
-        LabelTable Labels { get; set; }
+        ILoaderLabelTable Labels { get; set; }
 
         Task Initialise();
         void Install(IAddressAssignment device);
@@ -19,5 +19,7 @@ namespace HardwareCore
         void ResetWatermarks();
         void Write(ushort address, byte value);
         void WriteWord(ushort address, ushort value);
+        ILoader Load();
+        ILoader Load(ushort startAddress);
     }
 }

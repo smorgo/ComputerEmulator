@@ -5,11 +5,12 @@ using System.Threading.Tasks;
 using HardwareCore;
 using Debugger;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 
 namespace _6502
 {
 
-    public partial class CPU6502 : ICpuDebug
+    public partial class CPU6502 : IDebuggableCpu
     {
         public ushort IRQ_VECTOR = 0xFFFE;
         public ushort NMI_VECTOR = 0xFFFA;
@@ -22,7 +23,7 @@ namespace _6502
         public Byte X {get; set;}
         public Byte Y {get; set;}
         public CpuFlags P = new CpuFlags();
-        public DebugLevel DebugLevel {get;set;} = DebugLevel.Errors;
+        public LogLevel LogLevel {get;set;} = LogLevel.Error;
         public int NopDelayMilliseconds {get; set;} = 0;
         public DateTime? _sleepUntil = null;
         private IAddressMap _addressMap;
@@ -31,11 +32,14 @@ namespace _6502
         public bool InterruptPending {get; private set;}
         public bool InterruptServicing {get; private set;}
         public bool NmiPending {get; private set;}
-        public bool DebugStop { get; set; }
-        public EventHandler HasExecuted { get; set; }
-        public EventHandler<CpuLog> Log { get; set; }
+        private CpuHoldEvent _debuggerSyncEvent;
+        private bool _singleStep = false;
+        private bool _wasWaiting = false;
+        public EventHandler<ExecutedEventArgs> HasExecuted { get; set; }
+        public EventHandler<CpuLogEventArgs> Log { get; set; }
         private List<ProgramBreakpoint> _breakpoints = new List<ProgramBreakpoint>();
         public IList<ProgramBreakpoint> Breakpoints => _breakpoints;
+        private CancellationTokenWrapper _cancellationToken;
         public void ClearBreakpoints()
         {
             _breakpoints.Clear();
@@ -44,12 +48,12 @@ namespace _6502
         {
             get
             {
-                return (int)DebugLevel;
+                return (int)LogLevel;
             }
 
             set
             {
-                DebugLevel = (DebugLevel)value;
+                LogLevel = (LogLevel)value;
             }
         }
         public bool C 
@@ -154,9 +158,17 @@ namespace _6502
         public EventHandler OnTick;
         public EventHandler OnStarted;
         private DateTime _terminateAfter;
-        public CPU6502(IAddressMap addressMap)
+        private ILogger<CPU6502> _logger;
+        public CPU6502(
+            IAddressMap addressMap, 
+            CpuHoldEvent debuggerSyncEvent, 
+            CancellationTokenWrapper cancellationToken, 
+            ILogger<CPU6502> logger)
         {
-            _addressMap = addressMap;    
+            _debuggerSyncEvent = debuggerSyncEvent;
+            _addressMap = addressMap;
+            _cancellationToken = cancellationToken;
+            _logger = logger;
             LoadOpCodes();
             InitialiseVectors();
         }
@@ -178,12 +190,26 @@ namespace _6502
         }
 
 #region Helpers
-        private void LogInternal(DebugLevel level, string message)
+        private void LogInternal(LogLevel level, string message)
         {
-            if((int)level <= (int)DebugLevel)
+            if((int)level <= (int)LogLevel)
             {
-                Debug.WriteLine(message);
-                Console.WriteLine(message);
+                if(Log == null)
+                {
+                    if(_logger == null)
+                    {
+                        Debug.WriteLine(message);
+                        Console.WriteLine(message);
+                    }
+                    else
+                    {
+                        _logger.Log(level, message);
+                    }
+                }
+                else
+                {
+                    Log.Invoke(this, new CpuLogEventArgs(_logPC, message));
+                }
             }
         }
 
@@ -214,7 +240,7 @@ namespace _6502
         {
             var instruction = (opcode.ToString() + " " + logParams + new string(' ', 40)).Substring(0,40);
 
-            LogInternal(DebugLevel.Trace, $"[{pc:X4}] {instruction} -> PC:{PC:X4} A:{A:X2} X:{X:X2} Y:{Y:X2} SP:{SP:X2} P:{P}");
+            LogInternal(LogLevel.Trace, $"[{pc:X4}] {instruction} -> PC:{PC:X4} A:{A:X2} X:{X:X2} Y:{Y:X2} SP:{SP:X2} P:{P}");
         }
 
         private void LoadOpCodes()
@@ -399,17 +425,23 @@ namespace _6502
             _addressMap.WriteWord(0xFFF0, (byte)OPCODE.RTI);
         }
         
-        public void Reset(TimeSpan? maxDuration = null)
+        public void Go()
         {
-            AsyncUtil.RunSync(() => ResetAsync(maxDuration));
+        }
+        public void Stop()
+        {
         }
 
-        public async Task ResetAsync(TimeSpan? maxDuration = null)
+        public void Step()
         {
-            LogInternal(DebugLevel.Information, "\r\n6502 CPU Emulator");
+        }
+
+        public void Reset(TimeSpan? maxDuration = null)
+        {
+            LogInternal(LogLevel.Information, "\r\n6502 CPU Emulator");
             // Get the reset vector
             PC = _addressMap.ReadWord(0xFFFC);
-            LogInternal(DebugLevel.Information, $"RESET VECTOR [FFFC] is [{PC:X4}]");
+            LogInternal(LogLevel.Information, $"RESET VECTOR [FFFC] is [{PC:X4}]");
             SP = 0xFF;
             A = 0x00;
             X = 0x00;
@@ -432,36 +464,57 @@ namespace _6502
                 _terminateAfter = DateTime.MaxValue;
             }
 
-            await Run();
-            LogInternal(DebugLevel.Information, "HALT");
+            Run();
+
+            LogInternal(LogLevel.Information, "HALT");
         }
 
         private bool Waiting()
         {
+            var result = false;
+
             if(_sleepUntil.HasValue)
             {
                 if(DateTime.Now >= _sleepUntil.Value)
                 {
                     _sleepUntil = null;
-                    return false;
                 }
                 else
                 {
-                    return true;
+                    result = true;
                 }
             }
 
-            return false;
+            if(result != _wasWaiting)
+            {
+                LogInternal(LogLevel.Information, $"Waiting is {result}");
+                _wasWaiting = result;
+            }
+
+            return result;
         }
 
-        private async Task Run()
+        private void Run()
         {
             _sleepUntil = null; 
 
             OnStarted?.Invoke(this, null);
             while(true)
             {
+                if (_cancellationToken != null && _cancellationToken.Token.IsCancellationRequested)
+                {
+                    LogInternal(LogLevel.Information, "Task cancelled");
+                    _cancellationToken?.Token.ThrowIfCancellationRequested();
+                }
+
+                _debuggerSyncEvent?.WaitOne();
+
                 OnTick?.Invoke(this, null);
+
+                if(_singleStep)
+                {
+                    _singleStep = false;
+                }
 
                 if(NmiPending && !InterruptServicing)
                 {
@@ -473,7 +526,7 @@ namespace _6502
                 }
                 else if(!Waiting()  || InterruptServicing)
                 {
-                    await RunCurrentInstruction();
+                    RunCurrentInstruction();
                 }
 
                 if(P.B)
@@ -484,32 +537,37 @@ namespace _6502
 
                 if(DateTime.Now > _terminateAfter)
                 {
-                    Console.WriteLine("Terminated after maximum duration");
-                    Debug.WriteLine("Terminated after maximum duration");
+                    LogInternal(LogLevel.Information, "Terminated after maximum duration");
                     return;
                 }
+
+                Thread.Sleep(1);
             }
         }
 
-        private async Task RunCurrentInstruction()
+        private void RunCurrentInstruction()
         {
-            StartLogInstruction(PC);
-            var OpCode = Fetch();
-
-            var handler = OpCodeTable[OpCode];
-
-            if(handler == null)
+            lock(this)
             {
-                LogInternal(DebugLevel.Warnings, $"OpCode {OpCode} not handled");
-                EmulationErrorsCount++;
-            }
-            else
-            {
-                handler();
-                EndLogInstruction((OPCODE)OpCode);
+                var pc = PC;
+                StartLogInstruction(pc);
+                var opcode = Fetch();
+
+                var handler = OpCodeTable[opcode];
+
+                if(handler == null)
+                {
+                    LogInternal(LogLevel.Warning, $"OpCode {opcode} not handled");
+                    EmulationErrorsCount++;
+                }
+                else
+                {
+                    handler();
+                    EndLogInstruction((OPCODE)opcode);
+                }
             }
 
-            await Task.Delay(0);
+//            HasExecuted?.Invoke(this, new ExecutedEventArgs(pc, opcode));
         }
 
         private void ServiceNmi()
@@ -525,7 +583,7 @@ namespace _6502
         {
             InterruptServicing = true;
             InterruptPending = false;
-            LogInternal(DebugLevel.Information, "Interrupt!");
+            LogInternal(LogLevel.Information, "Interrupt!");
             SetInterruptDisableFlag();
             PushWord(PC);
             PushProcessorStatus();
@@ -727,7 +785,7 @@ namespace _6502
             Write((ushort)(STACK_BASE + SP), value);
             if(SP == 0)
             {
-                LogInternal(DebugLevel.Errors, "STACK OVERFLOW!");
+                LogInternal(LogLevel.Error, "STACK OVERFLOW!");
                 Break(HaltReason.StackOverflow);
             }
             SP--;
@@ -742,7 +800,7 @@ namespace _6502
         {
             if(SP == 0xff)
             {
-                LogInternal(DebugLevel.Errors, "STACK UNDERFLOW!");
+                LogInternal(LogLevel.Error, "STACK UNDERFLOW!");
                 Break(HaltReason.StackUnderflow);
             }
             SP++;

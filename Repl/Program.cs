@@ -1,19 +1,85 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
+using _6502;
+using Debugger;
+using IntegratedDebugger;
+using Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using HardwareCore;
+using KeyboardConnector;
+using RemoteDisplayConnector;
 
 namespace Repl
 {
     class Program
     {
-        static async Task Main(string[] args)
+        private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private static CancellationTokenWrapper _cancellationToken;
+        private static CpuHoldEvent _debuggerSyncEvent => new CpuHoldEvent();
+        private static ServiceProvider _serviceProvider;
+
+        static void Main(string[] args)
         {
-            Console.WriteLine("Starting the ComputerEmulator REPL environment");
+            _cancellationToken = new CancellationTokenWrapper(_cancellationTokenSource.Token);
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+            _serviceProvider = serviceCollection.BuildServiceProvider();
+            ServiceProviderLocator.ServiceProvider = _serviceProvider;
+            Run();
+        }
 
-            var host = new ReplHost();
-            await host.Initialise();
-            await host.Run();
+        private static void ConfigureServices(IServiceCollection services)
+        {
+            services.AddLogging(
+                 configure => configure.AddDebuggerLogger())
+                 .AddSingleton<ILoaderLabelTable>(new LoaderLabelTable())
+                 .AddScoped<IEmulatorHost, ReplHost>()
+                 .AddScoped<IDebugger, ConsoleDebugger>()
+                 .AddScoped<ILogFormatter, DebugLogFormatter>()
+                 .AddScoped<IParser, Parser>()
+                 .AddScoped<ILabelMap, LabelMap>()
+                 .AddScoped<IDebuggableCpu, CPU6502>()
+                 .AddScoped<IAddressMap, AddressMap>()
+                 .AddScoped<IMemoryDebug, AddressMap>()
+                 .AddScoped<IEmulatorConsole, ReplConsole>()
+                 .AddScoped<IRemoteConnection, NoRemoteKeyboardConnection>()
+                 .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()
+                 .AddTransient<ILoader, Loader>()
+                 .AddSingleton<CpuHoldEvent>(_debuggerSyncEvent)
+                 .AddSingleton<CancellationTokenWrapper>(_cancellationToken);
+        }
 
-            Console.WriteLine("REPL terminated");
+        static void Run()
+        {
+            var hostThread = new Thread(new ThreadStart(RunHost));
+            hostThread.Priority = ThreadPriority.BelowNormal;
+            var debuggerThread = new Thread(new ThreadStart(RunDebugger));
+            debuggerThread.Priority = ThreadPriority.AboveNormal;
+
+            hostThread.Start();
+
+//            SpinWait.SpinUntil(() => _host.Running);
+
+            debuggerThread.Start();
+
+            var console = _serviceProvider.GetService<IEmulatorConsole>();
+            console.Start();
+        }
+
+        private static void RunHost()
+        {
+            var host = _serviceProvider.GetService<IEmulatorHost>();
+            host.Start();
+        }
+
+        private static void RunDebugger()
+        {
+            var debugger = _serviceProvider.GetService<IDebugger>();
+
+            debugger.Start();
         }
     }
 }

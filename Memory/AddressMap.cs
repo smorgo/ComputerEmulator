@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using HardwareCore;
+using Debugger;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace HardwareCore
+namespace Memory
 {
 
-    public class AddressMap : IAddressMap
+    public class AddressMap : IAddressMap, IMemoryDebug
     {
         public bool CanRead => true;
 
@@ -18,11 +21,14 @@ namespace HardwareCore
 
         public ushort LowWaterMark { get; private set; }
         public ushort HighWaterMark { get; private set; }
-        public LabelTable Labels { get; set; }
+        public ILoaderLabelTable Labels { get; set; }
+        public EventHandler<MemoryChangedEventArgs> MemoryChanged { get; set; }
+
         private IAddressableBlock[] RedirectionTable = new IAddressableBlock[0x10000]; // This is going to be woefully inefficient in terms of memory
         private List<IAddressAssignment> _installedModules = new List<IAddressAssignment>();
-        public AddressMap()
+        public AddressMap(ILoaderLabelTable labels)
         {
+            Labels = labels;
             ResetWatermarks();
         }
 
@@ -48,9 +54,18 @@ namespace HardwareCore
             }
         }
 
-        public Loader Load(ushort startAddress = 0x0000)
+        public ILoader Load()
         {
-            return new Loader(this, startAddress, Labels == null ? new LabelTable() : Labels);
+            return Load(0x0000);
+        }
+
+
+        public ILoader Load(ushort startAddress)
+        {
+            var serviceProvider = ServiceProviderLocator.ServiceProvider;
+            var loader = serviceProvider.GetService<ILoader>();
+            loader.Cursor = startAddress;
+            return loader;
         }
 
         public void ResetWatermarks()
@@ -91,6 +106,8 @@ namespace HardwareCore
             {
                 HighWaterMark = address;
             }
+
+            MemoryChanged?.Invoke(this, new MemoryChangedEventArgs(address, value));
         }
 
         public void WriteWord(ushort address, ushort value)
@@ -104,6 +121,22 @@ namespace HardwareCore
         {
             Debug.Assert(address < Size - 1);
             return (ushort)(Read(address) + 256 * Read((ushort)(address + 1)));
+        }
+
+        public byte[] ReadBlock(ushort startAddress, ushort endAddress)
+        {
+            var end = Math.Max(startAddress, endAddress);
+            var start = Math.Min(startAddress, endAddress);
+            var size = end - start + 1;
+
+            var result = new byte[size];
+
+            for(var ix = 0; ix < size; ix++)
+            {
+                result[ix] = Read((ushort)(start + ix));
+            }
+
+            return result;
         }
     }
 }

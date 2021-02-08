@@ -5,7 +5,7 @@ namespace Tests
 {
     public class MockMemoryDebug : IMemoryDebug
     {
-        public EventHandler<IMemoryDebug.Change> MemoryChanged { get; set; }
+        public EventHandler<MemoryChangedEventArgs> MemoryChanged { get; set; }
 
         public byte Read(ushort address)
         {

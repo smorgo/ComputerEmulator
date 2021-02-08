@@ -1,23 +1,29 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
+using HardwareCore;
+using Microsoft.Extensions.Logging;
 
 namespace Debugger
 {
 
-    public class Parser
+    public class Parser : IParser
     {
-        private readonly ICpuDebug _cpuDebug;
+        private readonly IDebuggableCpu _cpuDebug;
         private readonly IMemoryDebug _memoryDebug;
-        private readonly Labels _labels;
+        private readonly ILabelMap _labels;
         private readonly ILogFormatter _formatter;
-
-        public Parser(ICpuDebug cpuDebug, IMemoryDebug memoryDebug, Labels labels, ILogFormatter formatter)
+        private readonly CpuHoldEvent _debuggerSyncEvent;
+        private readonly ILogger<Parser> _logger;
+        public Parser(IDebuggableCpu cpuDebug, IMemoryDebug memoryDebug, ILabelMap labels, ILogFormatter formatter, CpuHoldEvent debuggerSyncEvent, ILogger<Parser> logger)
         {
             _cpuDebug = cpuDebug;
             _memoryDebug = memoryDebug;
             _labels = labels;
             _formatter = formatter;
+            _debuggerSyncEvent = debuggerSyncEvent;
+            _logger = logger;
         }
 
         /*
@@ -44,38 +50,76 @@ namespace Debugger
          */
         public void Parse(string command)
         {
-            command = command.Trim();
+            _formatter.Clear();
 
-            if(ParsePeek(command))
+            if (!ParseInternal(command))
             {
-                return;
+                _formatter.LogError($"Command not recognise: {command}");
             }
-
-            if(ParseAdd(command))
-            {
-                return;
-            }
-
-            if(ParseDelete(command))
-            {
-                return;
-            }
-
-            if(ParseList(command))
-            {
-                return;
-            }
-
-            _formatter.LogError($"Command not recognise: {command}");
         }
 
+        private bool ParseInternal(string command)
+        {
+            command = command.Trim();
+
+            if (ParseControlCommand(command))
+            {
+                return true;
+            }
+
+            if (ParsePeek(command))
+            {
+                return true;
+            }
+
+            if (ParseAdd(command))
+            {
+                return true;
+            }
+
+            if (ParseDelete(command))
+            {
+                return true;
+            }
+
+            if (ParseList(command))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool ParseControlCommand(string command)
+        {
+            if (KeywordMatches("go", command))
+            {
+                //                _cpuDebug.Go();
+                _debuggerSyncEvent.Set();
+                return true;
+            }
+
+            if (KeywordMatches("step", command))
+            {
+                _cpuDebug.Step();
+                return true;
+            }
+
+            if (KeywordMatches("pause", command))
+            {
+                _debuggerSyncEvent.Reset();
+                return true;
+            }
+
+            return false;
+        }
         // Allow shortcuts by just typing the start of the keyword
         private bool KeywordMatches(string keyword, string value, int minLength = 1)
         {
             keyword = keyword.Trim().ToUpper();
             value = value.Trim().ToUpper();
 
-            if(value.Length > keyword.Length || value.Length < minLength)
+            if (value.Length > keyword.Length || value.Length < minLength)
             {
                 return false;
             }
@@ -86,26 +130,26 @@ namespace Debugger
         {
             var instruction = command.Before(" ");
 
-            if(!KeywordMatches("list", instruction))
+            if (!KeywordMatches("list", instruction))
             {
                 return false;
             }
 
             var remain = command.After(" ").Trim().ToLower();
 
-            if(remain.Length == 0 || KeywordMatches("all", remain))
+            if (remain.Length == 0 || KeywordMatches("all", remain))
             {
                 ListAll();
                 return true;
             }
 
-            if(KeywordMatches("breakpoints", remain))
+            if (KeywordMatches("breakpoints", remain))
             {
                 ListBreakpoints();
                 return true;
             }
 
-            if(KeywordMatches("watches", remain))
+            if (KeywordMatches("watches", remain))
             {
                 ListWatches();
                 return true;
@@ -122,7 +166,7 @@ namespace Debugger
 
         private void ListBreakpoints()
         {
-            foreach(var breakpoint in _cpuDebug.Breakpoints)
+            foreach (var breakpoint in _cpuDebug.Breakpoints)
             {
                 _formatter.Log(breakpoint.Description);
             }
@@ -137,7 +181,7 @@ namespace Debugger
             // We already know we're in a ADD
             var resource = command.Before(" ");
 
-            if(!KeywordMatches("breakpoint", resource))
+            if (!KeywordMatches("breakpoint", resource))
             {
                 return false;
             }
@@ -149,7 +193,7 @@ namespace Debugger
             command = command.Trim();
             ushort address;
 
-            if(TryParseAddress(command, out address))
+            if (TryParseAddress(command, out address))
             {
                 _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(address));
                 return true;
@@ -162,12 +206,12 @@ namespace Debugger
         {
             var instruction = command.Before(" ");
 
-            if(!KeywordMatches("add", instruction))
+            if (!KeywordMatches("add", instruction))
             {
                 return false;
             }
 
-            if(ParseAddBreakpoint(command.After(" ")))
+            if (ParseAddBreakpoint(command.After(" ")))
             {
                 return true;
             }
@@ -179,7 +223,7 @@ namespace Debugger
             // We already know we're in a ADD
             var resource = command.Before(" ");
 
-            if(!KeywordMatches("breakpoint", resource))
+            if (!KeywordMatches("breakpoint", resource))
             {
                 return false;
             }
@@ -191,7 +235,7 @@ namespace Debugger
             command = command.Trim();
             ushort address;
             var result = false;
-            if(TryParseAddress(command, out address))
+            if (TryParseAddress(command, out address))
             {
                 ProgramAddressBreakpoint breakpoint;
 
@@ -199,15 +243,15 @@ namespace Debugger
                 {
                     breakpoint = (ProgramAddressBreakpoint)_cpuDebug.Breakpoints.FirstOrDefault(x => (x as ProgramAddressBreakpoint)?.Address == address);
 
-                    if(breakpoint != null)
+                    if (breakpoint != null)
                     {
-                        if(_cpuDebug.DeleteBreakpoint(breakpoint))
+                        if (_cpuDebug.DeleteBreakpoint(breakpoint))
                         {
                             result = true;
                         }
                     }
                 }
-                while(breakpoint != null);
+                while (breakpoint != null);
                 return result;
             }
 
@@ -218,12 +262,12 @@ namespace Debugger
         {
             var instruction = command.Before(" ");
 
-            if(!KeywordMatches("delete", instruction))
+            if (!KeywordMatches("delete", instruction))
             {
                 return false;
             }
 
-            if(ParseDeleteBreakpoint(command.After(" ")))
+            if (ParseDeleteBreakpoint(command.After(" ")))
             {
                 return true;
             }
@@ -232,19 +276,19 @@ namespace Debugger
         }
         private bool ParsePeek(string command)
         {
-            if(!command.StartsWith('?'))
+            if (!command.StartsWith('?'))
             {
                 return false;
             }
 
             var expression = command.After("?").Trim();
 
-            if(PeekRegister(expression))
+            if (PeekRegister(expression))
             {
                 return true;
             }
 
-            if(PeekMemory(expression))
+            if (PeekMemory(expression))
             {
                 return true;
             }
@@ -257,7 +301,7 @@ namespace Debugger
             ushort value;
             string hexValue;
 
-            if(TryEvaluateRegister(expression, out value, out hexValue))
+            if (TryEvaluateRegister(expression, out value, out hexValue))
             {
                 _formatter.LogRegister(expression, value, hexValue);
                 return true;
@@ -268,12 +312,12 @@ namespace Debugger
 
         private bool PeekMemory(string expression)
         {
-            if(PeekMemoryRange(expression))
+            if (PeekMemoryRange(expression))
             {
                 return true;
             }
 
-            if(PeekMemoryWord(expression))
+            if (PeekMemoryWord(expression))
             {
                 return true;
             }
@@ -285,7 +329,7 @@ namespace Debugger
         {
             var ix = expression.IndexOf("-");
 
-            if(ix < 0)
+            if (ix < 0)
             {
                 return PeekMemoryBlock(expression);
             }
@@ -296,7 +340,7 @@ namespace Debugger
             ushort beginAddress;
             ushort endAddress;
 
-            if(TryParseAddress(begin, out beginAddress) && TryParseAddress(end, out endAddress))
+            if (TryParseAddress(begin, out beginAddress) && TryParseAddress(end, out endAddress))
             {
                 LogMemory(beginAddress, endAddress);
                 return true;
@@ -309,7 +353,7 @@ namespace Debugger
         {
             var ix = expression.IndexOf(":");
 
-            if(ix < 0)
+            if (ix < 0)
             {
                 return false;
             }
@@ -320,7 +364,7 @@ namespace Debugger
             ushort beginAddress;
             ushort sizeValue;
 
-            if(TryParseAddress(begin, out beginAddress) && TryParseSize(size, out sizeValue))
+            if (TryParseAddress(begin, out beginAddress) && TryParseSize(size, out sizeValue))
             {
                 LogMemory(beginAddress, beginAddress + sizeValue - 1);
                 return true;
@@ -331,7 +375,7 @@ namespace Debugger
 
         private bool PeekMemoryWord(string expression)
         {
-            if(!expression.StartsWith("&"))
+            if (!expression.StartsWith("&"))
             {
                 return false;
             }
@@ -339,7 +383,7 @@ namespace Debugger
             var addressExpression = expression.After("&");
             ushort address;
 
-            if(TryParseAddress(addressExpression, out address))
+            if (TryParseAddress(addressExpression, out address))
             {
                 LogWord(address);
                 return true;
@@ -352,7 +396,7 @@ namespace Debugger
         {
             ushort address;
 
-            if(TryParseAddress(expression, out address))
+            if (TryParseAddress(expression, out address))
             {
                 LogByte(address);
                 return true;
@@ -379,15 +423,15 @@ namespace Debugger
         {
             expression = expression.Trim();
 
-            if(_labels.TryLookup(expression, out address))
+            if (_labels.TryLookup(expression, out address))
             {
                 return true;
             }
 
             uint value;
-            if(uint.TryParse(expression, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out value))
+            if (uint.TryParse(expression, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out value))
             {
-                if(value >= 0 && value < 0x10000)
+                if (value >= 0 && value < 0x10000)
                 {
                     address = (ushort)value;
                     return true;
@@ -402,9 +446,9 @@ namespace Debugger
 
             uint value;
 
-            if(uint.TryParse(expression, out value))
+            if (uint.TryParse(expression, out value))
             {
-                if(value >= 0 && value < 0x10000)
+                if (value >= 0 && value < 0x10000)
                 {
                     size = (ushort)value;
                     return true;
@@ -416,7 +460,7 @@ namespace Debugger
         }
         private bool TryEvaluateRegister(string expression, out ushort value, out string hexValue)
         {
-            switch(expression.ToUpper())
+            switch (expression.ToUpper())
             {
                 case "A":
                     value = _cpuDebug.A;
@@ -435,7 +479,7 @@ namespace Debugger
                     hexValue = $"{value:X2}";
                     break;
                 case "PC":
-                    value = _cpuDebug.A;
+                    value = _cpuDebug.PC;
                     hexValue = $"{value:X4}";
                     break;
                 case "C":

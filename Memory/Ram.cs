@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using HardwareCore;
 
-namespace _6502
+namespace Memory
 {
     public class Ram : IAddressAssignment, IAddressableBlock
     {

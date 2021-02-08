@@ -8,5 +8,6 @@ namespace Debugger
         void LogRegister(string register, ushort value, string hexValue);
         void LogError(string message);
         void Log(string message);
+        void Clear();
     }
 }

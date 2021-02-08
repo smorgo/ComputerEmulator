@@ -8,14 +8,19 @@ namespace Debugger
     public class DebugLogFormatter : ILogFormatter
     {
         public List<string> Output {get; private set;}
-        private Labels _labels;
+        private ILabelMap _labels;
     
-        public DebugLogFormatter(Labels labels)
+        public DebugLogFormatter(ILabelMap labels)
         {
             _labels = labels;
             Output = new List<string>();
         }
 
+        public void Clear()
+        {
+            Output.Clear();
+        }
+        
         public void LogBytes(ushort startAddress, byte[] bytes)
         {
             var rows = new List<LogRow>();

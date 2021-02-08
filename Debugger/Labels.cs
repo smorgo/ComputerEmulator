@@ -2,19 +2,27 @@ using System.Collections.Generic;
 
 namespace Debugger
 {
-    public class Labels 
-    {
-        public Dictionary<string, ushort> LabelAddresses {get; set;}
-        public Dictionary<ushort, string> AddressLabels {get; set;}
 
-        public Labels(IEnumerable<Label> labels = null)
+    public class LabelMap : ILabelMap
+    {
+        public Dictionary<string, ushort> LabelAddresses { get; set; }
+        public Dictionary<ushort, string> AddressLabels { get; set; }
+
+        public void Clear()
+        {
+            LabelAddresses = new Dictionary<string, ushort>();
+            AddressLabels = new Dictionary<ushort, string>();
+        }
+       
+    
+        public LabelMap(IEnumerable<Label> labels = null)
         {
             LabelAddresses = new Dictionary<string, ushort>();
             AddressLabels = new Dictionary<ushort, string>();
 
-            if(labels != null)
+            if (labels != null)
             {
-                foreach(var label in labels)
+                foreach (var label in labels)
                 {
                     Add(label);
                 }
@@ -24,7 +32,7 @@ namespace Debugger
         {
             LabelAddresses.Add(label.Name.ToLower(), label.Address);
 
-            if(AddressLabels.ContainsKey(label.Address))
+            if (AddressLabels.ContainsKey(label.Address))
             {
                 AddressLabels[label.Address] = AddressLabels[label.Address] + "|" + label.Name;
             }
@@ -38,7 +46,7 @@ namespace Debugger
         {
             name = name.ToLower();
 
-            if(LabelAddresses.ContainsKey(name))
+            if (LabelAddresses.ContainsKey(name))
             {
                 address = LabelAddresses[name];
                 return true;
@@ -50,7 +58,7 @@ namespace Debugger
 
         public bool TryLookup(ushort address, out string name)
         {
-            if(AddressLabels.ContainsKey(address))
+            if (AddressLabels.ContainsKey(address))
             {
                 name = AddressLabels[address];
                 return true;

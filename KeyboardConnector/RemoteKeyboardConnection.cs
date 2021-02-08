@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using HardwareCore;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
 
 namespace KeyboardConnector
 {
@@ -16,7 +17,12 @@ namespace KeyboardConnector
         private HubConnection _connection;
 
         public bool IsConnected {get; private set;}
+        private ILogger _logger;
 
+        public RemoteKeyboardConnection(ILogger<RemoteKeyboardConnection> logger)
+        {
+            _logger = logger;
+        }
         public async Task ConnectAsync(string url)
         {
             _connection = new HubConnectionBuilder()
@@ -34,10 +40,9 @@ namespace KeyboardConnector
                     Debug.Assert(_connection.State == HubConnectionState.Connected);
                     IsConnected = true;
                 }
-                catch     (Exception ex)
+                catch(Exception ex)
                 {
-                    Debug.WriteLine(ex.Message);
-                    Console.WriteLine("Unable to reach remote display");
+                    _logger.LogWarning("Unable to reach remote display");
                 }
             };
 
@@ -54,7 +59,7 @@ namespace KeyboardConnector
             catch(Exception ex)
             {
                 Debug.WriteLine(ex.Message);
-                Console.WriteLine("Unable to reach remote display");
+                _logger.LogWarning("Unable to reach remote display");
                 IsConnected = false;
             }
         }

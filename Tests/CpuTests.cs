@@ -4,14 +4,20 @@ using HardwareCore;
 using System;
 using RemoteDisplayConnector;
 using System.Threading.Tasks;
+using Memory;
+using System.Threading;
+using Microsoft.Extensions.Logging;
+
+using Microsoft.Extensions.DependencyInjection;
+using Debugger;
 
 namespace Tests
 {
     public class CpuTests
     {
         private CPU6502 _cpu;
-        private MemoryMappedDisplay _display;
-        private AddressMap mem;
+        private IMemoryMappedDisplay _display;
+        private IAddressMap mem;
         const ushort DISPLAY_BASE_ADDR = 0xF000;
         const ushort PROG_START = 0x8000;
         const ushort DISPLAY_SIZE = 0x400;  // 1kB
@@ -21,22 +27,44 @@ namespace Tests
         const byte CarryOverflow = 0x41;
         long _tickCount;
         long _interruptTickInterval;
+        private ServiceProvider _serviceProvider;
 
-        [SetUp]
-        public async Task Setup()
+        public CpuTests()
         {
-            mem = new AddressMap();
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+            _serviceProvider = serviceCollection.BuildServiceProvider();
+            ServiceProviderLocator.ServiceProvider = _serviceProvider;
+        }
+
+        private static void ConfigureServices(IServiceCollection services)
+        {
+            services
+                 .AddLogging(cfg => cfg.AddConsole().AddDebug())
+                 .AddSingleton<ILoaderLabelTable>(new LoaderLabelTable())
+                 .AddTransient<IDebuggableCpu, CPU6502>()
+                 .AddScoped<IAddressMap, AddressMap>()
+                 .AddScoped<IMemoryDebug, AddressMap>()
+                 .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
+                 .AddScoped<CpuHoldEvent,CpuHoldEvent>()
+                 .AddTransient<ILoader, Loader>()
+                 .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
+        }
+        [SetUp]
+        public void Setup()
+        {
+            mem = _serviceProvider.GetService<IAddressMap>();
             mem.Install(new Ram(0x0000, 0x10000));
 
-            _display = new MemoryMappedDisplay(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
+            _display = _serviceProvider.GetService<IMemoryMappedDisplay>();
+            _display.Locate(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
-            await mem.Initialise();
+            AsyncUtil.RunSync(mem.Initialise);
             _display.Clear();
-            _cpu = new CPU6502(mem);
-            _cpu.DebugLevel = DebugLevel.Verbose;
+            _cpu = (CPU6502)_serviceProvider.GetService<IDebuggableCpu>();
+            _cpu.LogLevel = LogLevel.Trace;
             mem.WriteWord(_cpu.RESET_VECTOR, PROG_START);
-
-            mem.Labels = new LabelTable();
+            mem.Labels.Clear();
             mem.Labels.Add("DISPLAY_CONTROL_ADDR", MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR);
             mem.Labels.Add("DISPLAY_BASE_ADDR", DISPLAY_BASE_ADDR);
             mem.Labels.Add("DISPLAY_SIZE", DISPLAY_SIZE);

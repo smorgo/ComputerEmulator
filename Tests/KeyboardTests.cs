@@ -7,17 +7,22 @@ using RemoteDisplayConnector;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Timers;
+using Memory;
+using System.Threading;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Debugger;
 
 namespace Tests
 {
     public class KeyboardTests
     {
         private CPU6502 _cpu;
-        private MemoryMappedDisplay _display;
+        private IMemoryMappedDisplay _display;
         private MemoryMappedKeyboard _keyboard;
         private IRemoteConnection _keyboardConnection;
         private SignalRIntegration _signalr;
-        private AddressMap mem;
+        private IAddressMap mem;
         const ushort DISPLAY_BASE_ADDR = 0xF000;
         const ushort KEYBOARD_BASE_ADDR = 0x84;
         const ushort PROG_START = 0x8000;
@@ -26,26 +31,52 @@ namespace Tests
         const byte CarryNoOverflow = 0x01;
         const byte NoCarryOverflow = 0x40;
         const byte CarryOverflow = 0x41;
+        private ServiceProvider _serviceProvider;
+
+        public KeyboardTests()
+        {
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+            _serviceProvider = serviceCollection.BuildServiceProvider();
+            ServiceProviderLocator.ServiceProvider = _serviceProvider;
+        }
+
+        private static void ConfigureServices(IServiceCollection services)
+        {
+            services
+                 .AddLogging()
+                 .AddScoped<IDebuggableCpu, CPU6502>()
+                 .AddScoped<IAddressMap, AddressMap>()
+                 .AddScoped<ILoaderLabelTable, LoaderLabelTable>()
+                 .AddScoped<ILabelMap, LabelMap>()
+                 .AddScoped<CpuHoldEvent,CpuHoldEvent>()
+                 .AddScoped<ILogFormatter, DebugLogFormatter>()
+                 .AddScoped<IParser, Parser>()
+                 .AddScoped<IRemoteConnection, MockRemoteKeyboardConnection>()
+                 .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
+                 .AddTransient<ILoader, Loader>()
+                 .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
+        }
 
         [SetUp]
         public async Task Setup()
         {
-            mem = new AddressMap();
+            mem = _serviceProvider.GetService<IAddressMap>();
             mem.Install(new Ram(0x0000, 0x10000));
-            _display = new MemoryMappedDisplay(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
+            _display = _serviceProvider.GetService<IMemoryMappedDisplay>();
+            _display.Locate(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
-            _keyboardConnection = new MockRemoteKeyboardConnection();
+            _keyboardConnection = _serviceProvider.GetService<IRemoteConnection>();
             _keyboard = new MemoryMappedKeyboard(KEYBOARD_BASE_ADDR, _keyboardConnection);
             mem.Install(_keyboard);
             await mem.Initialise();
             _display.Clear();
-            _cpu = new CPU6502(mem);
-            _cpu.DebugLevel = DebugLevel.Verbose;
+            _cpu = (CPU6502)_serviceProvider.GetService<IDebuggableCpu>();
+            _cpu.LogLevel = LogLevel.Trace;
             _keyboard.RequestInterrupt += async (s,e) => {await _cpu.Interrupt(s,e);};
 
             mem.WriteWord(_cpu.RESET_VECTOR, PROG_START);
 
-            mem.Labels = new LabelTable();
             mem.Labels.Add("DISPLAY_CONTROL_ADDR", MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR);
             mem.Labels.Add("DISPLAY_BASE_ADDR", DISPLAY_BASE_ADDR);
             mem.Labels.Add("DISPLAY_SIZE", DISPLAY_SIZE);
@@ -167,7 +198,7 @@ namespace Tests
 
             // We use a timer to generate a KeyUp event, 3 seconds after the CPU
             // has started running the main code.
-            var timer = new Timer(3000) // Wait 3 seconds, then trigger KeyUp
+            var timer = new System.Timers.Timer(3000) // Wait 3 seconds, then trigger KeyUp
             {
                 AutoReset = false
             };

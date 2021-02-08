@@ -4,11 +4,13 @@ using Debugger;
 
 namespace Tests
 {
-    public class MockCpuDebug : ICpuDebug
+    public class MockCpuDebug : IDebuggableCpu
     {
-        public bool DebugStop { get; set; }
-        public EventHandler HasExecuted { get; set; }
-        public EventHandler<CpuLog> Log { get; set; }
+        public void Go() {}
+        public void Stop() {}
+        public void Step() {}
+        public EventHandler<ExecutedEventArgs> HasExecuted { get; set; }
+        public EventHandler<CpuLogEventArgs> Log { get; set; }
         public int Verbosity {get; set;}
         public ushort PC { get; set; }
         public byte SP { get; set; }
