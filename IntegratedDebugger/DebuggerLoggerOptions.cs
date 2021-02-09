@@ -4,6 +4,6 @@ namespace IntegratedDebugger
 {
     public class DebuggerLoggerOptions
     {
-        public LogLevel LogLevel { get; set; } = Microsoft.Extensions.Logging.LogLevel.Information;
+        public LogLevel LogLevel { get; set; } = Microsoft.Extensions.Logging.LogLevel.Trace;
     }
 }

@@ -192,7 +192,7 @@ namespace _6502
 #region Helpers
         private void LogInternal(LogLevel level, string message)
         {
-            if((int)level <= (int)LogLevel)
+            if((int)level >= (int)LogLevel)
             {
                 if(Log == null)
                 {
@@ -203,7 +203,8 @@ namespace _6502
                     }
                     else
                     {
-                        _logger.Log(level, message);
+                        // _logger.Log(level, message);
+                        _logger.Log(LogLevel.Information, message);
                     }
                 }
                 else

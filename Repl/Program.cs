@@ -48,6 +48,7 @@ namespace Repl
                  .AddScoped<IRemoteConnection, NoRemoteKeyboardConnection>()
                  .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()
                  .AddTransient<ILoader, Loader>()
+                 .AddScoped<ILogSink, ReplSink>()
                  .AddSingleton<CpuHoldEvent>(_debuggerSyncEvent)
                  .AddSingleton<CancellationTokenWrapper>(_cancellationToken);
         }

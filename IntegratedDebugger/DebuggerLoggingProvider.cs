@@ -12,6 +12,7 @@ namespace IntegratedDebugger
     {
         private DebuggerLoggerOptions _options;
         private bool _terminated;
+        private ILogSink _sink;
 
         ConcurrentQueue<LogEntry> InfoQueue = new ConcurrentQueue<LogEntry>();
 
@@ -21,12 +22,13 @@ namespace IntegratedDebugger
             base.Dispose(disposing);
         }
 
-        public DebuggerLoggerProvider() : this(new DebuggerLoggerOptions())
+        public DebuggerLoggerProvider(ILogSink sink) : this(sink, new DebuggerLoggerOptions())
         {
         }
 
-        public DebuggerLoggerProvider(DebuggerLoggerOptions options)
+        public DebuggerLoggerProvider(ILogSink sink, DebuggerLoggerOptions options)
         {
+            _sink = sink;
             _options = options;
         }
 
@@ -41,7 +43,7 @@ namespace IntegratedDebugger
 
         public override void WriteLog(LogEntry Info)
         {
-
+            _sink?.WriteLog(Info);
         }
 
     }
