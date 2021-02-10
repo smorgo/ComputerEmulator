@@ -113,16 +113,19 @@ namespace RemoteDisplayConnector
 
         private async Task SendDisplayMode()
         {
-            var message = $"Display Mode: {_mode.Mode}";
+            if(_connection.State == HubConnectionState.Connected)
+            {
+                var message = $"Display Mode: {_mode.Mode}";
 
-            Debug.WriteLine(message);
-            try
-            {
-                await _connection.InvokeAsync("SetMode", _mode);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
+                Debug.WriteLine(message);
+                try
+                {
+                    await _connection.InvokeAsync("SetMode", _mode);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                }
             }
         }
 
@@ -147,19 +150,22 @@ namespace RemoteDisplayConnector
 
         private async Task RenderCharacter(ushort address, byte value)
         {
-            try
+            if(_connection.State == HubConnectionState.Connected)
             {
-                await _connection.InvokeAsync("Write",
-                    address, value);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
+                try
+                {
+                    await _connection.InvokeAsync("Write",
+                        address, value);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                }
             }
         }
         public byte Read(int blockId, ushort address)
         {
-            // address is now relative to start address
+        // address is now relative to start address
             var block = Blocks[blockId];
             return block.Read(address);
         }

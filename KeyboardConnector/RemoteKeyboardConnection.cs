@@ -40,7 +40,7 @@ namespace KeyboardConnector
                     Debug.Assert(_connection.State == HubConnectionState.Connected);
                     IsConnected = true;
                 }
-                catch(Exception ex)
+                catch(Exception)
                 {
                     _logger.LogWarning("Unable to reach remote display");
                 }
@@ -66,7 +66,10 @@ namespace KeyboardConnector
 
         public async Task SendControlRegister(byte value)
         {
-            await _connection.InvokeAsync("ReceiveKeyboardControl", value);
+            if(_connection.State == HubConnectionState.Connected)
+            {
+                await _connection.InvokeAsync("ReceiveKeyboardControl", value);
+            }
         }
 
         public void Dispose()
@@ -75,12 +78,18 @@ namespace KeyboardConnector
 
         public async Task GenerateKeyUp(string key)
         {
-            await _connection.InvokeAsync("KeyUp", key);
+            if(_connection.State == HubConnectionState.Connected)
+            {
+                await _connection.InvokeAsync("KeyUp", key);
+            }
         }
 
         public async Task GenerateKeyDown(string key)
         {
-            await _connection.InvokeAsync("KeyDown", key);
+            if(_connection.State == HubConnectionState.Connected)
+            {
+               await _connection.InvokeAsync("KeyDown", key);
+            }
         }
     }
 }

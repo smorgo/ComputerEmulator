@@ -170,7 +170,10 @@ namespace Repl {
 		{
 			lines.Insert (pos, runes);
 		}
-
+		public void AppendLine(List<Rune> runes)
+		{
+			lines.Add(runes);
+		}
 		/// <summary>
 		/// Removes the line at the specified position
 		/// </summary>
@@ -834,10 +837,46 @@ namespace Repl {
 
 		public void AppendText (ustring text)
 		{
-			if(model.Count > 800) return;
 			model.Maintain(1000);
+			AppendTextInternal(text);
 			MoveEnd();
-			InsertText(text);
+		}
+		void AppendTextInternal (ustring text)
+		{
+			if (ustring.IsNullOrEmpty (text)) {
+				return;
+			}
+
+			var lines = TextModel.StringToRunes (text);
+
+			if (lines.Count == 0) {
+				return;
+			}
+			
+			var line = GetCurrentLine ();
+
+			// Optimize single line
+			if (lines.Count == 1) {
+				model.AppendLine(lines[0]);
+				currentColumn = lines [0].Count;
+				if (currentColumn - leftColumn > Frame.Width) {
+					leftColumn = currentColumn - Frame.Width + 1;
+				}
+				SetNeedsDisplay (new Rect (0, currentRow - topRow, Frame.Width, currentRow - topRow + 1));
+				return;
+			}
+
+			for (int i = 0; i < lines.Count; i++) {
+				model.AppendLine (lines [i]);
+			}
+
+			var last = model.GetLine (currentRow + lines.Count - 1);
+			var lastp = last.Count;
+
+			// Now adjust column and row positions
+			currentRow += lines.Count - 1;
+			currentColumn = lastp;
+			Adjust ();
 		}
 
 		// The column we are tracking, or -1 if we are not tracking any column

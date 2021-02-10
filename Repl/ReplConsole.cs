@@ -4,13 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using IntegratedDebugger;
+using System.Text;
 
 namespace Repl
 {
 
     public class ReplConsole : ILogger, IEmulatorConsole
     {
-        private static string _synclock = "";
         private static ReplConsole _instance;
         private MenuBar _menuBar;
         private Window _logWindow;
@@ -18,9 +18,10 @@ namespace Repl
         // private Filler _logView;
         private LogView _textView;
         private ILogSink _logSink;
+        private Debugger.IParser _parser;
         private ScrollBarView _scrollBar;
-
-        public ReplConsole(ILogSink logSink)
+        private StringBuilder _buffer = new StringBuilder();
+        public ReplConsole(ILogSink logSink, Debugger.IParser parser)
         {
             if(_instance != null)
             {
@@ -30,10 +31,12 @@ namespace Repl
 
             _logSink = logSink;
             _logSink.OnWriteLog += WriteLog;
+            _parser = parser;
         }
         public void Start()
         {
             Application.Init();
+            Application.MainLoop.AddIdle(OnMainLoopIdle);
             var top = Application.Top;
             var topFrame = top.Frame;
 
@@ -42,7 +45,8 @@ namespace Repl
                 X = 0,
                 Y = 1,
                 Width = Dim.Fill(),
-                Height = Dim.Fill() - 2
+                Height = Dim.Fill() - 3,
+                CanFocus = false
             };
 
             // _logView = new Filler(
@@ -57,6 +61,7 @@ namespace Repl
 			};
 
             _logWindow.Add (_textView);
+
             _scrollBar = new ScrollBarView(_textView, true);
 
 			_scrollBar.ChangedPosition += () => {
@@ -84,49 +89,45 @@ namespace Repl
 				_scrollBar.Refresh ();
 			};
 
-            // var scrollView = new ScrollView()
-            // {
-            //     X = 0,
-            //     Y = 1,
-            //     Width = Dim.Fill(),
-            //     Height = Dim.Fill() - 2
-            // };
-
-            // scrollView.DrawContent += (r) =>
-            // {
-            //     scrollView.ContentSize = _logView.GetContentSize();
-            // };
-
-            // scrollView.Add(_logView);
-
             var commandBar = new View()
             {
                 X = 0,
-                Y = Pos.AnchorEnd(1),
+                Y = Pos.AnchorEnd(3),
                 Width = Dim.Fill(),
-                Height = 1,
-                ColorScheme = Colors.Dialog
+                Height = 2
+            };
+
+            var commandBarText = new Label("Enter debugger commands")
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Fill(),
+                Height = 1
             };
 
             var commandLabel = new Label(">")
             {
                 X = 0,
-                Y = 0,
+                Y = 1,
                 Width = 1,
                 Height = 1
             };
 
-            var commandText = new TextField
+            var commandText = new CommandField
             {
                 X = 1,
-                Y = 0,
+                Y = 1,
                 Width = Dim.Fill(),
-                Height = 1
+                Height = 1,
+                CanFocus = true,
+
             };
 
-            commandBar.Add(commandLabel, commandText);
+			commandText.CommandEntered += (s,e) => {
+			 	_parser?.Parse(e);
+			};
 
-            // _logWindow.Add(scrollView, commandBar);
+            commandBar.Add(commandBarText, commandLabel, commandText);
 
             _menuBar = new MenuBar(
                 new MenuBarItem[] {
@@ -148,23 +149,40 @@ namespace Repl
                 Text = "Status Bar"
             };
 
-            top.Add(_logWindow, _menuBar);
-            // top.Add(_menuBar);
+            top.Add(_logWindow);
+            top.Add(commandBar);
+            top.Add(_menuBar);
             top.Add(_statusBar);
             Application.Run();
+        }
+
+        private bool OnMainLoopIdle()
+        {
+            lock(_buffer)
+            {
+                if(_buffer.Length > 0)
+                {
+                    _textView.AppendText(_buffer.ToString());
+                    _buffer.Clear();
+                }
+            }
+            return true;
         }
 
         public void WriteLine(string message)
         {
             // var lines = message.Split(Environment.NewLine);
             // _logView.AddMessages(lines);
-            lock(_synclock)
+            lock(_buffer)
             {
-                _textView.AppendText(Environment.NewLine + message);
-                _textView.SetNeedsDisplay();
-                // _textView.Redraw(_textView.Bounds);
+                if(_buffer.Length > 0)
+                {
+                    _buffer.Append(Environment.NewLine);
+                }
+                _buffer.Append(message);
             }
         }
+
         public void SaveFile()
         {
 
@@ -196,49 +214,6 @@ namespace Repl
         public void WriteLog(object sender, LogEntry entry)
         {
             WriteLine(entry.Text);
-        }
-    }
-
-    class Filler : View 
-    {
-        private List<string> _lines = new List<string>();
-        private int w, h;
-        public Filler (Rect rect) : base (rect)
-        {
-            w = rect.Width;
-            h = rect.Height;
-        }
-
-        public void AddMessage(string message)
-        {
-            AddMessages(new string[] {message});
-        }
-        public void AddMessages(string[] messages)
-        {
-            _lines.AddRange(messages);
-            SetNeedsDisplay();
-        }
-        public Size GetContentSize ()
-        {
-            return new Size (w, h);
-        }
-
-        public override void Redraw (Rect bounds)
-        {
-            Driver.SetAttribute (ColorScheme.Normal);
-            var f = Frame;
-            var lines = _lines.Count;
-            h = Math.Max(bounds.Height, lines);
-            w = Math.Max(bounds.Width, lines == 0 ? 0 : _lines.Max(x => x.Length));
-
-            for (int y = 0; y < lines; y++) {
-                Move (0, y);
-                var line = _lines[y];
-                for (int x = 0; x < line.Length; x++) {
-                    Rune r = line[x];
-                    Driver.AddRune (r);
-                }
-            }
         }
     }
 }
