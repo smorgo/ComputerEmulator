@@ -35,6 +35,7 @@ namespace Repl
         }
         public void Start()
         {
+            Application.UseSystemConsole = true;
             Application.Init();
             Application.MainLoop.AddIdle(OnMainLoopIdle);
             var top = Application.Top;

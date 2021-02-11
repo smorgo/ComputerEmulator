@@ -558,8 +558,10 @@ namespace Repl {
 			var retreat = 0;
 			var col = 0;
 			if (line.Count > 0) {
-				retreat = Math.Max ((SpecialRune (line [Math.Max (CurrentColumn - leftColumn - 1, 0)])
-				? 1 : 0), 0);
+				var lix = Math.Max (CurrentColumn - leftColumn - 1, 0);
+				var li = line[lix];
+				var r = SpecialRune(li);
+				retreat = Math.Max((r ? 1 : 0), 0);
 				for (int idx = leftColumn < 0 ? 0 : leftColumn; idx < line.Count; idx++) {
 					if (idx == CurrentColumn)
 						break;
@@ -838,8 +840,13 @@ namespace Repl {
 		public void AppendText (ustring text)
 		{
 			model.Maintain(1000);
+			MoveEnd();
 			AppendTextInternal(text);
 			MoveEnd();
+			if(model.Count > this.Bounds.Height)
+			{
+				ScrollTo(Math.Max(0, model.Count - this.Bounds.Height), true);
+			}
 		}
 		void AppendTextInternal (ustring text)
 		{

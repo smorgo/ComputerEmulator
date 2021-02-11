@@ -18,7 +18,7 @@ namespace Repl
     {
         private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private static CancellationTokenWrapper _cancellationToken;
-        private static CpuHoldEvent _debuggerSyncEvent => new CpuHoldEvent();
+        private static CpuHoldEvent _debuggerSyncEvent; // => new CpuHoldEvent();
         private static ServiceProvider _serviceProvider;
 
         static void Main(string[] args)
@@ -49,7 +49,7 @@ namespace Repl
                  .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<ILogSink, ReplSink>()
-                 .AddSingleton<CpuHoldEvent>(_debuggerSyncEvent)
+                 .AddScoped<CpuHoldEvent, CpuHoldEvent>() //(_debuggerSyncEvent)
                  .AddSingleton<CancellationTokenWrapper>(_cancellationToken);
         }
 
