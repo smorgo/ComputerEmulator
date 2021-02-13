@@ -118,6 +118,11 @@ namespace Debugger
                 return true;
             }
 
+            if (ParseClear(command))
+            {
+                return true;
+            }
+
             if (ParseList(command))
             {
                 return true;
@@ -334,6 +339,35 @@ namespace Debugger
         {
             _formatter.Log("");
             _formatter.Log("No watches defined");
+        }
+
+        private bool ParseClear(string command)
+        {
+            var instruction = command.Before(" ");
+
+            if(KeywordMatches("clear", instruction))
+            {
+                var resource = command.After(" ").Trim();
+
+                if(KeywordMatches("breakpoints", resource))
+                {
+                    _cpuDebug.Breakpoints.Clear();
+                    _formatter.Log("Breakpoints cleared");
+                    return true;
+                }
+                else if(KeywordMatches("watches", resource))
+                {
+                    _formatter.Log("CLEAR WATCHES not currently supported");
+                    return true;
+                }
+                else if(KeywordMatches("all", resource))
+                {
+                    _formatter.Log("CLEAR ALL not currently supported");
+                    return true;
+                }
+            }
+
+            return false;
         }
         private bool ParseAddBreakpoint(string command)
         {
