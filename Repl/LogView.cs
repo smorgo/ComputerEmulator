@@ -378,7 +378,7 @@ namespace Repl {
 		/// </remarks>
 		public LogView (Rect frame) : base (frame)
 		{
-			CanFocus = true;
+			CanFocus = false;
 		}
 
 		/// <summary>
@@ -387,7 +387,7 @@ namespace Repl {
 		/// </summary>
 		public LogView () : base ()
 		{
-			CanFocus = true;
+			CanFocus = false;
 		}
 
 		void ResetPosition ()
@@ -825,9 +825,6 @@ namespace Repl {
 		///<inheritdoc/>
 		public override bool ProcessKey (KeyEvent kb)
 		{
-			int restCount;
-			List<Rune> rest;
-
 			// Handle some state here - whether the last command was a kill
 			// operation and the column tracking (up/down)
 			switch (kb.Key) {
@@ -1183,13 +1180,13 @@ namespace Repl {
 				return false;
 			}
 
-			if (!CanFocus) {
-				return true;
-			}
+			// if (!CanFocus) {
+			// 	return true;
+			// }
 
-			if (!HasFocus) {
-				SetFocus ();
-			}
+			// if (!HasFocus) {
+			// 	SetFocus ();
+			// }
 
 			if (ev.Flags == MouseFlags.Button1Clicked) {
 				if (model.Count > 0) {

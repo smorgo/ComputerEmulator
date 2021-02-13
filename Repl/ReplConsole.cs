@@ -58,7 +58,7 @@ namespace Repl
 				Y = 0,
 				Width = Dim.Fill (),
 				Height = Dim.Fill (),
-
+                CanFocus = false
 			};
 
             _logWindow.Add (_textView);
@@ -121,11 +121,12 @@ namespace Repl
                 Width = Dim.Fill(),
                 Height = 1,
                 CanFocus = true,
-
+                TabIndex = 0,
             };
 
 			commandText.CommandEntered += (s,e) => {
 			 	_parser?.Parse(e);
+                commandBar.SetFocus();
 			};
 
             commandBar.Add(commandBarText, commandLabel, commandText);
@@ -154,7 +155,10 @@ namespace Repl
             top.Add(commandBar);
             top.Add(_menuBar);
             top.Add(_statusBar);
+
             Application.Run();
+
+            commandBar.SetFocus();
         }
 
         private bool OnMainLoopIdle()
