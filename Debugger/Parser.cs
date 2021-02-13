@@ -275,6 +275,12 @@ namespace Debugger
                 return true;
             }
 
+            if (KeywordMatches("labels", remain))
+            {
+                ListLabels();
+                return true;
+            }
+
             return false;
         }
 
@@ -282,10 +288,37 @@ namespace Debugger
         {
             ListBreakpoints();
             ListWatches();
+            ListLabels();
         }
 
+        private void ListLabels()
+        {
+            _formatter.Log("");
+            if(_labels == null || _labels.LabelAddresses.Count == 0)
+            {
+                _formatter.Log("No labels defined");
+                return;
+            }
+
+            _formatter.Log($"There are {_labels.LabelAddresses.Count} labels defined:");
+            var w = _labels.LabelAddresses.Keys.Max(x => x.Length);
+
+            foreach(var label in _labels.LabelAddresses)
+            {
+                _formatter.Log($"{label.Key.PadRight(w)} = ${label.Value:X4}");
+            }
+        }
         private void ListBreakpoints()
         {
+            _formatter.Log("");
+            if(_cpuDebug.Breakpoints == null || _cpuDebug.Breakpoints.Count == 0)
+            {
+                _formatter.Log("No breakpoints defined");
+                return;
+            }
+
+            _formatter.Log($"There are {_cpuDebug.Breakpoints.Count} breakpoints defined");
+
             foreach (var breakpoint in _cpuDebug.Breakpoints)
             {
                 _formatter.Log(breakpoint.Description);
@@ -294,7 +327,8 @@ namespace Debugger
 
         private void ListWatches()
         {
-
+            _formatter.Log("");
+            _formatter.Log("No watches defined");
         }
         private bool ParseAddBreakpoint(string command)
         {
