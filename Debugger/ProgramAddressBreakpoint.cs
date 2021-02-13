@@ -22,7 +22,9 @@ namespace Debugger
                 label = labels.AddressLabels[Address];
             }
 
-            return $"{Id:D2} Break on {Type}==${Address:X4} ({Address}) {label}";
+            var state = Disabled ? " - Disabled" : "";
+
+            return $"{Id:D2} Break on {Type}==${Address:X4} ({Address}) {label}{state}";
         }
 
     }

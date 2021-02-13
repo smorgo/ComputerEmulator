@@ -11,14 +11,12 @@ namespace IntegratedDebugger
     public class DebuggerLoggerProvider : LoggerProvider
     {
         private DebuggerLoggerOptions _options;
-        private bool _terminated;
         private ILogSink _sink;
 
         ConcurrentQueue<LogEntry> InfoQueue = new ConcurrentQueue<LogEntry>();
 
         protected override void Dispose(bool disposing)
         {
-            _terminated = true;
             base.Dispose(disposing);
         }
 

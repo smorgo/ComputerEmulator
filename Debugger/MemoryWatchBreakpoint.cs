@@ -20,8 +20,9 @@ namespace Debugger
         public override string Describe(ILabelMap labels)
         {
             var rangeEnd = (Size > 1) ? $"-${(Address + Size -1):X4}" : "";
+            var state = Disabled ? " - Disabled" : "";
 
-            return $"{Id:D2} {Type} ${Address:X4}{rangeEnd}==${Value:X2} ({Value})";
+            return $"{Id:D2} {Type} ${Address:X4}{rangeEnd}==${Value:X2} ({Value}){state}";
         }
 
     }

@@ -14,7 +14,9 @@ namespace Debugger
         }
         public override string Describe(ILabelMap labels)
         {
-            return $"{Id:D2} Break on {Type}==${Opcode:X2}";
+            var state = Disabled ? " - Disabled" : "";
+
+            return $"{Id:D2} Break on {Type}==${Opcode:X2}{state}";
         }
     }
 }

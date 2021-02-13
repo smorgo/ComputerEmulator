@@ -37,8 +37,8 @@ namespace Tests
                  .AddScoped<ILabelMap, LabelMap>()
                  .AddScoped<ILogFormatter, DebugLogFormatter>()
                  .AddScoped<IParser, Parser>()
-                 .AddSingleton<ICpuHoldEvent>(CpuDontHoldEvent.GetInstance())
-                 .AddSingleton<ICpuStepEvent>(CpuDontStepEvent.GetInstance())
+                 .AddScoped<ICpuHoldEvent,CpuDontHoldEvent>()
+                 .AddScoped<ICpuStepEvent,CpuDontStepEvent>()
                  .AddScoped<IRegisterTracker, NoRegisterTracker>()
                  .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
         }
@@ -52,6 +52,7 @@ namespace Tests
             _logFormatter = _serviceProvider.GetService<ILogFormatter>();
             _parser = _serviceProvider.GetService<IParser>();
             _logger = (UnitTestLogger<Parser>)_serviceProvider.GetService<ILogger<Parser>>();
+            _cpuDebug.Breakpoints.Clear();
         }
 
         [Test]
@@ -179,7 +180,7 @@ namespace Tests
             var command = "add breakpoint 1234";
             _parser.Parse(command);
             var output = _logger.GetOutput();
-            Assert.AreEqual("", output);
+            Assert.IsTrue(output.Contains("Breakpoint") && output.Contains("added"));
             Assert.AreEqual(0x1234, ((ProgramAddressBreakpoint)(_cpuDebug.Breakpoints[0])).Address);
         }
         [Test]
@@ -189,7 +190,7 @@ namespace Tests
             var command = "a b test";
             _parser.Parse(command);
             var output = _logger.GetOutput();
-            Assert.AreEqual("", output);
+            Assert.IsTrue(output.Contains("Breakpoint") && output.Contains("added"));
             Assert.AreEqual(0x1234, ((ProgramAddressBreakpoint)(_cpuDebug.Breakpoints[0])).Address);
         }
         [Test]
@@ -198,7 +199,7 @@ namespace Tests
             _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x1234));
             _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(0x2345));
 
-            var command = "delete breakpoint 1234";
+            var command = "delete breakpoint 1";
             _parser.Parse(command);
             var output = _logger.GetOutput();
             Assert.AreEqual("", output);
@@ -213,7 +214,7 @@ namespace Tests
             _labels.Add(new Label("test1", 0x1234));
             _labels.Add(new Label("test2", 0x2345));
 
-            var command = "d b test2";
+            var command = "de b 2";
             _parser.Parse(command);
             var output = _logger.GetOutput();
             Assert.AreEqual("", output);

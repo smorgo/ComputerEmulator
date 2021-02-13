@@ -47,8 +47,8 @@ namespace Tests
                  .AddScoped<IParser, Parser>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<IRegisterTracker, NoRegisterTracker>()
-                 .AddSingleton<ICpuHoldEvent>(CpuDontHoldEvent.GetInstance())
-                 .AddSingleton<ICpuStepEvent>(CpuDontStepEvent.GetInstance())
+                 .AddScoped<ICpuHoldEvent,CpuDontHoldEvent>()
+                 .AddScoped<ICpuStepEvent,CpuDontStepEvent>()
                  .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
         }
 

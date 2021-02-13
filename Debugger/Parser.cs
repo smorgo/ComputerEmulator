@@ -113,6 +113,11 @@ namespace Debugger
                 return true;
             }
 
+            if (ParseEnableDisable(command))
+            {
+                return true;
+            }
+
             if (ParseList(command))
             {
                 return true;
@@ -349,7 +354,9 @@ namespace Debugger
 
             if (TryParseAddress(command, out address))
             {
-                _cpuDebug.AddBreakpoint(new ProgramAddressBreakpoint(address));
+                var breakpoint = new ProgramAddressBreakpoint(address);
+                _cpuDebug.AddBreakpoint(breakpoint);
+                _formatter.Log($"Breakpoint {breakpoint.Id:D2} added");
                 return true;
             }
 
@@ -372,6 +379,61 @@ namespace Debugger
 
             return false;
         }
+
+        private bool ParseEnableDisable(string command)
+        {
+            var instruction = command.Trim().Before(" ");
+
+            if(KeywordMatches("enable", instruction))
+            {
+                return ParseEnableDisableBreakpoint(command.After(" "), false);
+            }
+            else if(KeywordMatches("disable", instruction, 2))
+            {
+                return ParseEnableDisableBreakpoint(command.After(" "), true);
+            }
+
+            return false;
+        }
+
+        private bool ParseEnableDisableBreakpoint(string command, bool disabled)
+        {
+           var resource = command.Trim().Before(" ");
+
+           if(!KeywordMatches("breakpoint", resource))
+           {
+               return false;
+           }
+
+           return ParseEnableDisableBreakpointById(command.After(" ").Trim(), disabled);
+       }
+
+        private bool ParseEnableDisableBreakpointById(string command, bool disabled)
+        {
+            command = command.Trim();
+
+            int id;
+
+            if (int.TryParse(command, out id))
+            {
+                var breakpoint = _cpuDebug.Breakpoints.FirstOrDefault(x => x.Id == id);
+                
+                if(breakpoint != null)
+                {
+                    breakpoint.Disabled = disabled;
+                    var action = disabled ? "disabled" : "enabled";
+                    _formatter.Log($"Breakpoint {id:D2} {action}");
+                    return true;
+                }
+                else
+                {
+                    _formatter.Log($"Breakpoint {id:D2} not found");
+                }
+            }
+
+            return false;
+        }
+
         private bool ParseDeleteBreakpoint(string command)
         {
             // We already know we're in a ADD
@@ -382,31 +444,27 @@ namespace Debugger
                 return false;
             }
 
-            return ParseDeleteBreakpointAddress(command.After(" "));
+            return ParseDeleteBreakpointById(command.After(" "));
         }
-        private bool ParseDeleteBreakpointAddress(string command)
+        private bool ParseDeleteBreakpointById(string command)
         {
             command = command.Trim();
-            ushort address;
-            var result = false;
-            if (TryParseAddress(command, out address))
+
+            int id;
+
+            if (int.TryParse(command, out id))
             {
-                ProgramAddressBreakpoint breakpoint;
-
-                do
+                var breakpoint = _cpuDebug.Breakpoints.FirstOrDefault(x => x.Id == id);
+                
+                if(breakpoint != null)
                 {
-                    breakpoint = (ProgramAddressBreakpoint)_cpuDebug.Breakpoints.FirstOrDefault(x => (x as ProgramAddressBreakpoint)?.Address == address);
-
-                    if (breakpoint != null)
-                    {
-                        if (_cpuDebug.DeleteBreakpoint(breakpoint))
-                        {
-                            result = true;
-                        }
-                    }
+                    _cpuDebug.Breakpoints.Remove(breakpoint);
+                    return true;
                 }
-                while (breakpoint != null);
-                return result;
+                else
+                {
+                    _formatter.Log($"Breakpoint {id:D2} not found");
+                }
             }
 
             return false;
@@ -416,7 +474,7 @@ namespace Debugger
         {
             var instruction = command.Before(" ");
 
-            if (!KeywordMatches("delete", instruction))
+            if (!KeywordMatches("delete", instruction, 2))
             {
                 return false;
             }

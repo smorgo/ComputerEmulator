@@ -19,7 +19,9 @@ namespace Debugger
         {
             var rangeEnd = (Size > 1) ? $"-${(Address + Size -1):X4}" : "";
 
-            return $"{Id:D2} {Type} ${Address:X4}{rangeEnd}";
+            var state = Disabled ? " - Disabled" : "";
+
+            return $"{Id:D2} {Type} ${Address:X4}{rangeEnd}{state}";
         }
     }
 }

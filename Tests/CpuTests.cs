@@ -47,8 +47,8 @@ namespace Tests
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
                  .AddScoped<IRegisterTracker, NoRegisterTracker>()
                  .AddTransient<ILoader, Loader>()
-                 .AddSingleton<ICpuHoldEvent>(CpuDontHoldEvent.GetInstance())
-                 .AddSingleton<ICpuStepEvent>(CpuDontStepEvent.GetInstance())
+                 .AddScoped<ICpuHoldEvent,CpuDontHoldEvent>()
+                 .AddScoped<ICpuStepEvent,CpuDontStepEvent>()
                  .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
         }
         [SetUp]

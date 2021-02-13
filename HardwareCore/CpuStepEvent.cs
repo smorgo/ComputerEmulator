@@ -7,41 +7,19 @@ namespace HardwareCore
 
     public class CpuStepEvent : ICpuStepEvent
     {
-        public static CpuStepEvent GetInstance()
-        {
-            if (_instance != null)
-            {
-                return _instance;
-            }
+        public ManualResetEventSlim _event = new ManualResetEventSlim(true);
 
-            return new CpuStepEvent();
-        }
-
-        private static CpuStepEvent _instance;
-        private bool _set = true;
-
-        public CpuStepEvent()
-        {
-            if (_instance != null)
-            {
-                throw new InvalidOperationException("Multiple instances of the CpuStepEvent have been created");
-            }
-            _instance = this;
-        }
         public virtual void Set()
         {
-            _set = true;
+            _event.Set();
         }
         public virtual void Reset()
         {
-            _set = false;
+            _event.Reset();
         }
         public virtual void WaitOne()
         {
-            while (!_set)
-            {
-                Thread.Sleep(1);
-            }
+            _event.Wait();
         }
     }
 }
