@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Memory
 {
 
-    public class AddressMap : IAddressMap, IMemoryDebug
+    public class AddressMap : IAddressMap
     {
         public bool CanRead => true;
 

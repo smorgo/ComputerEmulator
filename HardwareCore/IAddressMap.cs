@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 
 namespace HardwareCore
@@ -16,10 +17,13 @@ namespace HardwareCore
         void Install(IAddressAssignment device);
         byte Read(ushort address);
         ushort ReadWord(ushort address);
+        byte[] ReadBlock(ushort startAddress, ushort endAddress);
         void ResetWatermarks();
         void Write(ushort address, byte value);
         void WriteWord(ushort address, ushort value);
         ILoader Load();
         ILoader Load(ushort startAddress);
+        EventHandler<MemoryChangedEventArgs> MemoryChanged {get;set;}
+
     }
 }

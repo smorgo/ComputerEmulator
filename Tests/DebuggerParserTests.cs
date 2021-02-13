@@ -13,7 +13,7 @@ namespace Tests
     public class DebuggerParserTests
     {
         private IDebuggableCpu _cpuDebug;
-        private IMemoryDebug _memoryDebug;
+        private IAddressMap _addressMap;
         private ILogFormatter _logFormatter;
         private ILabelMap _labels;
         private IParser _parser;
@@ -33,7 +33,7 @@ namespace Tests
             services
                  .AddScoped(typeof(ILogger<Parser>), typeof(UnitTestLogger<Parser>))
                  .AddScoped<IDebuggableCpu, MockCpuDebug>()
-                 .AddScoped<IMemoryDebug, MockMemoryDebug>()
+                 .AddScoped<IAddressMap, MockMemoryDebug>()
                  .AddScoped<ILabelMap, LabelMap>()
                  .AddScoped<ILogFormatter, DebugLogFormatter>()
                  .AddScoped<IParser, Parser>()
@@ -46,7 +46,7 @@ namespace Tests
         public void Setup()
         {
             _cpuDebug = _serviceProvider.GetService<IDebuggableCpu>();
-            _memoryDebug = _serviceProvider.GetService<IMemoryDebug>();
+            _addressMap = _serviceProvider.GetService<IAddressMap>();
             _labels = _serviceProvider.GetService<ILabelMap>();
             _labels.Clear();
             _logFormatter = _serviceProvider.GetService<ILogFormatter>();

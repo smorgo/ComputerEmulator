@@ -108,6 +108,8 @@ namespace Repl
                     // Unexpected register
                     break;
             }
+
+            _statusBar.SetNeedsDisplay();
         }
 
         public void Start()

@@ -21,7 +21,7 @@ namespace Repl
         private MemoryMappedKeyboard _keyboard;
         private IRemoteConnection _keyboardConnection;
         private IAddressMap mem;
-        public IMemoryDebug Memory => (IMemoryDebug)mem;
+        public IAddressMap Memory => mem;
         public ILabelMap Labels {get; private set;}
         const ushort DISPLAY_BASE_ADDR = 0xF000;
         const ushort KEYBOARD_BASE_ADDR = 0x84;

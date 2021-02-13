@@ -3,13 +3,14 @@ using System.Threading.Tasks;
 using System;
 using Debugger;
 using System.Diagnostics;
+using HardwareCore;
 
 namespace Tests
 {
     public class LogFormatterTests
     {
         private IDebuggableCpu _cpuDebug;
-        private IMemoryDebug _memoryDebug;
+        private IAddressMap _addressMap;
         private ILogFormatter _logFormatter;
         private LabelMap _labels;
 
@@ -17,7 +18,7 @@ namespace Tests
         public async Task Setup()
         {
             _cpuDebug = new MockCpuDebug();
-            _memoryDebug = new MockMemoryDebug();
+            _addressMap = new MockMemoryDebug();
             _labels = new LabelMap();
             _logFormatter = new DebugLogFormatter(_labels);
             await Task.Delay(0);
@@ -31,7 +32,7 @@ namespace Tests
 
             ushort address = 0x1000;
             ushort size = 50;
-            var bytes = _memoryDebug.ReadBlock(address, (ushort)(address+size-1));
+            var bytes = _addressMap.ReadBlock(address, (ushort)(address+size-1));
             _logFormatter.LogBytes(address, bytes);
             var output = _logFormatter.ToString();
             Console.WriteLine(""); // Clear the hanging line
@@ -73,7 +74,7 @@ namespace Tests
 
             ushort address = 0x00;
             ushort size = 0x100;
-            var bytes = _memoryDebug.ReadBlock(address, (ushort)(address+size-1));
+            var bytes = _addressMap.ReadBlock(address, (ushort)(address+size-1));
             _logFormatter.LogBytes(address, bytes);
             var output = _logFormatter.ToString();
             Console.WriteLine(""); // Clear the hanging line

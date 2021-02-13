@@ -820,8 +820,6 @@ namespace Repl {
 			SetNeedsDisplay ();
 		}
 
-		bool lastWasKill;
-
 		///<inheritdoc/>
 		public override bool ProcessKey (KeyEvent kb)
 		{
@@ -832,12 +830,10 @@ namespace Repl {
 			case Key.CursorDown:
 			case Key.P | Key.CtrlMask:
 			case Key.CursorUp:
-				lastWasKill = false;
 				break;
 			case Key.K | Key.CtrlMask:
 				break;
 			default:
-				lastWasKill = false;
 				columnTrack = -1;
 				break;
 			}
@@ -1205,22 +1201,17 @@ namespace Repl {
 					}
 				}
 				PositionCursor ();
-				lastWasKill = false;
 				columnTrack = currentColumn;
 			} else if (ev.Flags == MouseFlags.WheeledDown) {
-				lastWasKill = false;
 				columnTrack = currentColumn;
 				ScrollTo (topRow + 1);
 			} else if (ev.Flags == MouseFlags.WheeledUp) {
-				lastWasKill = false;
 				columnTrack = currentColumn;
 				ScrollTo (topRow - 1);
 			} else if (ev.Flags == MouseFlags.WheeledRight) {
-				lastWasKill = false;
 				columnTrack = currentColumn;
 				ScrollTo (leftColumn + 1, false);
 			} else if (ev.Flags == MouseFlags.WheeledLeft) {
-				lastWasKill = false;
 				columnTrack = currentColumn;
 				ScrollTo (leftColumn - 1, false);
 			}

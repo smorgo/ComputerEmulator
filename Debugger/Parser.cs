@@ -18,7 +18,7 @@ namespace Debugger
             Stepping = 3
         }
         private readonly IDebuggableCpu _cpuDebug;
-        private readonly IMemoryDebug _memoryDebug;
+        private readonly IAddressMap _addressMap;
         private readonly ILabelMap _labels;
         private readonly ILogFormatter _formatter;
         public ICpuHoldEvent _debuggerSyncEvent;
@@ -28,7 +28,7 @@ namespace Debugger
         private RunMode _runMode;
         public Parser(
             IDebuggableCpu cpuDebug, 
-            IAddressMap memoryDebug, 
+            IAddressMap addressMap, 
             ILabelMap labels, 
             ILogFormatter formatter, 
             ICpuHoldEvent debuggerSyncEvent, 
@@ -37,7 +37,7 @@ namespace Debugger
             IRegisterTracker tracker)
         {
             _cpuDebug = cpuDebug;
-            _memoryDebug = memoryDebug as IMemoryDebug;
+            _addressMap = addressMap;
             _labels = labels;
             _formatter = formatter;
             _debuggerSyncEvent = debuggerSyncEvent;
@@ -499,7 +499,7 @@ namespace Debugger
             ushort address;
             if(TryParseAddress(expression, out address))
             {
-                _memoryDebug.Write(address, (byte)value);
+                _addressMap.Write(address, (byte)value);
                 return true;
             }
 
@@ -518,7 +518,7 @@ namespace Debugger
 
             if(TryParseAddress(expression, out address))
             {
-                _memoryDebug.WriteWord(address, value);
+                _addressMap.WriteWord(address, value);
                 return true;
             }
 
@@ -658,17 +658,17 @@ namespace Debugger
 
         private void LogByte(ushort address)
         {
-            var value = _memoryDebug.Read(address);
+            var value = _addressMap.Read(address);
             _formatter.LogByte(value);
         }
         private void LogWord(ushort address)
         {
-            var value = _memoryDebug.ReadWord(address);
+            var value = _addressMap.ReadWord(address);
             _formatter.LogWord(address, value);
         }
         private void LogMemory(int startAddress, int endAddress)
         {
-            _formatter.LogBytes((ushort)startAddress, _memoryDebug.ReadBlock((ushort)startAddress, (ushort)endAddress));
+            _formatter.LogBytes((ushort)startAddress, _addressMap.ReadBlock((ushort)startAddress, (ushort)endAddress));
         }
         private bool TryParseAddress(string expression, out ushort address)
         {
