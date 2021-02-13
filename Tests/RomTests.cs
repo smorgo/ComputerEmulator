@@ -4,12 +4,14 @@ using HardwareCore;
 using System;
 using RemoteDisplayConnector;
 using System.Threading.Tasks;
+using Memory;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Tests
 {
     public class RomTests
     {
-        private AddressMap mem;
+        private IAddressMap mem;
         private Rom _rom;
         const ushort RAM_BANK_1_START = 0x0000;
         const ushort RAM_BANK_1_SIZE = 0x1000;
@@ -18,10 +20,28 @@ namespace Tests
         const ushort ROM_START = 0x1000;
         const ushort ROM_SIZE = 0x1000;
 
+        private ServiceProvider _serviceProvider;
+
+        public RomTests()
+        {
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+            _serviceProvider = serviceCollection.BuildServiceProvider();
+            ServiceProviderLocator.ServiceProvider = _serviceProvider;
+        }
+
+        private static void ConfigureServices(IServiceCollection services)
+        {
+            services
+                 .AddLogging()
+                 .AddTransient<IAddressMap, AddressMap>()
+                 .AddTransient<ILoaderLabelTable, LoaderLabelTable>();
+
+        }
         [SetUp]
         public async Task Setup()
         {
-            mem = new AddressMap();
+            mem = _serviceProvider.GetService<IAddressMap>();
             _rom = new Rom(ROM_START, ROM_SIZE);
 
             mem.Install(new Ram(RAM_BANK_1_START, RAM_BANK_1_SIZE));

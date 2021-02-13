@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using HardwareCore;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
 
 namespace KeyboardConnector
 {
@@ -16,7 +17,12 @@ namespace KeyboardConnector
         private HubConnection _connection;
 
         public bool IsConnected {get; private set;}
+        private ILogger _logger;
 
+        public RemoteKeyboardConnection(ILogger<RemoteKeyboardConnection> logger)
+        {
+            _logger = logger;
+        }
         public async Task ConnectAsync(string url)
         {
             _connection = new HubConnectionBuilder()
@@ -34,10 +40,9 @@ namespace KeyboardConnector
                     Debug.Assert(_connection.State == HubConnectionState.Connected);
                     IsConnected = true;
                 }
-                catch     (Exception ex)
+                catch(Exception)
                 {
-                    Debug.WriteLine(ex.Message);
-                    Console.WriteLine("Unable to reach remote display");
+                    _logger.LogWarning("Unable to reach remote display");
                 }
             };
 
@@ -54,14 +59,17 @@ namespace KeyboardConnector
             catch(Exception ex)
             {
                 Debug.WriteLine(ex.Message);
-                Console.WriteLine("Unable to reach remote display");
+                _logger.LogWarning("Unable to reach remote display");
                 IsConnected = false;
             }
         }
 
         public async Task SendControlRegister(byte value)
         {
-            await _connection.InvokeAsync("ReceiveKeyboardControl", value);
+            if(_connection.State == HubConnectionState.Connected)
+            {
+                await _connection.InvokeAsync("ReceiveKeyboardControl", value);
+            }
         }
 
         public void Dispose()
@@ -70,12 +78,18 @@ namespace KeyboardConnector
 
         public async Task GenerateKeyUp(string key)
         {
-            await _connection.InvokeAsync("KeyUp", key);
+            if(_connection.State == HubConnectionState.Connected)
+            {
+                await _connection.InvokeAsync("KeyUp", key);
+            }
         }
 
         public async Task GenerateKeyDown(string key)
         {
-            await _connection.InvokeAsync("KeyDown", key);
+            if(_connection.State == HubConnectionState.Connected)
+            {
+               await _connection.InvokeAsync("KeyDown", key);
+            }
         }
     }
 }

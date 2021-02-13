@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using HardwareCore;
 
-namespace _6502
+namespace Memory
 {
     public class Rom : IAddressAssignment, IAddressableBlock, IWriteOnce, IErasable
     {
@@ -43,7 +43,7 @@ namespace _6502
         public ushort StartAddress {get; private set;}
         public UInt32 Size {get; private set;}
 
-        public List<IAddressableBlock> Blocks => new List<IAddressableBlock> {this};
+        public List<IAddressableBlock> Blocks {get; private set;}
 
         public IAddressAssignment Device => this;
 
@@ -57,6 +57,7 @@ namespace _6502
             StartAddress = absoluteAddress;
             Size = size;
             Memory = new byte[size];
+            Blocks = new List<IAddressableBlock> {this};
         }
 
         public void Write(ushort address, byte value)

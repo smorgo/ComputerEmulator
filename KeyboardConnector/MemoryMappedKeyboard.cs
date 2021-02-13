@@ -68,7 +68,7 @@ namespace KeyboardConnector
 
         public IKeyboardOutput Transmitter {get; set;}
 
-        public List<IAddressableBlock> Blocks => new List<IAddressableBlock> {this};
+        public List<IAddressableBlock> Blocks {get; private set;}
 
         public IAddressAssignment Device => this;
 
@@ -83,6 +83,7 @@ namespace KeyboardConnector
             _connection = connection;
             _keyboard = (IRemoteKeyboard)connection;
             _eventBuffer = new FifoBuffer<KeyboardEvent>(16);
+             Blocks = new List<IAddressableBlock> {this};
         }
 
         public async Task Initialise()
@@ -95,7 +96,7 @@ namespace KeyboardConnector
             _keyboard.OnKeyUp += async (s,e) => {await OnKeyUp(e);}; 
             _keyboard.OnKeyDown += async (s,e) => {await OnKeyDown(e);}; 
             _keyboard.OnRequestControl += async (s,e) => {await SendControlRegister();}; 
-    
+
             await _connection.ConnectAsync("https://localhost:5001/display");
             Debug.Assert(_connection.IsConnected);
 

@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 using FilePersistence;
 using System.Collections.Generic;
 using System.Text;
+using Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Tests
 {
@@ -46,7 +49,7 @@ namespace Tests
             return false;
         }
 
-        public static void Stop(this Loader loader, out ComparisonContext context)
+        public static void Stop(this ILoader loader, out ComparisonContext context)
         {
             context = new ComparisonContext { Cursor = loader.Cursor };
         }
@@ -54,18 +57,36 @@ namespace Tests
 
     public class LoaderExtensionsTests
     {
-        private AddressMap mem;
+        private IAddressMap mem;
         private const char TEST_CHAR = 'H';
         private const byte TEST_BYTE = (byte)TEST_CHAR;
         private const ushort TEST_ADDR = 0x1234;
         private const byte ZP_ADDR = 0x34;
 
+        private ServiceProvider _serviceProvider;
+
+        public LoaderExtensionsTests()
+        {
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+            _serviceProvider = serviceCollection.BuildServiceProvider();
+            ServiceProviderLocator.ServiceProvider = _serviceProvider;
+        }
+
+        private static void ConfigureServices(IServiceCollection services)
+        {
+            services
+                 .AddLogging(cfg => cfg.AddConsole().AddDebug())
+                 .AddSingleton<ILoaderLabelTable>(new LoaderLabelTable())
+                 .AddScoped<IAddressMap, AddressMap>()
+                 .AddTransient<ILoader, Loader>();
+        }
+        
         [SetUp]
         public void Setup()
         {
-            mem = new AddressMap();
+            mem = _serviceProvider.GetService<IAddressMap>();
             mem.Install(new Ram(0x0000, 0x4000));
-            mem.Labels = new LabelTable();
             mem.Labels.Add("TEST_ADDR", TEST_ADDR);
             mem.Labels.Add("ZP_ADDR", ZP_ADDR);
             mem.Labels.Push();
