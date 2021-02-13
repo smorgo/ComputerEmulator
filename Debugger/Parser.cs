@@ -181,7 +181,7 @@ namespace Debugger
     Debugger Help
     Definitions:
         <hex byte>                  1-2 hex digits defining an 8-bit value. No hex specifier required. E.g. 7F.
-        <hex addr>                  1-4 hex digits defining a 16-bit value. No hex specifier required. E.g. E7B0
+        <hex addr>                  1-4 hex digits defining a 16-bit value or a label name. No hex specifier required. E.g. E7B0
         <hex range>                 A range of hex addresses defined as:
             <hex addr>-<hex addr>     The range of 16-bit values, inclusive. E.g. E7B0-E8FF
             <hex addr>:<n>            A block of addresses from <hex addr> of <n> bytes. <n> is decimal. E.g. E7B0:16
@@ -234,6 +234,9 @@ namespace Debugger
     Combined breakpoint and watch operations:
         LIST ALL                    List breakpoints and watches
         CLEAR ALL                   Delete all breakpoints and watches
+
+    Labels:
+        LIST LABELS                 List the labels from the Label Table
 ");
 
             return true;
