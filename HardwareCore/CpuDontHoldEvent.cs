@@ -1,10 +1,22 @@
 namespace HardwareCore
 {
-    public class CpuDontHoldEvent : CpuHoldEvent
+    public class CpuDontHoldEvent : ICpuHoldEvent
     {
-        public override void WaitOne()
+        public static CpuDontHoldEvent GetInstance()
         {
-            // Do nothing
+            return new CpuDontHoldEvent();
+        }
+
+        public void Reset()
+        {
+        }
+
+        public void Set()
+        {
+        }
+
+        public void WaitOne()
+        {
         }
     }
 }

@@ -42,13 +42,12 @@ namespace Tests
                  .AddScoped<ILoaderLabelTable, LoaderLabelTable>()
                  .AddScoped<IAddressMap, AddressMap>()
                  .AddScoped<ILabelMap, LabelMap>()
-                 .AddScoped<CpuHoldEvent,CpuHoldEvent>()
                  .AddScoped<ILogFormatter, DebugLogFormatter>()
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
                  .AddScoped<IParser, Parser>()
                  .AddTransient<ILoader, Loader>()
-                 .AddScoped<CpuHoldEvent,CpuDontHoldEvent>()
-                 .AddScoped<CpuStepEvent,CpuDontStepEvent>()
+                 .AddSingleton<ICpuHoldEvent>(CpuDontHoldEvent.GetInstance())
+                 .AddSingleton<ICpuStepEvent>(CpuDontStepEvent.GetInstance())
                  .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
         }
 

@@ -32,8 +32,8 @@ namespace _6502
         public bool InterruptPending {get; private set;}
         public bool InterruptServicing {get; private set;}
         public bool NmiPending {get; private set;}
-        public CpuHoldEvent _debuggerSyncEvent;
-        public CpuStepEvent _debuggerStepEvent;
+        public ICpuHoldEvent _debuggerSyncEvent;
+        public ICpuStepEvent _debuggerStepEvent;
         private bool _singleStep = false;
         private bool _wasWaiting = false;
         public EventHandler<ExecutedEventArgs> HasExecuted { get; set; }
@@ -162,8 +162,8 @@ namespace _6502
         private ILogger<CPU6502> _logger;
         public CPU6502(
             IAddressMap addressMap, 
-            CpuHoldEvent debuggerSyncEvent, 
-            CpuStepEvent debuggerStepEvent, 
+            ICpuHoldEvent debuggerSyncEvent, 
+            ICpuStepEvent debuggerStepEvent, 
             CancellationTokenWrapper cancellationToken, 
             ILogger<CPU6502> logger)
         {

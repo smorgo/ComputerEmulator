@@ -4,14 +4,25 @@ using System.Threading;
 
 namespace HardwareCore
 {
-    public class CpuStepEvent
+
+    public class CpuStepEvent : ICpuStepEvent
     {
+        public static CpuStepEvent GetInstance()
+        {
+            if (_instance != null)
+            {
+                return _instance;
+            }
+
+            return new CpuStepEvent();
+        }
+
         private static CpuStepEvent _instance;
         private bool _set = true;
 
         public CpuStepEvent()
         {
-            if(_instance != null)
+            if (_instance != null)
             {
                 throw new InvalidOperationException("Multiple instances of the CpuStepEvent have been created");
             }
@@ -27,7 +38,7 @@ namespace HardwareCore
         }
         public virtual void WaitOne()
         {
-            while(!_set)
+            while (!_set)
             {
                 Thread.Sleep(1);
             }

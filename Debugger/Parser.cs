@@ -14,8 +14,8 @@ namespace Debugger
         private readonly IMemoryDebug _memoryDebug;
         private readonly ILabelMap _labels;
         private readonly ILogFormatter _formatter;
-        public CpuHoldEvent _debuggerSyncEvent;
-        public CpuStepEvent _debuggerStepEvent;
+        public ICpuHoldEvent _debuggerSyncEvent;
+        public ICpuStepEvent _debuggerStepEvent;
         private readonly ILogger<Parser> _logger;
         private bool _isStepping = false;
         public Parser(
@@ -23,8 +23,8 @@ namespace Debugger
             IMemoryDebug memoryDebug, 
             ILabelMap labels, 
             ILogFormatter formatter, 
-            CpuHoldEvent debuggerSyncEvent, 
-            CpuStepEvent debuggerStepEvent, 
+            ICpuHoldEvent debuggerSyncEvent, 
+            ICpuStepEvent debuggerStepEvent, 
             ILogger<Parser> logger)
         {
             _cpuDebug = cpuDebug;

@@ -4,15 +4,25 @@ using System.Threading;
 
 namespace HardwareCore
 {
-    public class CpuHoldEvent
+
+    public class CpuHoldEvent : ICpuHoldEvent
     {
+        public static CpuHoldEvent GetInstance()
+        {
+            if (_instance != null)
+            {
+                return _instance;
+            }
+
+            return new CpuHoldEvent();
+        }
         private static CpuHoldEvent _instance;
         private bool _set;
         //public static ManualResetEventSlim _event => new ManualResetEventSlim(false);
 
         public CpuHoldEvent()
         {
-            if(_instance != null)
+            if (_instance != null)
             {
                 throw new InvalidOperationException("Multiple instances of the CpuHoldEvent have been created");
             }
@@ -31,7 +41,7 @@ namespace HardwareCore
         public virtual void WaitOne()
         {
             // _event.Wait();
-            while(!_set)
+            while (!_set)
             {
                 Thread.Sleep(1);
             }

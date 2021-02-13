@@ -48,8 +48,8 @@ namespace Repl
                  .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<ILogSink, ReplSink>()
-                 .AddScoped<CpuHoldEvent, CpuHoldEvent>()
-                 .AddScoped<CpuStepEvent, CpuStepEvent>()
+                 .AddScoped<ICpuHoldEvent, CpuHoldEvent>()
+                 .AddScoped<ICpuStepEvent, CpuStepEvent>()
                  .AddSingleton<CancellationTokenWrapper>(_cancellationToken)
                  ;
         }
