@@ -31,6 +31,13 @@ You can configure the bus, how you like. But the 6502 CPU won't work unless ther
 
 The AddressMap is layered, so you can install 64kB of RAM and then a 1kB display adapter into the middle of it.
 
+## A Debugger
+The next major stepping-stone in producing something useful (or at least, interesting) is the console-based Debugger. You can run code, step-by-step, add breakpoints, inspect or change memory and CPU registers. It's going to be fun!
+
+![Debugger](Docs/Images/Debugger.png)
+
+The Wiki will be the go-to location for information on using the debugger, but once you're in there, you can type HELP or ? (followed by Enter) to see what you get to play with.
+
 ## What can you do with it?
 Well, it doesn't emulate any specific computer, so you can't load your favourite Commodore 64 game into it and start playing.
 
