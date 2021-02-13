@@ -18,7 +18,6 @@ namespace Repl
     {
         private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private static CancellationTokenWrapper _cancellationToken;
-        private static CpuHoldEvent _debuggerSyncEvent; // => new CpuHoldEvent();
         private static ServiceProvider _serviceProvider;
 
         static void Main(string[] args)
@@ -49,8 +48,10 @@ namespace Repl
                  .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<ILogSink, ReplSink>()
-                 .AddScoped<CpuHoldEvent, CpuHoldEvent>() //(_debuggerSyncEvent)
-                 .AddSingleton<CancellationTokenWrapper>(_cancellationToken);
+                 .AddScoped<CpuHoldEvent, CpuHoldEvent>()
+                 .AddScoped<CpuStepEvent, CpuStepEvent>()
+                 .AddSingleton<CancellationTokenWrapper>(_cancellationToken)
+                 ;
         }
 
         static void Run()
@@ -61,8 +62,6 @@ namespace Repl
             debuggerThread.Priority = ThreadPriority.AboveNormal;
 
             hostThread.Start();
-
-//            SpinWait.SpinUntil(() => _host.Running);
 
             debuggerThread.Start();
 
@@ -79,7 +78,7 @@ namespace Repl
         private static void RunDebugger()
         {
             var debugger = _serviceProvider.GetService<IDebugger>();
-
+            var parser = _serviceProvider.GetService<IParser>() as Parser;
             debugger.Start();
         }
     }

@@ -8,7 +8,7 @@ namespace HardwareCore
     {
         private static CpuHoldEvent _instance;
         private bool _set;
-        private ManualResetEventSlim _event => new ManualResetEventSlim(false);
+        //public static ManualResetEventSlim _event => new ManualResetEventSlim(false);
 
         public CpuHoldEvent()
         {
@@ -18,19 +18,19 @@ namespace HardwareCore
             }
             _instance = this;
         }
-        public void Set()
+        public virtual void Set()
         {
-            _event.Set();
+            // _event.Set();
             _set = true;
         }
-        public void Reset()
+        public virtual void Reset()
         {
-            _event.Reset();
+            // _event.Reset();
             _set = false;
         }
-        public void WaitOne()
+        public virtual void WaitOne()
         {
-            //_event.Wait();
+            // _event.Wait();
             while(!_set)
             {
                 Thread.Sleep(1);

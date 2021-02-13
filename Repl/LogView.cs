@@ -37,20 +37,6 @@ namespace Repl {
 	class TextModel {
 		List<List<Rune>> lines = new List<List<Rune>> ();
 
-		public bool LoadFile (string file)
-		{
-			if (file == null)
-				throw new ArgumentNullException (nameof (file));
-			try {
-				FilePath = file;
-				var stream = File.OpenRead (file);
-			} catch {
-				return false;
-			}
-			LoadStream (File.OpenRead (file));
-			return true;
-		}
-
 		public void Maintain(int maxLines)
 		{
 			while(lines.Count > maxLines)
@@ -58,19 +44,7 @@ namespace Repl {
 				RemoveLine(0);
 			}
 		}
-		public bool CloseFile ()
-		{
-			if (FilePath == null)
-				throw new ArgumentNullException (nameof (FilePath));
-			try {
-				FilePath = null;
-				lines = new List<List<Rune>> ();
-			} catch {
-				return false;
-			}
-			return true;
-		}
-
+		
 		// Turns the ustring into runes, this does not split the 
 		// contents on a newline if it is present.
 		internal static List<Rune> ToRunes (ustring str)
@@ -109,27 +83,6 @@ namespace Repl {
 			lines.Add (ToRunes (str));
 		}
 
-		public void LoadStream (Stream input)
-		{
-			if (input == null)
-				throw new ArgumentNullException (nameof (input));
-
-			lines = new List<List<Rune>> ();
-			var buff = new BufferedStream (input);
-			int v;
-			var line = new List<byte> ();
-			while ((v = buff.ReadByte ()) != -1) {
-				if (v == 10) {
-					Append (line);
-					line.Clear ();
-					continue;
-				}
-				line.Add ((byte)v);
-			}
-			if (line.Count > 0)
-				Append (line);
-		}
-
 		public void LoadString (ustring content)
 		{
 			lines = StringToRunes (content);
@@ -146,8 +99,6 @@ namespace Repl {
 			}
 			return sb.ToString ();
 		}
-
-		public string FilePath { get; set; }
 
 		/// <summary>
 		/// The number of text lines in the model
@@ -492,47 +443,6 @@ namespace Repl {
 		public int Lines => model.Count;
 
 		/// <summary>
-		/// Loads the contents of the file into the  <see cref="TextView"/>.
-		/// </summary>
-		/// <returns><c>true</c>, if file was loaded, <c>false</c> otherwise.</returns>
-		/// <param name="path">Path to the file to load.</param>
-		public bool LoadFile (string path)
-		{
-			if (path == null)
-				throw new ArgumentNullException (nameof (path));
-			ResetPosition ();
-			var res = model.LoadFile (path);
-			SetNeedsDisplay ();
-			return res;
-		}
-
-		/// <summary>
-		/// Loads the contents of the stream into the  <see cref="TextView"/>.
-		/// </summary>
-		/// <returns><c>true</c>, if stream was loaded, <c>false</c> otherwise.</returns>
-		/// <param name="stream">Stream to load the contents from.</param>
-		public void LoadStream (Stream stream)
-		{
-			if (stream == null)
-				throw new ArgumentNullException (nameof (stream));
-			ResetPosition ();
-			model.LoadStream (stream);
-			SetNeedsDisplay ();
-		}
-
-		/// <summary>
-		/// Closes the contents of the stream into the  <see cref="TextView"/>.
-		/// </summary>
-		/// <returns><c>true</c>, if stream was closed, <c>false</c> otherwise.</returns>
-		public bool CloseFile ()
-		{
-			ResetPosition ();
-			var res = model.CloseFile ();
-			SetNeedsDisplay ();
-			return res;
-		}
-
-		/// <summary>
 		///    Gets the current cursor row.
 		/// </summary>
 		public int CurrentRow => currentRow;
@@ -598,7 +508,7 @@ namespace Repl {
 				Driver.SetAttribute (ColorScheme.Normal);
 		}
 
-		bool isReadOnly = false;
+		bool isReadOnly = true;
 
 		/// <summary>
 		/// Gets or sets whether the  <see cref="TextView"/> is in read-only mode or not
@@ -763,15 +673,6 @@ namespace Repl {
 			Clipboard.Contents = Clipboard.Contents + text;
 		}
 
-		void Insert (Rune rune)
-		{
-			var line = GetCurrentLine ();
-			line.Insert (currentColumn, rune);
-			var prow = currentRow - topRow;
-
-			SetNeedsDisplay (new Rect (0, prow, Frame.Width, prow + 1));
-		}
-
 		ustring StringFromRunes (List<Rune> runes)
 		{
 			if (runes == null)
@@ -789,53 +690,6 @@ namespace Repl {
 		}
 
 		List<Rune> GetCurrentLine () => model.GetLine (currentRow);
-
-		void InsertText (ustring text)
-		{
-			if (ustring.IsNullOrEmpty (text)) {
-				return;
-			}
-
-			var lines = TextModel.StringToRunes (text);
-
-			if (lines.Count == 0) {
-				return;
-			}
-
-			var line = GetCurrentLine ();
-
-			// Optimize single line
-			if (lines.Count == 1) {
-				line.InsertRange (currentColumn, lines [0]);
-				currentColumn += lines [0].Count;
-				if (currentColumn - leftColumn > Frame.Width) {
-					leftColumn = currentColumn - Frame.Width + 1;
-				}
-				SetNeedsDisplay (new Rect (0, currentRow - topRow, Frame.Width, currentRow - topRow + 1));
-				return;
-			}
-
-			// Keep a copy of the rest of the line
-			var restCount = line.Count - currentColumn;
-			var rest = line.GetRange (currentColumn, restCount);
-			line.RemoveRange (currentColumn, restCount);
-
-			// First line is inserted at the current location, the rest is appended
-			line.InsertRange (currentColumn, lines [0]);
-
-			for (int i = 1; i < lines.Count; i++) {
-				model.AddLine (currentRow + i, lines [i]);
-			}
-
-			var last = model.GetLine (currentRow + lines.Count - 1);
-			var lastp = last.Count;
-			last.InsertRange (last.Count, rest);
-
-			// Now adjust column and row positions
-			currentRow += lines.Count - 1;
-			currentColumn = lastp;
-			Adjust ();
-		}
 
 		public void AppendText (ustring text)
 		{
@@ -882,8 +736,9 @@ namespace Repl {
 
 			// Now adjust column and row positions
 			currentRow += lines.Count - 1;
-			currentColumn = lastp;
-			Adjust ();
+			currentColumn = 0;
+
+			SetNeedsDisplay (new Rect (0, currentRow - topRow, Frame.Width, currentRow - topRow + 1));
 		}
 
 		// The column we are tracking, or -1 if we are not tracking any column
@@ -1068,59 +923,11 @@ namespace Repl {
 				Adjust ();
 				break;
 
-			case Key.Delete:
-			case Key.Backspace:
-				if (isReadOnly)
-					break;
-				if (currentColumn > 0) {
-					// Delete backwards 
-					currentLine = GetCurrentLine ();
-					currentLine.RemoveAt (currentColumn - 1);
-					currentColumn--;
-					if (currentColumn < leftColumn) {
-						leftColumn--;
-						SetNeedsDisplay ();
-					} else
-						SetNeedsDisplay (new Rect (0, currentRow - topRow, 1, Frame.Width));
-				} else {
-					// Merges the current line with the previous one.
-					if (currentRow == 0)
-						return true;
-					var prowIdx = currentRow - 1;
-					var prevRow = model.GetLine (prowIdx);
-					var prevCount = prevRow.Count;
-					model.GetLine (prowIdx).AddRange (GetCurrentLine ());
-					model.RemoveLine (currentRow);
-					currentRow--;
-					currentColumn = prevCount;
-					Adjust ();
-				}
-				break;
-
 			// Home, C-A
 			case Key.Home:
 			case Key.A | Key.CtrlMask:
 				currentColumn = 0;
 				Adjust ();
-				break;
-			case Key.DeleteChar:
-			case Key.D | Key.CtrlMask: // Delete
-				if (isReadOnly)
-					break;
-				currentLine = GetCurrentLine ();
-				if (currentColumn == currentLine.Count) {
-					if (currentRow + 1 == model.Count)
-						break;
-					var nextLine = model.GetLine (currentRow + 1);
-					currentLine.AddRange (nextLine);
-					model.RemoveLine (currentRow + 1);
-					var sr = currentRow - topRow;
-					SetNeedsDisplay (new Rect (0, sr, Frame.Width, sr + 1));
-				} else {
-					currentLine.RemoveAt (currentColumn);
-					var r = currentRow - topRow;
-					SetNeedsDisplay (new Rect (currentColumn - leftColumn, r, Frame.Width, r + 1));
-				}
 				break;
 
 			case Key.End:
@@ -1129,38 +936,6 @@ namespace Repl {
 				currentColumn = currentLine.Count;
 				int pcol = leftColumn;
 				Adjust ();
-				break;
-
-			case Key.K | Key.CtrlMask: // kill-to-end
-				if (isReadOnly)
-					break;
-				currentLine = GetCurrentLine ();
-				if (currentLine.Count == 0) {
-					model.RemoveLine (currentRow);
-					var val = ustring.Make ((Rune)'\n');
-					if (lastWasKill)
-						AppendClipboard (val);
-					else
-						SetClipboard (val);
-				} else {
-					restCount = currentLine.Count - currentColumn;
-					rest = currentLine.GetRange (currentColumn, restCount);
-					var val = StringFromRunes (rest);
-					if (lastWasKill)
-						AppendClipboard (val);
-					else
-						SetClipboard (val);
-					currentLine.RemoveRange (currentColumn, restCount);
-				}
-				SetNeedsDisplay (new Rect (0, currentRow - topRow, Frame.Width, Frame.Height));
-				lastWasKill = true;
-				break;
-
-			case Key.Y | Key.CtrlMask: // Control-y, yank
-				if (isReadOnly)
-					break;
-				InsertText (Clipboard.Contents);
-				selecting = false;
 				break;
 
 			case Key.Space | Key.CtrlMask:
@@ -1198,32 +973,6 @@ namespace Repl {
 				Adjust ();
 				break;
 
-			case Key.Enter:
-				if (isReadOnly)
-					break;
-				currentLine = GetCurrentLine ();
-				restCount = currentLine.Count - currentColumn;
-				rest = currentLine.GetRange (currentColumn, restCount);
-				currentLine.RemoveRange (currentColumn, restCount);
-				model.AddLine (currentRow + 1, rest);
-				currentRow++;
-				bool fullNeedsDisplay = false;
-				if (currentRow >= topRow + Frame.Height) {
-					topRow++;
-					fullNeedsDisplay = true;
-				}
-				currentColumn = 0;
-				if (currentColumn < leftColumn) {
-					fullNeedsDisplay = true;
-					leftColumn = 0;
-				}
-
-				if (fullNeedsDisplay)
-					SetNeedsDisplay ();
-				else
-					SetNeedsDisplay (new Rect (0, currentRow - topRow, 2, Frame.Height));
-				break;
-
 			case Key.CtrlMask | Key.End:
 				MoveEnd ();
 				break;
@@ -1233,21 +982,9 @@ namespace Repl {
 				break;
 
 			default:
-				// Ignore control characters and other special keys
-				if (kb.Key < Key.Space || kb.Key > Key.CharMask)
-					return false;
-				//So that special keys like tab can be processed
-				if (isReadOnly)
-					return true;
-				Insert ((uint)kb.Key);
-				currentColumn++;
-				if (currentColumn >= leftColumn + Frame.Width) {
-					leftColumn++;
-					SetNeedsDisplay ();
-				}
-				PositionCursor ();
-				return true;
+				break;
 			}
+
 			return true;
 		}
 

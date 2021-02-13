@@ -55,6 +55,8 @@ namespace Tests
                  .AddScoped<IRemoteConnection, MockRemoteKeyboardConnection>()
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
                  .AddTransient<ILoader, Loader>()
+                 .AddScoped<CpuHoldEvent,CpuDontHoldEvent>()
+                 .AddScoped<CpuStepEvent,CpuDontStepEvent>()
                  .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
         }
 

@@ -46,8 +46,9 @@ namespace Tests
                  .AddScoped<IAddressMap, AddressMap>()
                  .AddScoped<IMemoryDebug, AddressMap>()
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
-                 .AddScoped<CpuHoldEvent,CpuHoldEvent>()
                  .AddTransient<ILoader, Loader>()
+                 .AddScoped<CpuHoldEvent,CpuDontHoldEvent>()
+                 .AddScoped<CpuStepEvent,CpuDontStepEvent>()
                  .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
         }
         [SetUp]

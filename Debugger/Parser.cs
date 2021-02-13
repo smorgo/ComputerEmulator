@@ -14,15 +14,25 @@ namespace Debugger
         private readonly IMemoryDebug _memoryDebug;
         private readonly ILabelMap _labels;
         private readonly ILogFormatter _formatter;
-        private readonly CpuHoldEvent _debuggerSyncEvent;
+        public CpuHoldEvent _debuggerSyncEvent;
+        public CpuStepEvent _debuggerStepEvent;
         private readonly ILogger<Parser> _logger;
-        public Parser(IDebuggableCpu cpuDebug, IMemoryDebug memoryDebug, ILabelMap labels, ILogFormatter formatter, CpuHoldEvent debuggerSyncEvent, ILogger<Parser> logger)
+        private bool _isStepping = false;
+        public Parser(
+            IDebuggableCpu cpuDebug, 
+            IMemoryDebug memoryDebug, 
+            ILabelMap labels, 
+            ILogFormatter formatter, 
+            CpuHoldEvent debuggerSyncEvent, 
+            CpuStepEvent debuggerStepEvent, 
+            ILogger<Parser> logger)
         {
             _cpuDebug = cpuDebug;
             _memoryDebug = memoryDebug;
             _labels = labels;
             _formatter = formatter;
             _debuggerSyncEvent = debuggerSyncEvent;
+            _debuggerStepEvent = debuggerStepEvent;
             _logger = logger;
         }
 
@@ -52,10 +62,16 @@ namespace Debugger
         {
             _formatter.Clear();
 
-            if (!ParseInternal(command))
+            if (ParseInternal(command))
             {
-                _formatter.LogError($"Command not recognise: {command}");
+                _logger.LogInformation(_formatter.ToString());
             }
+            else
+            {
+                _logger.LogError($"Command not recognise: {command}");
+            }
+
+            _formatter.Clear();
         }
 
         private bool ParseInternal(string command)
@@ -94,20 +110,37 @@ namespace Debugger
         {
             if (KeywordMatches("go", command))
             {
-                //                _cpuDebug.Go();
+                _isStepping = false;
                 _debuggerSyncEvent.Set();
+                _debuggerStepEvent.Set();
                 return true;
             }
 
-            if (KeywordMatches("step", command))
+            if (KeywordMatches("step", command) || (string.IsNullOrEmpty(command) && _isStepping))
             {
-                _cpuDebug.Step();
+                _isStepping = true;
+                _debuggerSyncEvent.Reset();
+                Thread.Sleep(10);
+                _debuggerStepEvent.Set(); // If we're stuck on the Step wait
+                Thread.Sleep(10);
+                _debuggerStepEvent.Reset(); // If we're stuck on the Step wait
+                Thread.Sleep(10);
+                _debuggerSyncEvent.Set();
                 return true;
             }
 
             if (KeywordMatches("pause", command))
             {
+                _isStepping = false;
                 _debuggerSyncEvent.Reset();
+                _debuggerStepEvent.Set();
+                return true;
+            }
+
+            if (KeywordMatches("help", command) || command == "?")
+            {
+                _isStepping = false;
+                DisplayHelp();
                 return true;
             }
 
@@ -125,6 +158,70 @@ namespace Debugger
             }
 
             return keyword.StartsWith(value);
+        }
+        private bool DisplayHelp()
+        {
+            _logger.LogInformation(
+                @"
+    Debugger Help
+    Definitions:
+        <hex byte>                  1-2 hex digits defining an 8-bit value. No hex specifier required. E.g. 7F.
+        <hex addr>                  1-4 hex digits defining a 16-bit value. No hex specifier required. E.g. E7B0
+        <hex range>                 A range of hex addresses defined as:
+            <hex addr>-<hex addr>     The range of 16-bit values, inclusive. E.g. E7B0-E8FF
+            <hex addr>:<n>            A block of addresses from <hex addr> of <n> bytes. <n> is decimal. E.g. E7B0:16
+
+    Keywords listed in UPPERCASE can be shortened, as long as they remain unique in their context. E.g. P for PAUSE. 
+    Note potential clashes, e.g. DELETE and DISABLE. These can be shorted to DE and DI, respectively.
+
+    Keywords and hex values are case-insensitive. They are shown here in CAPS for clarity.
+
+    Commands:
+        HELP (or ?)                 Show this help information
+        GO                          Run the CPU at the current program counter
+        PAUSE                       Pause the CPU after the current instruction
+        STEP                        Run a single CPU instruction
+        QUIT                        Terminate the running program
+
+    Inspection:
+        ?A|X|Y                      Show the specified CPU register
+        ?PC                         Show the current Program Counter
+        ?SP                         Show the current Stack Pointer
+        ?C|Z|I|D|B|B2|V|N           Show the specified CPU status flag
+        ?<hex addr>                 Show the byte at the specified address
+        ?&<hex addr>                Show the 16-bit word at the specified address
+        ?<hex range>                Show the memory in the specified address range
+
+    Assignment:
+        A|X|Y=<hex byte>            Set the specified CPU register
+        PC=<hex addr>               Set the Program Counter to the specified address
+        SP=<hex byte>               Set the Stack Pointer (offset) to the specified value
+        C|Z|I|D|B|B2|V|N=0|1        Set the specified CPU status flag to 0 or 1
+        <hex addr>=<hex byte>       Set the specified byte
+        &<hex addr>=<hex word>      Set the specified word
+
+    Breakpoints and Watches:
+    Breakpoints cause the debugger to stop when the CPU attempts to execute an instruction
+    at the specified address.
+        LIST BREAKPOINTS            List breakpoints and their IDs
+        ADD BREAKPOINT <hex addr>   Add a breakpoint
+        DELETE BREAKPOINT <id>      Delete a breakpoint
+        DISABLE BREAKPOINT <id>     Disable a breakpoint
+        ENABLE BREAKPOINT <id>      Enable a disabled breakpoint
+        CLEAR BREAKPOINTS           Delete all breakpoints
+    Watches cause the debugger to display the new state of memory when it changes.
+        LIST WATCHES                List watches and their IDs
+        ADD WATCH <hex range>       Add a watch
+        DELETE WATCH <id>           Delete a watch
+        DISABLE WATCH <id>          Disable a watch
+        ENABLE WATCH <id>           Enable a disabled watch
+        CLEAR WATCHES               Delete all watches
+    Combined breakpoint and watch operations:
+        LIST ALL                    List breakpoints and watches
+        CLEAR ALL                   Delete all breakpoints and watches
+");
+
+            return true;
         }
         private bool ParseList(string command)
         {

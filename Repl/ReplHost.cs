@@ -32,13 +32,13 @@ namespace Repl
         const byte NoCarryOverflow = 0x40;
         const byte CarryOverflow = 0x41;
         private readonly CancellationTokenWrapper _cancellationToken;
-        private readonly CpuHoldEvent _debuggerSyncEvent;
+        // private CpuHoldEvent _debuggerSyncEvent;
 
         public bool Running {get; private set;}
         public ReplHost(
             ILabelMap labels, 
             CancellationTokenWrapper cancellationToken, 
-            CpuHoldEvent debuggerSyncEvent, 
+            // CpuHoldEvent debuggerSyncEvent, 
             IDebuggableCpu cpu,
             IAddressMap addressMap,
             IRemoteConnection remoteKeyboardConnection,
@@ -46,7 +46,7 @@ namespace Repl
         {
             Labels = labels;
             _cancellationToken = cancellationToken;
-            _debuggerSyncEvent = debuggerSyncEvent;
+            // _debuggerSyncEvent = debuggerSyncEvent;
             _cpu = (CPU6502)cpu;
             mem = addressMap;
             _keyboardConnection = remoteKeyboardConnection;

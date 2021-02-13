@@ -17,9 +17,17 @@ namespace IntegratedDebugger
         private ILabelMap _labels;
         public ILabelMap Labels => _labels;
         private IParser _parser;
-        private CpuHoldEvent _debuggerSyncEvent;
+        // private CpuHoldEvent _debuggerSyncEvent;
         private ILogger<ConsoleDebugger> _logger;
-        public ConsoleDebugger(IEmulatorHost host, IDebuggableCpu cpu, ILogFormatter logFormatter, IParser parser, ILabelMap labels, CancellationTokenWrapper cancel, CpuHoldEvent debuggerSyncEvent, ILogger<ConsoleDebugger> logger)
+        public ConsoleDebugger(
+            IEmulatorHost host, 
+            IDebuggableCpu cpu, 
+            ILogFormatter logFormatter, 
+            IParser parser, 
+            ILabelMap labels, 
+            CancellationTokenWrapper cancel, 
+            // CpuHoldEvent debuggerSyncEvent, 
+            ILogger<ConsoleDebugger> logger)
         {
             _host = host;
             _cpu = cpu;
@@ -27,7 +35,7 @@ namespace IntegratedDebugger
             _parser = parser;
             _labels = labels;
             _cancel = cancel;
-            _debuggerSyncEvent = debuggerSyncEvent;
+            // _debuggerSyncEvent = debuggerSyncEvent;
             _logger = logger;
         }
 
@@ -50,7 +58,7 @@ namespace IntegratedDebugger
 
             while(!_cancel.Token.IsCancellationRequested)
             {
-                Thread.Sleep(10);
+                Thread.Sleep(1000);
             }
         }
 

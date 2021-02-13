@@ -1,22 +1,36 @@
+using System;
+using System.Diagnostics;
 using System.Threading;
 
 namespace HardwareCore
 {
     public class CpuStepEvent
     {
-        private ManualResetEvent _event => new ManualResetEvent(false);
+        private static CpuStepEvent _instance;
+        private bool _set = true;
 
-        public void Set()
+        public CpuStepEvent()
         {
-            _event.Set();
+            if(_instance != null)
+            {
+                throw new InvalidOperationException("Multiple instances of the CpuStepEvent have been created");
+            }
+            _instance = this;
         }
-        public void Reset()
+        public virtual void Set()
         {
-            _event.Reset();
+            _set = true;
         }
-        public void WaitOne()
+        public virtual void Reset()
         {
-            _event.WaitOne();
+            _set = false;
+        }
+        public virtual void WaitOne()
+        {
+            while(!_set)
+            {
+                Thread.Sleep(1);
+            }
         }
     }
 }

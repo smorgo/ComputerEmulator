@@ -18,6 +18,7 @@ namespace Tests
         private ILabelMap _labels;
         private IParser _parser;
         private ServiceProvider _serviceProvider;
+        private UnitTestLogger<Parser> _logger;
 
         public DebuggerParserTests()
         {
@@ -30,13 +31,15 @@ namespace Tests
         private static void ConfigureServices(IServiceCollection services)
         {
             services
-                 .AddLogging(cfg => cfg.AddConsole().AddDebug())    
+                 .AddScoped(typeof(ILogger<Parser>), typeof(UnitTestLogger<Parser>))
                  .AddScoped<IDebuggableCpu, MockCpuDebug>()
                  .AddScoped<IMemoryDebug, MockMemoryDebug>()
                  .AddScoped<ILabelMap, LabelMap>()
                  .AddScoped<CpuHoldEvent,CpuHoldEvent>()
                  .AddScoped<ILogFormatter, DebugLogFormatter>()
                  .AddScoped<IParser, Parser>()
+                 .AddScoped<CpuHoldEvent, CpuDontHoldEvent>()
+                 .AddScoped<CpuStepEvent, CpuDontStepEvent>()
                  .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
         }
         [SetUp]
@@ -48,6 +51,7 @@ namespace Tests
             _labels.Clear();
             _logFormatter = _serviceProvider.GetService<ILogFormatter>();
             _parser = _serviceProvider.GetService<IParser>();
+            _logger = (UnitTestLogger<Parser>)_serviceProvider.GetService<ILogger<Parser>>();
         }
 
         [Test]
@@ -56,7 +60,7 @@ namespace Tests
             _cpuDebug.A = 0xAA;
             var command = "?A";
             _parser.Parse(command);
-            var output = _logFormatter.ToString();
+            var output = _logger.GetOutput();
             Console.WriteLine(output);
             Assert.IsTrue(output.Contains("A = $AA (170)"));
         }
@@ -66,7 +70,7 @@ namespace Tests
             _cpuDebug.X = 0xAB;
             var command = "?X";
             _parser.Parse(command);
-            var output = _logFormatter.ToString();
+            var output = _logger.GetOutput();
             Console.WriteLine(output);
             Assert.IsTrue(output.Contains("X = $AB (171)"));
         }
@@ -76,7 +80,7 @@ namespace Tests
             _cpuDebug.Y = 0xAC;
             var command = "?Y";
             _parser.Parse(command);
-            var output = _logFormatter.ToString();
+            var output = _logger.GetOutput();
             Console.WriteLine(output);
             Assert.IsTrue(output.Contains("Y = $AC (172)"));
         }
@@ -85,7 +89,7 @@ namespace Tests
         {
             var command = "?1234";
             _parser.Parse(command);
-            var output = _logFormatter.ToString();
+            var output = _logger.GetOutput();
             Console.WriteLine("");
             Console.WriteLine(output);
             Assert.IsTrue(output.Contains("$34 (52)"));
@@ -95,7 +99,7 @@ namespace Tests
         {
             var command = "?&1234";
             _parser.Parse(command);
-            var output = _logFormatter.ToString();
+            var output = _logger.GetOutput();
             Console.WriteLine("");
             Console.WriteLine(output);
             Assert.IsTrue(output.Contains("$[1234] = $3534 (13620)"));
@@ -105,7 +109,7 @@ namespace Tests
         {
             var command = "?1234-2345";
             _parser.Parse(command);
-            var output = _logFormatter.ToString();
+            var output = _logger.GetOutput();
             Console.WriteLine("");
             Console.WriteLine(output);
             Assert.IsTrue(output.Replace(" ","").Contains("[2344]4445"));
@@ -115,7 +119,7 @@ namespace Tests
         {
             var command = "?1234:30";
             _parser.Parse(command);
-            var output = _logFormatter.ToString();
+            var output = _logger.GetOutput();
             Console.WriteLine("");
             Console.WriteLine(output);
             output = output.Replace(" ","");
@@ -128,7 +132,7 @@ namespace Tests
 
             var command = "?&TEST";
             _parser.Parse(command);
-            var output = _logFormatter.ToString();
+            var output = _logger.GetOutput();
             Console.WriteLine("");
             Console.WriteLine(output);
             Assert.IsTrue(output.Contains("$[1234] = $3534 (13620)"));
@@ -140,7 +144,7 @@ namespace Tests
 
             var command = "?TEST";
             _parser.Parse(command);
-            var output = _logFormatter.ToString();
+            var output = _logger.GetOutput();
             Console.WriteLine("");
             Console.WriteLine(output);
             Assert.IsTrue(output.Contains("$34 (52)"));
@@ -152,7 +156,7 @@ namespace Tests
             _labels.Add(new Label("end", 0x2345));
             var command = "?start-end";
             _parser.Parse(command);
-            var output = _logFormatter.ToString();
+            var output = _logger.GetOutput();
             Console.WriteLine("");
             Console.WriteLine(output);
             Assert.IsTrue(output.Contains("[2345] end:                 45"));
@@ -163,7 +167,7 @@ namespace Tests
             _labels.Add(new Label("start", 0x1234));
             var command = "?start:30";
             _parser.Parse(command);
-            var output = _logFormatter.ToString();
+            var output = _logger.GetOutput();
             Console.WriteLine("");
             Console.WriteLine(output);
             output = output.Replace(" ","");
@@ -174,7 +178,8 @@ namespace Tests
         {
             var command = "add breakpoint 1234";
             _parser.Parse(command);
-            Assert.AreEqual("", _logFormatter.ToString());
+            var output = _logger.GetOutput();
+            Assert.AreEqual("", output);
             Assert.AreEqual(0x1234, ((ProgramAddressBreakpoint)(_cpuDebug.Breakpoints[0])).Address);
         }
         [Test]
@@ -183,7 +188,8 @@ namespace Tests
             _labels.Add(new Label("test", 0x1234));
             var command = "a b test";
             _parser.Parse(command);
-            Assert.AreEqual("", _logFormatter.ToString());
+            var output = _logger.GetOutput();
+            Assert.AreEqual("", output);
             Assert.AreEqual(0x1234, ((ProgramAddressBreakpoint)(_cpuDebug.Breakpoints[0])).Address);
         }
         [Test]
@@ -194,7 +200,8 @@ namespace Tests
 
             var command = "delete breakpoint 1234";
             _parser.Parse(command);
-            Assert.AreEqual("", _logFormatter.ToString());
+            var output = _logger.GetOutput();
+            Assert.AreEqual("", output);
             Assert.AreEqual(1, _cpuDebug.Breakpoints.Count);
             Assert.AreEqual(0x2345, ((ProgramAddressBreakpoint)(_cpuDebug.Breakpoints[0])).Address);
         }
@@ -208,7 +215,8 @@ namespace Tests
 
             var command = "d b test2";
             _parser.Parse(command);
-            Assert.AreEqual("", _logFormatter.ToString());
+            var output = _logger.GetOutput();
+            Assert.AreEqual("", output);
             Assert.AreEqual(1, _cpuDebug.Breakpoints.Count);
             Assert.AreEqual(0x1234, ((ProgramAddressBreakpoint)(_cpuDebug.Breakpoints[0])).Address);
         }
@@ -220,7 +228,8 @@ namespace Tests
 
             var command = "list breakpoints";
             _parser.Parse(command);
-            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$2345 (9029)"));
+            var output = _logger.GetOutput();
+            Assert.IsTrue(output.Contains("PC==$2345 (9029)"));
         }
         [Test]
         public void CanListBreakpointsShortForm()
@@ -230,7 +239,8 @@ namespace Tests
 
             var command = "l b";
             _parser.Parse(command);
-            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$2345 (9029)"));
+            var output = _logger.GetOutput();
+            Assert.IsTrue(output.Contains("PC==$2345 (9029)"));
         }
         [Test]
         public void CanListAll()
@@ -240,8 +250,8 @@ namespace Tests
 
             var command = "list all";
             _parser.Parse(command);
-            var result = _logFormatter.ToString();
-            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$1234 (4660)"));
+            var output = _logger.GetOutput();
+            Assert.IsTrue(output.Contains("PC==$1234 (4660)"));
         }
         [Test]
         public void CanListAllShortForm()
@@ -251,7 +261,8 @@ namespace Tests
 
             var command = "l a";
             _parser.Parse(command);
-            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$1234 (4660)"));
+            var output = _logger.GetOutput();
+            Assert.IsTrue(output.Contains("PC==$1234 (4660)"));
         }
         [Test]
         public void CanListDefault()
@@ -261,7 +272,8 @@ namespace Tests
 
             var command = "list";
             _parser.Parse(command);
-            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$1234 (4660)"));
+            var output = _logger.GetOutput();
+            Assert.IsTrue(output.Contains("PC==$1234 (4660)"));
         }
         [Test]
         public void CanListDefaultShortForm()
@@ -271,7 +283,8 @@ namespace Tests
 
             var command = "l";
             _parser.Parse(command);
-            Assert.IsTrue(_logFormatter.ToString().Contains("PC==$1234 (4660)"));
+            var output = _logger.GetOutput();
+            Assert.IsTrue(output.Contains("PC==$1234 (4660)"));
         }
 
     }
