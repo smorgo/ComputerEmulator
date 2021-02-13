@@ -234,7 +234,8 @@ namespace Debugger
     Breakpoints cause the debugger to stop when the CPU attempts to execute an instruction
     at the specified address.
         LIST BREAKPOINTS            List breakpoints and their IDs
-        ADD BREAKPOINT <hex addr>   Add a breakpoint
+        ADD BREAKPOINT <hex addr>   Add a breakpoint at the specified address
+        ADD BREAKPOINT <opcode>     Add a breakpoint on the specified OPCODE
         DELETE BREAKPOINT <id>      Delete a breakpoint
         DISABLE BREAKPOINT <id>     Disable a breakpoint
         ENABLE BREAKPOINT <id>      Enable a disabled breakpoint
@@ -351,7 +352,7 @@ namespace Debugger
 
                 if(KeywordMatches("breakpoints", resource))
                 {
-                    _cpuDebug.Breakpoints.Clear();
+                    _cpuDebug.ClearBreakpoints();
                     _formatter.Log("Breakpoints cleared");
                     return true;
                 }
