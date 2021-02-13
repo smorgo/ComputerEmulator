@@ -46,6 +46,7 @@ namespace Tests
                  .AddScoped<IAddressMap, AddressMap>()
                  .AddScoped<IMemoryDebug, AddressMap>()
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
+                 .AddScoped<IRegisterTracker, NoRegisterTracker>()
                  .AddTransient<ILoader, Loader>()
                  .AddSingleton<ICpuHoldEvent>(CpuDontHoldEvent.GetInstance())
                  .AddSingleton<ICpuStepEvent>(CpuDontStepEvent.GetInstance())

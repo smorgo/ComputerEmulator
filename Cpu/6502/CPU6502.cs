@@ -17,12 +17,94 @@ namespace _6502
         public ushort RESET_VECTOR = 0xFFFC;
         public static UInt32 MAX_MEMORY = 0x10000;
         public static ushort STACK_BASE = 0x100;
-        public ushort PC {get; set;}
-        public Byte SP {get; set;}
-        public Byte A {get; set;}
-        public Byte X {get; set;}
-        public Byte Y {get; set;}
-        public CpuFlags P = new CpuFlags();
+        private ushort _pc;
+        public ushort PC 
+        {
+            get
+            {
+                return _pc;
+            }
+            
+            set
+            {
+                if(value != _pc)
+                {
+                    _pc = value;
+                    _tracker?.PostRegisterUpdated(nameof(PC), value);
+                }
+            }
+        }
+        private byte _sp;
+        public byte SP 
+        {
+            get
+            {
+                return _sp;
+            }
+            
+            set
+            {
+                if(value != _sp)
+                {
+                    _sp = value;
+                    _tracker?.PostRegisterUpdated(nameof(SP), value);
+                }
+            }
+        }
+        private byte _a;
+        public byte A 
+        {
+            get
+            {
+                return _a;
+            }
+            
+            set
+            {
+                if(value != _a)
+                {
+                    _a = value;
+                    _tracker?.PostRegisterUpdated(nameof(A), value);
+                }
+            }
+        }
+        private byte _x;
+        public byte X 
+        {
+            get
+            {
+                return _x;
+            }
+            
+            set
+            {
+                if(value != _x)
+                {
+                    _x = value;
+                    _tracker?.PostRegisterUpdated(nameof(X), value);
+                }
+            }
+        }
+
+        private byte _y;
+        public byte Y 
+        {
+            get
+            {
+                return _y;
+            }
+            
+            set
+            {
+                if(value != _y)
+                {
+                    _y = value;
+                    _tracker?.PostRegisterUpdated(nameof(Y), value);
+                }
+            }
+        }
+
+        public CpuFlags P;
         public LogLevel LogLevel {get;set;} = LogLevel.Error;
         public int NopDelayMilliseconds {get; set;} = 0;
         public DateTime? _sleepUntil = null;
@@ -160,18 +242,22 @@ namespace _6502
         public EventHandler OnStarted;
         private DateTime _terminateAfter;
         private ILogger<CPU6502> _logger;
+        private IRegisterTracker _tracker;
         public CPU6502(
             IAddressMap addressMap, 
             ICpuHoldEvent debuggerSyncEvent, 
             ICpuStepEvent debuggerStepEvent, 
             CancellationTokenWrapper cancellationToken, 
-            ILogger<CPU6502> logger)
+            ILogger<CPU6502> logger,
+            IRegisterTracker tracker)
         {
             _debuggerSyncEvent = debuggerSyncEvent;
             _debuggerStepEvent = debuggerStepEvent;
             _addressMap = addressMap;
             _cancellationToken = cancellationToken;
             _logger = logger;
+            _tracker = tracker;
+            P = new CpuFlags(_tracker);
             LoadOpCodes();
             InitialiseVectors();
         }

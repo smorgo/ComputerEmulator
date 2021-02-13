@@ -10,6 +10,13 @@ namespace Debugger
 
     public class Parser : IParser
     {
+        public enum RunMode
+        {
+            Unknown = 0,
+            Paused = 1,
+            Running = 2,
+            Stepping = 3
+        }
         private readonly IDebuggableCpu _cpuDebug;
         private readonly IMemoryDebug _memoryDebug;
         private readonly ILabelMap _labels;
@@ -17,7 +24,8 @@ namespace Debugger
         public ICpuHoldEvent _debuggerSyncEvent;
         public ICpuStepEvent _debuggerStepEvent;
         private readonly ILogger<Parser> _logger;
-        private bool _isStepping = false;
+        private readonly IRegisterTracker _tracker;
+        private RunMode _runMode;
         public Parser(
             IDebuggableCpu cpuDebug, 
             IMemoryDebug memoryDebug, 
@@ -25,7 +33,8 @@ namespace Debugger
             ILogFormatter formatter, 
             ICpuHoldEvent debuggerSyncEvent, 
             ICpuStepEvent debuggerStepEvent, 
-            ILogger<Parser> logger)
+            ILogger<Parser> logger,
+            IRegisterTracker tracker)
         {
             _cpuDebug = cpuDebug;
             _memoryDebug = memoryDebug;
@@ -34,6 +43,7 @@ namespace Debugger
             _debuggerSyncEvent = debuggerSyncEvent;
             _debuggerStepEvent = debuggerStepEvent;
             _logger = logger;
+            _tracker = tracker;
         }
 
         /*
@@ -106,19 +116,25 @@ namespace Debugger
             return false;
         }
 
+        private void SetRunMode(RunMode mode)
+        {
+            _runMode = mode;
+            _tracker?.PostRegisterUpdated("MODE", (ushort)_runMode);
+        }
+
         private bool ParseControlCommand(string command)
         {
             if (KeywordMatches("go", command))
             {
-                _isStepping = false;
+                SetRunMode(RunMode.Running);
                 _debuggerSyncEvent.Set();
                 _debuggerStepEvent.Set();
                 return true;
             }
 
-            if (KeywordMatches("step", command) || (string.IsNullOrEmpty(command) && _isStepping))
+            if (KeywordMatches("step", command) || (string.IsNullOrEmpty(command) && _runMode == RunMode.Stepping))
             {
-                _isStepping = true;
+                SetRunMode(RunMode.Stepping);
                 _debuggerSyncEvent.Reset();
                 Thread.Sleep(10);
                 _debuggerStepEvent.Set(); // If we're stuck on the Step wait
@@ -131,7 +147,7 @@ namespace Debugger
 
             if (KeywordMatches("pause", command))
             {
-                _isStepping = false;
+                SetRunMode(RunMode.Paused);
                 _debuggerSyncEvent.Reset();
                 _debuggerStepEvent.Set();
                 return true;
@@ -139,7 +155,6 @@ namespace Debugger
 
             if (KeywordMatches("help", command) || command == "?")
             {
-                _isStepping = false;
                 DisplayHelp();
                 return true;
             }

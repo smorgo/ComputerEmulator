@@ -50,6 +50,7 @@ namespace Repl
                  .AddScoped<ILogSink, ReplSink>()
                  .AddScoped<ICpuHoldEvent, CpuHoldEvent>()
                  .AddScoped<ICpuStepEvent, CpuStepEvent>()
+                 .AddScoped<IRegisterTracker, DebugRegisterTracker>()
                  .AddSingleton<CancellationTokenWrapper>(_cancellationToken)
                  ;
         }

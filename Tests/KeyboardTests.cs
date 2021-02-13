@@ -56,6 +56,7 @@ namespace Tests
                  .AddTransient<ILoader, Loader>()
                  .AddSingleton<ICpuHoldEvent>(CpuDontHoldEvent.GetInstance())
                  .AddSingleton<ICpuStepEvent>(CpuDontStepEvent.GetInstance())
+                 .AddScoped<IRegisterTracker, NoRegisterTracker>()
                  .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
         }
 
