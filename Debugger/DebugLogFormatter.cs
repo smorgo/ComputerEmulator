@@ -23,6 +23,8 @@ namespace Debugger
         
         public void LogBytes(ushort startAddress, byte[] bytes)
         {
+            Output.Add("");
+            
             var rows = new List<LogRow>();
 
             var ix = startAddress;

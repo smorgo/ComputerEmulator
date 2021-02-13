@@ -44,7 +44,6 @@ namespace Tests
                  .AddSingleton<ILoaderLabelTable>(new LoaderLabelTable())
                  .AddTransient<IDebuggableCpu, CPU6502>()
                  .AddScoped<IAddressMap, AddressMap>()
-                 .AddScoped<IMemoryDebug, AddressMap>()
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
                  .AddScoped<IRegisterTracker, NoRegisterTracker>()
                  .AddTransient<ILoader, Loader>()

@@ -28,7 +28,7 @@ namespace Debugger
         private RunMode _runMode;
         public Parser(
             IDebuggableCpu cpuDebug, 
-            IMemoryDebug memoryDebug, 
+            IAddressMap memoryDebug, 
             ILabelMap labels, 
             ILogFormatter formatter, 
             ICpuHoldEvent debuggerSyncEvent, 
@@ -37,7 +37,7 @@ namespace Debugger
             IRegisterTracker tracker)
         {
             _cpuDebug = cpuDebug;
-            _memoryDebug = memoryDebug;
+            _memoryDebug = memoryDebug as IMemoryDebug;
             _labels = labels;
             _formatter = formatter;
             _debuggerSyncEvent = debuggerSyncEvent;
@@ -94,6 +94,11 @@ namespace Debugger
             }
 
             if (ParsePeek(command))
+            {
+                return true;
+            }
+
+            if (ParseAssignment(command))
             {
                 return true;
             }
@@ -389,6 +394,137 @@ namespace Debugger
 
             return false;
         }
+        private bool ParseAssignment(string command)
+        {
+            if(command.IndexOf("=") < 0)
+            {
+                return false;
+            }
+
+            var target = command.Before("=");
+            var expression = command.After("=");
+            ushort value;
+
+            if(!TryParseExpression(expression, out value))
+            {
+                return false;
+            }
+
+            if(AssignRegister(target, value))
+            {
+                return true;
+            }
+
+            if(AssignMemoryByte(target, value))
+            {
+                return true;
+            }
+
+            if(AssignMemoryWord(target, value))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryParseExpression(string expression, out ushort value)
+        {
+            value = 0x0000;
+            expression = expression.Trim();
+
+            uint temp;
+            if (uint.TryParse(expression, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out temp))
+            {
+                if (temp >= 0 && temp < 0x10000)
+                {
+                    value = (ushort)temp;
+                    return true;
+                }
+            }
+
+            return false; 
+        }
+
+        private bool AssignRegister(string register, ushort value)
+        {
+            switch(register.ToUpper())
+            {
+                case "A":
+                    _cpuDebug.A = (byte)value;
+                    return true;
+                case "X":
+                    _cpuDebug.X = (byte)value;
+                    return true;
+                case "Y":
+                    _cpuDebug.Y = (byte)value;
+                    return true;
+                case "PC":
+                    _cpuDebug.PC = value;
+                    return true;
+                case "SP":
+                    _cpuDebug.SP = (byte)value;
+                    return true;
+                case "C":
+                    _cpuDebug.C = (value != 0);
+                    return true;
+                case "Z":
+                    _cpuDebug.Z = (value != 0);
+                    return true;
+                case "I":
+                    _cpuDebug.I = (value != 0);
+                    return true;
+                case "D":
+                    _cpuDebug.D = (value != 0);
+                    return true;
+                case "B":
+                    _cpuDebug.B = (value != 0);
+                    return true;
+                case "B2":
+                    _cpuDebug.B2 = (value != 0);
+                    return true;
+                case "V":
+                    _cpuDebug.V = (value != 0);
+                    return true;
+                case "N":
+                    _cpuDebug.N = (value != 0);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private bool AssignMemoryByte(string expression, ushort value)
+        {
+            ushort address;
+            if(TryParseAddress(expression, out address))
+            {
+                _memoryDebug.Write(address, (byte)value);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool AssignMemoryWord(string expression, ushort value)
+        {
+            ushort address;
+            if(!expression.StartsWith("&"))
+            {
+                return false;
+            }
+
+            expression = expression.After("&");
+
+            if(TryParseAddress(expression, out address))
+            {
+                _memoryDebug.WriteWord(address, value);
+                return true;
+            }
+
+            return false;
+        }
+
         private bool ParsePeek(string command)
         {
             if (!command.StartsWith('?'))

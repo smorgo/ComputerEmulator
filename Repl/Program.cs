@@ -42,7 +42,6 @@ namespace Repl
                  .AddScoped<ILabelMap, LabelMap>()
                  .AddScoped<IDebuggableCpu, CPU6502>()
                  .AddScoped<IAddressMap, AddressMap>()
-                 .AddScoped<IMemoryDebug, AddressMap>()
                  .AddScoped<IEmulatorConsole, ReplConsole>()
                  .AddScoped<IRemoteConnection, NoRemoteKeyboardConnection>()
                  .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()

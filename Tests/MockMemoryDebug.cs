@@ -31,5 +31,15 @@ namespace Tests
             var msb = Read((ushort)(address+1));
             return (ushort)((msb << 8) + lsb);
         }
+
+        public void Write(ushort address, byte value)
+        {
+            
+        }
+
+        public void WriteWord(ushort address, ushort value)
+        {
+            
+        }
     }
 }
