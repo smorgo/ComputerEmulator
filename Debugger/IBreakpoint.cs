@@ -3,7 +3,7 @@ namespace Debugger
     public interface IBreakpoint
     {
         string Type {get;}
-        string Description {get;}
+        string Describe(ILabelMap labels);
         bool Disabled {get;set;}
     }
 

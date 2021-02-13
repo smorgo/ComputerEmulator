@@ -45,6 +45,7 @@ namespace IntegratedDebugger
             {
                 if(breakpoint.ShouldBreakOnInstruction(e.PC, e.Opcode))
                 {
+                    _logger.LogInformation($"Stopped at breakpoint {breakpoint.Id}");
                     _host.Cpu.Stop();
                 }
             }

@@ -12,12 +12,17 @@ namespace Debugger
         {
             return !Disabled && address == Address;
         }
-        public override string Description 
+
+        public override string Describe(ILabelMap labels)
         {
-            get
+            string label = string.Empty;
+            
+            if (labels.AddressLabels.ContainsKey(Address))
             {
-                return $"{Type}==${Address:X4} ({Address})";
+                label = labels.AddressLabels[Address];
             }
+
+            return $"{Id:D2} Break on {Type}==${Address:X4} ({Address}) {label}";
         }
 
     }

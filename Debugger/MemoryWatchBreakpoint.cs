@@ -2,6 +2,7 @@ namespace Debugger
 {
     public class MemoryWatchBreakpoint : MemoryBreakpoint
     {
+        public int Id = 0;
         public ushort Address {get; private set;}
         public uint Size {get; private set;}
         public byte Value {get; private set;}
@@ -16,14 +17,11 @@ namespace Debugger
         {
             return !Disabled && (address >= Address) && (address < Address + Size) && (Value == value);
         }
-        public override string Description 
+        public override string Describe(ILabelMap labels)
         {
-            get
-            {
-                var rangeEnd = (Size > 1) ? $"-${(Address + Size -1):X4}" : "";
+            var rangeEnd = (Size > 1) ? $"-${(Address + Size -1):X4}" : "";
 
-                return $"{Type} ${Address:X4}{rangeEnd}==${Value:X2} ({Value})";
-            }
+            return $"{Id:D2} {Type} ${Address:X4}{rangeEnd}==${Value:X2} ({Value})";
         }
 
     }

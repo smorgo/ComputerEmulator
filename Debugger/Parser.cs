@@ -321,7 +321,7 @@ namespace Debugger
 
             foreach (var breakpoint in _cpuDebug.Breakpoints)
             {
-                _formatter.Log(breakpoint.Description);
+                _formatter.Log(breakpoint.Describe(_labels));
             }
         }
 

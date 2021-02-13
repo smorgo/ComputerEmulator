@@ -13,7 +13,7 @@ namespace Memory
         public ushort StartAddress {get; private set;}
         public UInt32 Size {get; private set;}
 
-        public List<IAddressableBlock> Blocks => new List<IAddressableBlock> {this};
+        public List<IAddressableBlock> Blocks {get; private set;}
 
         public IAddressAssignment Device => this;
 
@@ -27,6 +27,7 @@ namespace Memory
             StartAddress = absoluteAddress;
             Size = size;
             Memory = new byte[size];
+            Blocks  = new List<IAddressableBlock> {this};
         }
 
         public void Write(ushort address, byte value)

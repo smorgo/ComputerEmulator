@@ -25,23 +25,22 @@ namespace Tests
         public bool N { get; set; }
         public bool B { get; set; }
         public bool B2 { get; set; }
-        private List<ProgramBreakpoint> _breakpoints = new List<ProgramBreakpoint>();
-        public IList<ProgramBreakpoint> Breakpoints => _breakpoints;
+        public ProgramBreakpoints Breakpoints {get;} = new ProgramBreakpoints();
         public void ClearBreakpoints()
         {
-            _breakpoints.Clear();
+            Breakpoints.Clear();
         }
         public bool AddBreakpoint(ProgramBreakpoint breakpoint)
         {
             // Should ensure it's not a duplicate
-            _breakpoints.Add(breakpoint);
+            Breakpoints.Add(breakpoint);
             return true;
         }
         public bool DeleteBreakpoint(ProgramBreakpoint breakpoint)
         {
-            if(_breakpoints.Contains(breakpoint))
+            if(Breakpoints.Contains(breakpoint))
             {
-                _breakpoints.Remove(breakpoint);
+                Breakpoints.Remove(breakpoint);
                 return true;
             }
 

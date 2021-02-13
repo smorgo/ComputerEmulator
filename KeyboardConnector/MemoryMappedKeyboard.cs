@@ -68,7 +68,7 @@ namespace KeyboardConnector
 
         public IKeyboardOutput Transmitter {get; set;}
 
-        public List<IAddressableBlock> Blocks => new List<IAddressableBlock> {this};
+        public List<IAddressableBlock> Blocks {get; private set;}
 
         public IAddressAssignment Device => this;
 
@@ -83,6 +83,7 @@ namespace KeyboardConnector
             _connection = connection;
             _keyboard = (IRemoteKeyboard)connection;
             _eventBuffer = new FifoBuffer<KeyboardEvent>(16);
+             Blocks = new List<IAddressableBlock> {this};
         }
 
         public async Task Initialise()

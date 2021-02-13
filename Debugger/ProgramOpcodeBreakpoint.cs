@@ -12,13 +12,9 @@ namespace Debugger
         {
             return !Disabled && opcode == Opcode;
         }
-        public override string Description 
+        public override string Describe(ILabelMap labels)
         {
-            get
-            {
-                return $"{Type}==${Opcode:X2}";
-            }
+            return $"{Id:D2} Break on {Type}==${Opcode:X2}";
         }
-
     }
 }

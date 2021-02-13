@@ -120,12 +120,11 @@ namespace _6502
         private bool _wasWaiting = false;
         public EventHandler<ExecutedEventArgs> HasExecuted { get; set; }
         public EventHandler<CpuLogEventArgs> Log { get; set; }
-        private List<ProgramBreakpoint> _breakpoints = new List<ProgramBreakpoint>();
-        public IList<ProgramBreakpoint> Breakpoints => _breakpoints;
+        public ProgramBreakpoints Breakpoints {get;} = new ProgramBreakpoints();
         private CancellationTokenWrapper _cancellationToken;
         public void ClearBreakpoints()
         {
-            _breakpoints.Clear();
+            Breakpoints.Clear();
         }
         public int Verbosity
         {
@@ -494,14 +493,14 @@ namespace _6502
         public bool AddBreakpoint(ProgramBreakpoint breakpoint)
         {
             // Should ensure it's not a duplicate
-            _breakpoints.Add(breakpoint);
+            Breakpoints.Add(breakpoint);
             return true;
         }
         public bool DeleteBreakpoint(ProgramBreakpoint breakpoint)
         {
-            if(_breakpoints.Contains(breakpoint))
+            if(Breakpoints.Contains(breakpoint))
             {
-                _breakpoints.Remove(breakpoint);
+                Breakpoints.Remove(breakpoint);
                 return true;
             }
 
@@ -520,6 +519,7 @@ namespace _6502
         }
         public void Stop()
         {
+            _debuggerSyncEvent.Reset();
         }
 
         public void Step()
@@ -638,11 +638,13 @@ namespace _6502
 
         private void RunCurrentInstruction()
         {
+            ushort pc;
+            byte opcode;
             lock(this)
             {
-                var pc = PC;
+                pc = PC;
                 StartLogInstruction(pc);
-                var opcode = Fetch();
+                opcode = Fetch();
 
                 var handler = OpCodeTable[opcode];
 
@@ -658,7 +660,7 @@ namespace _6502
                 }
             }
 
-//            HasExecuted?.Invoke(this, new ExecutedEventArgs(pc, opcode));
+            HasExecuted?.Invoke(this, new ExecutedEventArgs(pc, opcode));
         }
 
         private void ServiceNmi()

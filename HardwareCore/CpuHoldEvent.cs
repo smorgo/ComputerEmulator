@@ -18,7 +18,7 @@ namespace HardwareCore
         }
         private static CpuHoldEvent _instance;
         private bool _set;
-        //public static ManualResetEventSlim _event => new ManualResetEventSlim(false);
+        //public static ManualResetEventSlim _event = new ManualResetEventSlim(false);
 
         public CpuHoldEvent()
         {

@@ -4,7 +4,7 @@ namespace HardwareCore
 {
     public class HostRunningEvent
     {
-        private ManualResetEvent _event => new ManualResetEvent(false);
+        private ManualResetEvent _event = new ManualResetEvent(false);
 
         public void Set()
         {
