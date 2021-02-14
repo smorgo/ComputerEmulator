@@ -28,7 +28,7 @@ namespace Tests
         long _tickCount;
         long _interruptTickInterval;
         private ServiceProvider _serviceProvider;
-
+        private UnitTestLogger<CPU6502> _logger;
         public CpuTests()
         {
             var serviceCollection = new ServiceCollection();
@@ -40,7 +40,8 @@ namespace Tests
         private static void ConfigureServices(IServiceCollection services)
         {
             services
-                 .AddLogging(cfg => cfg.AddConsole().AddDebug())
+                 .AddScoped(typeof(ILogger<CPU6502>), typeof(UnitTestLogger<CPU6502>))
+                 .AddScoped(typeof(ILogger<Loader>), typeof(UnitTestLogger<Loader>))
                  .AddSingleton<ILoaderLabelTable>(new LoaderLabelTable())
                  .AddTransient<IDebuggableCpu, CPU6502>()
                  .AddScoped<IAddressMap, AddressMap>()
@@ -54,6 +55,9 @@ namespace Tests
         [SetUp]
         public void Setup()
         {
+            _logger = (UnitTestLogger<CPU6502>)_serviceProvider.GetService<ILogger<CPU6502>>();
+            _logger.GetOutput(); // Clear any buffered output
+
             mem = _serviceProvider.GetService<IAddressMap>();
             mem.Install(new Ram(0x0000, 0x10000));
 
@@ -3107,6 +3111,227 @@ namespace Tests
             Assert.AreEqual('0', mem.Read(DISPLAY_BASE_ADDR));
             var expected = (h + 9) % 10 + '0';
             Assert.AreEqual(expected, mem.Read((ushort)(DISPLAY_BASE_ADDR + (h - 1) * w)));
+        }
+
+        [Test]
+        public void CanClearBreakpoints()
+        {
+            _cpu.Breakpoints.Add(new ProgramAddressBreakpoint(0x0000));
+            Assert.AreEqual(1, _cpu.Breakpoints.Count);
+            _cpu.ClearBreakpoints();
+            Assert.AreEqual(0, _cpu.Breakpoints.Count);
+        }
+
+        [TestCase(5,"")]
+        [TestCase(0,"[8000] BRK")]
+        public void CanSetVerbosityHigh(int level, string expected)
+        {
+            using(var _ = mem.Load(0x8000))
+            {
+                _
+                    .BRK();
+            }
+
+            _cpu.Verbosity = level;
+            _cpu.Reset();
+            var output = _logger.GetOutput();
+            if(string.IsNullOrEmpty(expected))
+            {
+                Assert.IsTrue(string.IsNullOrEmpty(output));
+            }
+            else
+            {
+                Assert.IsTrue(output.Contains(expected));
+            }
+        }
+
+        [Test]
+        public void CanSetGetC()
+        {
+            _cpu.C = false;
+            Assert.IsFalse(_cpu.C);
+            _cpu.C = true;
+            Assert.IsTrue(_cpu.C);
+        }
+        [Test]
+        public void CanSetGetD()
+        {
+            _cpu.D = false;
+            Assert.IsFalse(_cpu.D);
+            _cpu.D = true;
+            Assert.IsTrue(_cpu.D);
+        }
+        [Test]
+        public void CanSetGetI()
+        {
+            _cpu.I = false;
+            Assert.IsFalse(_cpu.I);
+            _cpu.I = true;
+            Assert.IsTrue(_cpu.I);
+        }
+        [Test]
+        public void CanSetGetZ()
+        {
+            _cpu.Z = false;
+            Assert.IsFalse(_cpu.Z);
+            _cpu.Z = true;
+            Assert.IsTrue(_cpu.Z);
+        }
+        [Test]
+        public void CanSetGetB()
+        {
+            _cpu.B = false;
+            Assert.IsFalse(_cpu.B);
+            _cpu.B = true;
+            Assert.IsTrue(_cpu.B);
+        }
+        [Test]
+        public void CanSetGetB2()
+        {
+            _cpu.B2 = false;
+            Assert.IsFalse(_cpu.B2);
+            _cpu.B2 = true;
+            Assert.IsTrue(_cpu.B2);
+        }
+        [Test]
+        public void CanSetGetV()
+        {
+            _cpu.V = false;
+            Assert.IsFalse(_cpu.V);
+            _cpu.V = true;
+            Assert.IsTrue(_cpu.V);
+        }
+        [Test]
+        public void CanSetGetN()
+        {
+            _cpu.N = false;
+            Assert.IsFalse(_cpu.N);
+            _cpu.N = true;
+            Assert.IsTrue(_cpu.N);
+        }
+
+        [Test]
+        public void CanAddBreakpoint()
+        {
+            Assert.AreEqual(0, _cpu.Breakpoints.Count);
+            Assert.IsTrue(_cpu.AddBreakpoint(new ProgramAddressBreakpoint(0x0000)));
+            Assert.AreEqual(1, _cpu.Breakpoints.Count);
+        }
+        [Test]
+        public void CanDeleteBreakpoint()
+        {
+            Assert.AreEqual(0, _cpu.Breakpoints.Count);
+            Assert.IsTrue(_cpu.AddBreakpoint(new ProgramAddressBreakpoint(0x0000)));
+            Assert.AreEqual(1, _cpu.Breakpoints.Count);
+            Assert.IsTrue(_cpu.DeleteBreakpoint(_cpu.Breakpoints[0]));
+            Assert.AreEqual(0, _cpu.Breakpoints.Count);
+        }
+        [Test]
+        public void CanDeleteMissingBreakpoint()
+        {
+            Assert.AreEqual(0, _cpu.Breakpoints.Count);
+            Assert.IsTrue(_cpu.AddBreakpoint(new ProgramAddressBreakpoint(0x0000)));
+            Assert.AreEqual(1, _cpu.Breakpoints.Count);
+            var breakpoint = new ProgramAddressBreakpoint(0x0001);
+            Assert.IsFalse(_cpu.DeleteBreakpoint(breakpoint));
+            Assert.AreEqual(1, _cpu.Breakpoints.Count);
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        [TestCase(4)]
+        [TestCase(5)]
+        [TestCase(6)]
+        public void CanGetSetVerbosity(int level)
+        {
+            _cpu.Verbosity = level;
+            Assert.AreEqual(level, _cpu.Verbosity);
+        }
+
+        [TestCase(-1)]
+        [TestCase(7)]
+        public void CantSetInvalidVerbosity(int level)
+        {
+            try
+            {
+                _cpu.Verbosity = level;
+            }
+            catch(InvalidOperationException)
+            {
+                Assert.Pass();
+            }
+            Assert.Fail();
+        }
+
+        [Test]
+        public void TimesOutAfterMaxDuration()
+        {
+            var maxDuration = TimeSpan.FromSeconds(10);
+
+            using(var _ = mem.Load(0x8000))
+            {
+                _
+                .NOP("loop")
+                .NOP()
+                .NOP()
+                .JMP_ABSOLUTE("loop");
+            }
+
+            _cpu.NopDelayMilliseconds = 10;
+
+            var start = DateTime.Now;
+
+            _cpu.Reset(maxDuration);
+
+            var duration = DateTime.Now - start;
+
+            Assert.IsTrue(duration >= maxDuration, "Finished too quickly");
+
+            var output = _logger.GetOutput();
+
+            Assert.IsTrue(output.Contains("Terminated after maximum duration"));
+        }
+
+        [Test]
+        public void CanReactToExecutedEvents()
+        {
+            using(var _ = mem.Load(0x8000))
+            {
+                _
+                .NOP()
+                .LDX_IMMEDIATE(0x01)
+                .TXA()
+                .PHA()
+                .PLA()
+                .TAY()
+                .BRK();
+            }
+
+            ushort lowWaterMark = 0xffff;
+            ushort highWaterMark = 0x0000;
+            var executedPHA = false;
+
+            _cpu.HasExecuted += (s,e) => {
+                if(e.PC > highWaterMark)
+                {
+                    highWaterMark = e.PC;
+                }    
+                if(e.PC < lowWaterMark)
+                {
+                    lowWaterMark = e.PC;
+                }
+                if(e.Opcode == (byte)OPCODE.PHA)
+                {
+                    executedPHA = true;
+                }
+            };
+
+            _cpu.Reset();
+            Assert.AreEqual(0x8000, lowWaterMark);
+            Assert.AreEqual(0x8007, highWaterMark);
+            Assert.IsTrue(executedPHA);
         }
 
         private async Task TriggerInterrupt(object sender, EventArgs e)

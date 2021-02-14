@@ -116,10 +116,8 @@ namespace _6502
         public bool NmiPending {get; private set;}
         public ICpuHoldEvent _debuggerSyncEvent;
         public ICpuStepEvent _debuggerStepEvent;
-        private bool _singleStep = false;
         private bool _wasWaiting = false;
         public EventHandler<ExecutedEventArgs> HasExecuted { get; set; }
-        public EventHandler<CpuLogEventArgs> Log { get; set; }
         public ProgramBreakpoints Breakpoints {get;} = new ProgramBreakpoints();
         private CancellationTokenWrapper _cancellationToken;
         public void ClearBreakpoints()
@@ -135,7 +133,14 @@ namespace _6502
 
             set
             {
-                LogLevel = (LogLevel)value;
+                if(Enum.IsDefined(typeof(LogLevel), value))
+                {
+                    LogLevel = (LogLevel)value;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Verbosity out of acceptable range");
+                }
             }
         }
         public bool C 
@@ -282,22 +287,15 @@ namespace _6502
         {
             if((int)level >= (int)LogLevel)
             {
-                if(Log == null)
+                if(_logger == null)
                 {
-                    if(_logger == null)
-                    {
-                        Debug.WriteLine(message);
-                        Console.WriteLine(message);
-                    }
-                    else
-                    {
-                        // _logger.Log(level, message);
-                        _logger.Log(LogLevel.Information, message);
-                    }
+                    Debug.WriteLine(message);
+                    Console.WriteLine(message);
                 }
                 else
                 {
-                    Log.Invoke(this, new CpuLogEventArgs(_logPC, message));
+                    // _logger.Log(level, message);
+                    _logger.Log(LogLevel.Information, message);
                 }
             }
         }
@@ -601,11 +599,6 @@ namespace _6502
                 _debuggerSyncEvent?.WaitOne();
 
                 OnTick?.Invoke(this, null);
-
-                if(_singleStep)
-                {
-                    _singleStep = false;
-                }
 
                 if(NmiPending && !InterruptServicing)
                 {

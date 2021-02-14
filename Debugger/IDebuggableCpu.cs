@@ -11,7 +11,6 @@ namespace Debugger
         void Stop();
         void Step();
         EventHandler<ExecutedEventArgs> HasExecuted {get; set;}
-        EventHandler<CpuLogEventArgs> Log {get; set;}
         int Verbosity {get;set;}
         ushort PC {get; set;}
         byte SP {get; set;}

@@ -38,12 +38,9 @@ namespace Debugger
                 {
                     Output.Add(current.ToString());
                     current = new LogRow(ix);
-                    if(_labels.TryLookup(ix, out label))
-                    {
-                        current.Label = label;
-                    }
-                } 
-                else if(_labels.TryLookup(ix, out label))
+                }
+                
+                if(_labels.TryLookup(ix, out label))
                 {
                     if(!current.IsEmpty)
                     {
@@ -53,7 +50,7 @@ namespace Debugger
 
                     current.Label = label;
                 }
-
+                
                 current.Append(bytes[jx]);
 
                 ix++;

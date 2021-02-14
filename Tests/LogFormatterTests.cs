@@ -68,8 +68,8 @@ namespace Tests
         {
             _labels.Add(new Label("ZeroPage", 0x00));
             _labels.Add(new Label("AddOperand1", 0x00));
-            _labels.Add(new Label("MultiplyFactor", 0x02));
-            _labels.Add(new Label("ArithResult", 0x04));
+            _labels.Add(new Label("MultiplyFactor", 0x16));
+            _labels.Add(new Label("ArithResultLabelWithVeryLongName", 0x04));
             _labels.Add(new Label("DisplayVector", 0x06));
 
             ushort address = 0x00;
@@ -83,6 +83,14 @@ namespace Tests
             Assert.IsTrue(output.Contains("[0006] DisplayVector:"));
         }
 
+        [Test]
+        public void CanLogError()
+        {
+            _logFormatter.LogError("My error");
+            var output = _logFormatter.ToString();
+            Assert.AreEqual("ERROR: My error", output);
+
+        }
 
     }
 }
