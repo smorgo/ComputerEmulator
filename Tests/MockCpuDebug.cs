@@ -46,5 +46,49 @@ namespace Tests
 
             return false;
         }
+
+        public ushort GetRegister(string register)
+        {
+            switch(register.ToUpper())
+            {
+                case "A":
+                    return A;
+                case "X":
+                    return X;
+                case "Y":
+                    return Y;
+                case "PC":
+                    return PC;
+                case "SP":
+                    return SP;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        public bool GetFlag(string flag)
+        {
+            switch(flag.ToUpper())
+            {
+                case "C":
+                    return C;
+                case "Z":
+                    return Z;
+                case "I":
+                    return I;
+                case "D":
+                    return D;
+                case "B":
+                    return B;
+                case "B2":
+                    return B2;
+                case "V":
+                    return V;
+                case "N":
+                    return N;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
     }
 }

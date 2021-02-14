@@ -67,7 +67,7 @@ namespace Debugger
 
         public void LogRegister(string register, ushort value, string hexValue)
         {
-            Output.Add($"{register} = ${hexValue} ({value})");
+            Output.Add($"{register.ToUpper()} = ${hexValue} ({value})");
         }
 
         public void LogByte(byte value)

@@ -10,13 +10,6 @@ namespace Debugger
 
     public class Parser : IParser
     {
-        public enum RunMode
-        {
-            Unknown = 0,
-            Paused = 1,
-            Running = 2,
-            Stepping = 3
-        }
         private readonly IDebuggableCpu _cpuDebug;
         private readonly IAddressMap _addressMap;
         private readonly ILabelMap _labels;
@@ -26,6 +19,7 @@ namespace Debugger
         private readonly ILogger<Parser> _logger;
         private readonly IRegisterTracker _tracker;
         private RunMode _runMode;
+        public RunMode RunMode => _runMode;
         public Parser(
             IDebuggableCpu cpuDebug, 
             IAddressMap addressMap, 
@@ -78,7 +72,7 @@ namespace Debugger
             }
             else
             {
-                _logger.LogError($"Command not recognise: {command}");
+                _logger.LogError($"Command not recognised: {command}");
             }
 
             _formatter.Clear();
@@ -259,6 +253,8 @@ namespace Debugger
         }
         private bool ParseList(string command)
         {
+            command = command.Trim();
+
             var instruction = command.Before(" ");
 
             if (!KeywordMatches("list", instruction))
@@ -358,12 +354,14 @@ namespace Debugger
                 }
                 else if(KeywordMatches("watches", resource))
                 {
-                    _formatter.Log("CLEAR WATCHES not currently supported");
+                    // No watches to clear at the moment!
+                    _formatter.Log("Watches cleared");
                     return true;
                 }
                 else if(KeywordMatches("all", resource))
                 {
-                    _formatter.Log("CLEAR ALL not currently supported");
+                    _cpuDebug.ClearBreakpoints();
+                    _formatter.Log("Breakpoints and watches cleared");
                     return true;
                 }
             }
@@ -433,15 +431,16 @@ namespace Debugger
 
         private bool ParseEnableDisableBreakpoint(string command, bool disabled)
         {
-           var resource = command.Trim().Before(" ");
+            command = command.Trim();
+            var resource = command.Before(" ");
 
-           if(!KeywordMatches("breakpoint", resource))
-           {
-               return false;
-           }
+            if(!KeywordMatches("breakpoint", resource))
+            {
+                return false;
+            }
 
-           return ParseEnableDisableBreakpointById(command.After(" ").Trim(), disabled);
-       }
+            return ParseEnableDisableBreakpointById(command.After(" "), disabled);
+        }
 
         private bool ParseEnableDisableBreakpointById(string command, bool disabled)
         {
@@ -463,6 +462,7 @@ namespace Debugger
                 else
                 {
                     _formatter.Log($"Breakpoint {id:D2} not found");
+                    return true;
                 }
             }
 
@@ -499,6 +499,7 @@ namespace Debugger
                 else
                 {
                     _formatter.Log($"Breakpoint {id:D2} not found");
+                    return true;
                 }
             }
 
@@ -523,13 +524,14 @@ namespace Debugger
         }
         private bool ParseAssignment(string command)
         {
+            command = command.Trim();
             if(command.IndexOf("=") < 0)
             {
                 return false;
             }
 
-            var target = command.Before("=");
-            var expression = command.After("=");
+            var target = command.Before("=").Trim();
+            var expression = command.After("=").Trim();
             ushort value;
 
             if(!TryParseExpression(expression, out value))
@@ -678,10 +680,11 @@ namespace Debugger
         {
             ushort value;
             string hexValue;
+            string register; 
 
-            if (TryEvaluateRegister(expression, out value, out hexValue))
+            if (TryEvaluateRegister(expression, out value, out hexValue, out register))
             {
-                _formatter.LogRegister(expression, value, hexValue);
+                _formatter.LogRegister(register, value, hexValue);
                 return true;
             }
 
@@ -740,11 +743,13 @@ namespace Debugger
             var size = expression.After(":");
 
             ushort beginAddress;
-            ushort sizeValue;
+            uint sizeValue;
 
             if (TryParseAddress(begin, out beginAddress) && TryParseSize(size, out sizeValue))
             {
-                LogMemory(beginAddress, beginAddress + sizeValue - 1);
+                var endAddress = Math.Min(beginAddress + sizeValue - 1, 0xffff);
+
+                LogMemory(beginAddress, (int)endAddress);
                 return true;
             }
 
@@ -818,7 +823,7 @@ namespace Debugger
 
             return false;
         }
-        private bool TryParseSize(string expression, out ushort size)
+        private bool TryParseSize(string expression, out uint size)
         {
             expression = expression.Trim();
 
@@ -826,9 +831,9 @@ namespace Debugger
 
             if (uint.TryParse(expression, out value))
             {
-                if (value >= 0 && value < 0x10000)
+                if (value > 0 && value <= 0x10000)
                 {
-                    size = (ushort)value;
+                    size = value;
                     return true;
                 }
             }
@@ -836,9 +841,11 @@ namespace Debugger
             size = 0;
             return false;
         }
-        private bool TryEvaluateRegister(string expression, out ushort value, out string hexValue)
+        private bool TryEvaluateRegister(string expression, out ushort value, out string hexValue, out string register)
         {
-            switch (expression.ToUpper())
+            register = expression.Trim().ToUpper();
+
+            switch (register)
             {
                 case "A":
                     value = _cpuDebug.A;
@@ -892,14 +899,20 @@ namespace Debugger
                     value = _cpuDebug.B2 ? 1 : 0;
                     hexValue = $"{value}";
                     break;
-                case "VERBOSITY":
-                    value = (ushort)_cpuDebug.Verbosity;
-                    hexValue = $"{value}";
-                    break;
                 default:
-                    value = 0;
-                    hexValue = string.Empty;
-                    return false;
+                    if(KeywordMatches("verbosity", expression,2))
+                    {
+                        register = "VERBOSITY";
+                        value = (ushort)_cpuDebug.Verbosity;
+                        hexValue = $"{value}";
+                        break;
+                    }
+                    else
+                    {
+                        value = 0;
+                        hexValue = string.Empty;
+                        return false;
+                    }
             }
 
             return true;
