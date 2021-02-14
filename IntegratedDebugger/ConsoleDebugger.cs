@@ -12,6 +12,8 @@ namespace IntegratedDebugger
     {
         private IEmulatorHost _host;
         private IDebuggableCpu _cpu;
+        private IAddressMap _addressMap;
+        private IDebuggableMemory MemoryDebugger => (IDebuggableMemory)_addressMap;
         private CancellationTokenWrapper _cancel;
         private ILogFormatter _formatter;
         private ILabelMap _labels;
@@ -22,6 +24,7 @@ namespace IntegratedDebugger
         public ConsoleDebugger(
             IEmulatorHost host, 
             IDebuggableCpu cpu, 
+            IAddressMap addressMap,
             ILogFormatter logFormatter, 
             IParser parser, 
             ILabelMap labels, 
@@ -31,6 +34,7 @@ namespace IntegratedDebugger
         {
             _host = host;
             _cpu = cpu;
+            _addressMap = addressMap;
             _formatter = logFormatter;
             _parser = parser;
             _labels = labels;
@@ -39,23 +43,25 @@ namespace IntegratedDebugger
             _logger = logger;
         }
 
-        public async Task OnHasExecuted(object sender, ExecutedEventArgs e)
-        {
-            foreach(var breakpoint in _host.Cpu.Breakpoints)
-            {
-                if(breakpoint.ShouldBreakOnInstruction(e.PC, e.Opcode))
-                {
-                    _logger.LogInformation($"Stopped at breakpoint {breakpoint.Id}");
-                    _host.Cpu.Stop();
-                }
-            }
 
+        public async Task OnProgramBreakpointTriggered(object sender, ProgramBreakpointEventArgs e)
+        {
+            _logger.LogInformation($"Stopped at program breakpoint {e.Breakpoint.Id}");
+            _host.Cpu.Stop();
+            await Task.Delay(0);
+        }
+        public async Task OnMemoryBreakpointTriggered(object sender, MemoryBreakpointEventArgs e)
+        {
+            _logger.LogInformation($"Stopped at memory breakpoint {e.Breakpoint.Id}");
+            _host.Cpu.Stop();
             await Task.Delay(0);
         }
 
         public void Start()
         {
-            _cpu.HasExecuted += async (s,e) => {await OnHasExecuted(s,e);};
+            _cpu.BreakpointTriggered += async (s,e) => {await OnProgramBreakpointTriggered(s,e);};
+            MemoryDebugger.BreakpointTriggered += async (s,e) => {await OnMemoryBreakpointTriggered(s,e);};
+
 
             while(!_cancel.Token.IsCancellationRequested)
             {

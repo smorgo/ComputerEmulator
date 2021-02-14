@@ -1,13 +1,12 @@
 namespace Debugger
 {
-    public class MemoryWatchBreakpoint : MemoryBreakpoint
+    public class MemoryValueEqualsBreakpoint : MemoryBreakpoint
     {
-        public int Id = 0;
         public ushort Address {get; private set;}
         public uint Size {get; private set;}
         public byte Value {get; private set;}
-        public override string Type => "MEM_WATCH";
-        public MemoryWatchBreakpoint(ushort address, uint size, byte value)
+        public override string Type => "MEM_EQUALS";
+        public MemoryValueEqualsBreakpoint(ushort address, uint size, byte value)
         {
             Address = address;
             Size = size;

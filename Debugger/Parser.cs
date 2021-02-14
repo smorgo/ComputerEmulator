@@ -136,29 +136,21 @@ namespace Debugger
             if (KeywordMatches("go", command))
             {
                 SetRunMode(RunMode.Running);
-                _debuggerSyncEvent.Set();
-                _debuggerStepEvent.Set();
+                _cpuDebug.Go();
                 return true;
             }
 
             if (KeywordMatches("step", command) || (string.IsNullOrEmpty(command) && _runMode == RunMode.Stepping))
             {
                 SetRunMode(RunMode.Stepping);
-                _debuggerSyncEvent.Reset();
-                Thread.Sleep(10);
-                _debuggerStepEvent.Set(); // If we're stuck on the Step wait
-                Thread.Sleep(10);
-                _debuggerStepEvent.Reset(); // If we're stuck on the Step wait
-                Thread.Sleep(10);
-                _debuggerSyncEvent.Set();
+                _cpuDebug.Step();
                 return true;
             }
 
             if (KeywordMatches("pause", command))
             {
                 SetRunMode(RunMode.Paused);
-                _debuggerSyncEvent.Reset();
-                _debuggerStepEvent.Set();
+                _cpuDebug.Stop();
                 return true;
             }
 

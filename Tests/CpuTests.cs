@@ -2964,6 +2964,60 @@ namespace Tests
         }
 
         [Test]
+        public void CanServiceNonMaskableInterrupt()
+        {
+            _cpu.OnTick += async (s,e) => {await TriggerNonMaskableInterrupt(s,e);};
+            _cpu.LogLevel = LogLevel.Information;
+            var breakpoint = new ProgramOpcodeBreakpoint((byte)OPCODE.RTI);
+            bool didBreak = false;
+
+            _cpu.AddBreakpoint(breakpoint);
+            
+            _cpu.BreakpointTriggered += (s,e) => {
+                didBreak = true;
+            };
+
+            _tickCount = 0;
+            _interruptTickInterval = 600;
+
+            using (var _ = mem.Load(PROG_START))
+            {
+                _
+                    .SEI()
+                    .LDX_IMMEDIATE(0x80)
+                    .LDY_IMMEDIATE(0x20, "LoopX")
+                    .TXA("LoopY")
+                    .STA_INDIRECT_Y(0x10)    // Holds vector for data block to write
+                    .DEY()
+                    .BNE("LoopY")
+                    .DEX()
+                    .BNE("LoopX")
+                    .BRK()
+
+                    .PHA("ISR")
+                    .TXA()
+                    .PHA()
+                    .TYA()
+                    .PHA()
+                    .INC_ABSOLUTE(0x7800)
+                    .PLA("ISRDone")
+                    .TAY()
+                    .PLA()
+                    .TAX()
+                    .PLA()
+                    .RTI()                    
+                    .Write(0x7000, 0x00, "Block")
+                    .Write(0x7800, 0x00) // ISR will increment this
+                    .Ref(0x10, "Block")
+                    .Ref(_cpu.NMI_VECTOR, "ISR"); // Write the address of the ISR into the Interrupt Vector
+            }
+            _cpu.Reset(TimeSpan.FromSeconds(10));
+            var output = _logger.GetOutput();
+            Console.WriteLine(output);
+            Assert.IsTrue(didBreak);
+        }
+
+        [Test]
         public void LetsDoThis()
         {
             using (var _ = mem.Load(PROG_START))
@@ -3297,41 +3351,72 @@ namespace Tests
         [Test]
         public void CanReactToExecutedEvents()
         {
+            
             using(var _ = mem.Load(0x8000))
             {
                 _
                 .NOP()
-                .LDX_IMMEDIATE(0x01)
+                .LDX_IMMEDIATE(0x01,"load")
                 .TXA()
-                .PHA()
+                .PHA("push")
                 .PLA()
                 .TAY()
                 .BRK();
             }
 
-            ushort lowWaterMark = 0xffff;
-            ushort highWaterMark = 0x0000;
-            var executedPHA = false;
+            var labels = GetDebuggerLabels();
 
-            _cpu.HasExecuted += (s,e) => {
-                if(e.PC > highWaterMark)
+            string description1 = string.Empty;
+            string description2 = string.Empty;
+            ushort address =  0x0000;
+            byte opcode = 0x00;
+
+            _cpu.Breakpoints.Add(new ProgramAddressBreakpoint(0x8001));
+            _cpu.Breakpoints.Add(new ProgramOpcodeBreakpoint((byte)OPCODE.PHA));
+
+            _cpu.BreakpointTriggered += (s,e) => {
+                if(e.Breakpoint is ProgramAddressBreakpoint)
                 {
-                    highWaterMark = e.PC;
-                }    
-                if(e.PC < lowWaterMark)
-                {
-                    lowWaterMark = e.PC;
+                    description1 = e.Breakpoint.Describe(labels);
+                    address = e.Address;
                 }
-                if(e.Opcode == (byte)OPCODE.PHA)
+                else if(e.Breakpoint is ProgramOpcodeBreakpoint)
                 {
-                    executedPHA = true;
+                    description2 = e.Breakpoint.Describe(labels);
+                    opcode = e.Opcode;
                 }
             };
 
             _cpu.Reset();
-            Assert.AreEqual(0x8000, lowWaterMark);
-            Assert.AreEqual(0x8007, highWaterMark);
-            Assert.IsTrue(executedPHA);
+            Assert.AreEqual(0x8001, address);
+            Assert.AreEqual((byte)OPCODE.PHA, opcode);
+            Assert.AreEqual("01 Break on PC==$8001 (32769) load", description1);
+            Assert.AreEqual("02 Break on OPCODE==$48", description2);
+        }
+        [Test]
+        public void CanMonitorExecution()
+        {
+            
+            using(var _ = mem.Load(0x8000))
+            {
+                _
+                .NOP()
+                .LDX_IMMEDIATE(0x01,"load")
+                .TXA()
+                .PHA("push")
+                .PLA()
+                .TAY()
+                .BRK();
+            }
+
+            int count = 0;
+
+            _cpu.HasExecuted += (s,e) => {
+                count++;
+            };
+
+            _cpu.Reset();
+            Assert.AreEqual(7, count);
         }
 
         private async Task TriggerInterrupt(object sender, EventArgs e)
@@ -3342,6 +3427,28 @@ namespace Tests
                 _tickCount = 0;
                 await _cpu.Interrupt();
             }
+        }
+        private async Task TriggerNonMaskableInterrupt(object sender, EventArgs e)
+        {
+            _tickCount++;
+            if (_tickCount >= _interruptTickInterval)
+            {
+                _tickCount = 0;
+                _cpu.NonMaskableInterrupt();
+            }
+            await Task.Delay(0);
+        }
+
+        private ILabelMap GetDebuggerLabels()
+        {
+            var labels = new LabelMap();
+
+            foreach(var name in mem.Labels.Names)
+            {
+                labels.Add(new Label(name, mem.Labels.Resolve(name)));
+            }    
+
+            return labels;        
         }
     }
 }

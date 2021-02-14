@@ -119,6 +119,7 @@ namespace _6502
         private bool _wasWaiting = false;
         public EventHandler<ExecutedEventArgs> HasExecuted { get; set; }
         public ProgramBreakpoints Breakpoints {get;} = new ProgramBreakpoints();
+        public EventHandler<ProgramBreakpointEventArgs> BreakpointTriggered {get; set;}
         private CancellationTokenWrapper _cancellationToken;
         public void ClearBreakpoints()
         {
@@ -287,16 +288,7 @@ namespace _6502
         {
             if((int)level >= (int)LogLevel)
             {
-                if(_logger == null)
-                {
-                    Debug.WriteLine(message);
-                    Console.WriteLine(message);
-                }
-                else
-                {
-                    // _logger.Log(level, message);
-                    _logger.Log(LogLevel.Information, message);
-                }
+                _logger.Log(LogLevel.Information, message);
             }
         }
 
@@ -330,6 +322,21 @@ namespace _6502
             LogInternal(LogLevel.Trace, $"[{pc:X4}] {instruction} -> PC:{PC:X4} A:{A:X2} X:{X:X2} Y:{Y:X2} SP:{SP:X2} P:{P}");
         }
 
+        private void EvaluateBreakpoints(ushort address, byte opcode)
+        {
+            if(Breakpoints.Count == 0 || BreakpointTriggered == null)
+            {
+                return;
+            }
+
+            foreach(var breakpoint in Breakpoints)
+            {
+                if(breakpoint.ShouldBreakOnInstruction(address, opcode))
+                {
+                    BreakpointTriggered.Invoke(this, new ProgramBreakpointEventArgs(breakpoint, address, opcode));
+                }
+            }
+        }
         private void LoadOpCodes()
         {
             for(var ix = 0; ix < 256; ix++)
@@ -514,14 +521,24 @@ namespace _6502
         
         public void Go()
         {
+            _debuggerSyncEvent.Set();
+            _debuggerStepEvent.Set();
         }
         public void Stop()
         {
             _debuggerSyncEvent.Reset();
+            _debuggerStepEvent.Set();
         }
 
         public void Step()
         {
+            _debuggerSyncEvent.Reset();
+            Thread.Sleep(10);
+            _debuggerStepEvent.Set(); // If we're stuck on the Step wait
+            Thread.Sleep(10);
+            _debuggerStepEvent.Reset(); // If we're stuck on the Step wait
+            Thread.Sleep(10);
+            _debuggerSyncEvent.Set();
         }
 
         public void Reset(TimeSpan? maxDuration = null)
@@ -600,7 +617,7 @@ namespace _6502
 
                 OnTick?.Invoke(this, null);
 
-                if(NmiPending && !InterruptServicing)
+                if(NmiPending)
                 {
                     ServiceNmi();
                 }
@@ -624,8 +641,6 @@ namespace _6502
                     LogInternal(LogLevel.Information, "Terminated after maximum duration");
                     return;
                 }
-
-                Thread.Sleep(1);
             }
         }
 
@@ -654,12 +669,15 @@ namespace _6502
             }
 
             HasExecuted?.Invoke(this, new ExecutedEventArgs(pc, opcode));
+            EvaluateBreakpoints(pc, opcode);
         }
 
         private void ServiceNmi()
         {
             InterruptServicing = true;
             NmiPending = false;
+            LogInternal(LogLevel.Information, "Non-maskable interrupt!");
+            SetInterruptDisableFlag();
             PushWord(PC);
             PushProcessorStatus();
             PC = ReadWord(NMI_VECTOR);

@@ -1,14 +1,38 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Debugger;
+using HardwareCore;
 
 namespace Tests
 {
     public class MockCpuDebug : IDebuggableCpu
     {
-        public void Go() {}
-        public void Stop() {}
-        public void Step() {}
+        private ICpuHoldEvent _debuggerSyncEvent;
+        private ICpuStepEvent _debuggerStepEvent;
+
+        public void Go()
+        {
+            _debuggerSyncEvent.Set();
+            _debuggerStepEvent.Set();
+        }
+        public void Stop()
+        {
+            _debuggerSyncEvent.Reset();
+            _debuggerStepEvent.Set();
+        }
+
+        public void Step()
+        {
+            _debuggerSyncEvent.Reset();
+            Thread.Sleep(10);
+            _debuggerStepEvent.Set(); // If we're stuck on the Step wait
+            Thread.Sleep(10);
+            _debuggerStepEvent.Reset(); // If we're stuck on the Step wait
+            Thread.Sleep(10);
+            _debuggerSyncEvent.Set();
+        }
+
         public EventHandler<ExecutedEventArgs> HasExecuted { get; set; }
         public int Verbosity {get; set;}
         public ushort PC { get; set; }
@@ -25,6 +49,14 @@ namespace Tests
         public bool B { get; set; }
         public bool B2 { get; set; }
         public ProgramBreakpoints Breakpoints {get;} = new ProgramBreakpoints();
+        public EventHandler<ProgramBreakpointEventArgs> BreakpointTriggered {get; set;}
+        public MockCpuDebug(
+            ICpuHoldEvent debuggerSyncEvent, 
+            ICpuStepEvent debuggerStepEvent)
+        {
+            _debuggerStepEvent = debuggerStepEvent;
+            _debuggerSyncEvent = debuggerSyncEvent;
+        }
         public void ClearBreakpoints()
         {
             Breakpoints.Clear();

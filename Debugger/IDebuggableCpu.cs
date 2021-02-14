@@ -26,6 +26,7 @@ namespace Debugger
         bool B {get;set;}
         bool B2 {get;set;}
         ProgramBreakpoints Breakpoints {get; }
+        EventHandler<ProgramBreakpointEventArgs> BreakpointTriggered {get; set;}
         void ClearBreakpoints();
         bool AddBreakpoint(ProgramBreakpoint breakpoint);
         bool DeleteBreakpoint(ProgramBreakpoint breakpoint);

@@ -6,6 +6,7 @@ namespace Debugger
     {
         void Start();
         ILabelMap Labels {get;}
-        Task OnHasExecuted(object sender, ExecutedEventArgs e);
+        Task OnProgramBreakpointTriggered(object sender, ProgramBreakpointEventArgs e);
+        Task OnMemoryBreakpointTriggered(object sender, MemoryBreakpointEventArgs e);
     }
 }

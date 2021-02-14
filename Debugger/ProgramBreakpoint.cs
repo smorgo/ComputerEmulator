@@ -7,9 +7,6 @@ namespace Debugger
         public abstract string Type {get;}
         public abstract string Describe(ILabelMap labels);
         public virtual bool Disabled {get; set;}
-        public virtual bool ShouldBreakOnInstruction(ushort address, byte opcode)
-        {
-            return false;
-        }
+        public abstract bool ShouldBreakOnInstruction(ushort address, byte opcode);
     }
 }

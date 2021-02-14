@@ -2,7 +2,6 @@ namespace Debugger
 {
     public class MemoryChangedBreakpoint : MemoryBreakpoint
     {
-        public int Id = 0;
         public ushort Address {get; private set;}
         public uint Size {get; private set;}
         public override string Type => "MEM_CHANGE";

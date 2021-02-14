@@ -12,7 +12,6 @@ namespace HardwareCore
         ushort LowWaterMark { get; }
         ushort HighWaterMark { get; }
         ILoaderLabelTable Labels { get; set; }
-
         Task Initialise();
         void Install(IAddressAssignment device);
         byte Read(ushort address);
@@ -24,6 +23,5 @@ namespace HardwareCore
         ILoader Load();
         ILoader Load(ushort startAddress);
         EventHandler<MemoryChangedEventArgs> MemoryChanged {get;set;}
-
     }
 }

@@ -17,7 +17,7 @@ namespace Tests
         [SetUp]
         public async Task Setup()
         {
-            _cpuDebug = new MockCpuDebug();
+            _cpuDebug = new MockCpuDebug(new MockCpuHoldEvent(), new MockCpuStepEvent());
             _addressMap = new MockMemoryDebug();
             _labels = new LabelMap();
             _logFormatter = new DebugLogFormatter(_labels);

@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Memory
 {
 
-    public class AddressMap : IAddressMap
+    public class AddressMap : IAddressMap, IDebuggableMemory
     {
         public bool CanRead => true;
 
@@ -24,6 +24,9 @@ namespace Memory
         public ILoaderLabelTable Labels { get; set; }
         public EventHandler<MemoryChangedEventArgs> MemoryChanged { get; set; }
 
+        public MemoryBreakpoints Breakpoints {get;} = new MemoryBreakpoints();
+
+        public EventHandler<MemoryBreakpointEventArgs> BreakpointTriggered {get; set;}
         private IAddressableBlock[] RedirectionTable = new IAddressableBlock[0x10000]; // This is going to be woefully inefficient in terms of memory
         private List<IAddressAssignment> _installedModules = new List<IAddressAssignment>();
         public AddressMap(ILoaderLabelTable labels)
@@ -108,6 +111,7 @@ namespace Memory
             }
 
             MemoryChanged?.Invoke(this, new MemoryChangedEventArgs(address, value));
+            EvaluateBreakpoints(address, value);
         }
 
         public void WriteWord(ushort address, ushort value)
@@ -137,6 +141,39 @@ namespace Memory
             }
 
             return result;
+        }
+
+        public void ClearBreakpoints()
+        {
+            Breakpoints.Clear();
+        }
+
+        public bool AddBreakpoint(MemoryBreakpoint breakpoint)
+        {
+            Breakpoints.Add(breakpoint);
+            return true;
+        }
+
+        public bool DeleteBreakpoint(MemoryBreakpoint breakpoint)
+        {
+            Breakpoints.Remove(breakpoint);
+            return true;
+        }
+
+        private void EvaluateBreakpoints(ushort address, byte value)
+        {
+            if(Breakpoints.Count == 0 || BreakpointTriggered == null)
+            {
+                return;
+            }
+
+            foreach(var breakpoint in Breakpoints)
+            {
+                if(breakpoint.ShouldBreakOnMemoryWrite(address, value))
+                {
+                    BreakpointTriggered.Invoke(this, new MemoryBreakpointEventArgs(breakpoint, address, value));
+                }
+            }
         }
     }
 }
