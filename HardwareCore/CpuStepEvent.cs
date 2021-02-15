@@ -17,9 +17,9 @@ namespace HardwareCore
         {
             _event.Reset();
         }
-        public virtual void WaitOne()
+        public virtual bool WaitOne(TimeSpan maxDuration)
         {
-            _event.Wait();
+            return _event.Wait(maxDuration);
         }
     }
 }

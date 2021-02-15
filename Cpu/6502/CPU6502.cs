@@ -121,6 +121,7 @@ namespace _6502
         public ProgramBreakpoints Breakpoints {get;} = new ProgramBreakpoints();
         public EventHandler<ProgramBreakpointEventArgs> BreakpointTriggered {get; set;}
         private CancellationTokenWrapper _cancellationToken;
+        public TimeSpan MaxEventDuration {get; set;} = TimeSpan.FromMinutes(30);
         public void ClearBreakpoints()
         {
             Breakpoints.Clear();
@@ -612,8 +613,8 @@ namespace _6502
                     return;
                 }
 
-                _debuggerStepEvent?.WaitOne();
-                _debuggerSyncEvent?.WaitOne();
+                _debuggerStepEvent?.WaitOne(MaxEventDuration).ThenIfFalse(FailOnEventTimeout);
+                _debuggerSyncEvent?.WaitOne(MaxEventDuration).ThenIfFalse(FailOnEventTimeout);
 
                 OnTick?.Invoke(this, null);
 
@@ -642,6 +643,11 @@ namespace _6502
                     return;
                 }
             }
+        }
+
+        private void FailOnEventTimeout()
+        {
+            throw new TimeoutException("Timeout waiting for an event to be signalled");
         }
 
         private void RunCurrentInstruction()

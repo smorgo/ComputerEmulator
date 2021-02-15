@@ -5,6 +5,7 @@ namespace HardwareCore
         public int Size {get; private set;}
         public int WritePointer {get; private set;}
         public int ReadPointer {get; private set;}
+        private bool _isFull = false;
         private T[] _buffer;
         public FifoBuffer(int size)
         {
@@ -18,7 +19,7 @@ namespace HardwareCore
         {
             lock(this)
             {
-                if(WritePointer == ReadPointer)
+                if(IsEmpty())
                 {
                     result = default(T);
                     return false;
@@ -33,7 +34,7 @@ namespace HardwareCore
         {
             lock(this)
             {
-                if(WritePointer == ReadPointer)
+                if(IsEmpty())
                 {
                     result = default(T);
                     return false;
@@ -41,6 +42,7 @@ namespace HardwareCore
 
                 result = _buffer[ReadPointer];
                 ReadPointer = (ReadPointer + 1) % Size;
+                _isFull = false;
                 return true;
             }
         }
@@ -49,13 +51,14 @@ namespace HardwareCore
         {
             lock(this)
             {
-                if(((WritePointer + Size + 1) % Size) == ReadPointer)
+                if(IsFull())
                 {
                     return false;
                 }
                 
                 _buffer[WritePointer] = value;
                 WritePointer = (WritePointer + 1) % Size;
+                _isFull = (WritePointer == ReadPointer);
                 return true;
             }
         }
@@ -72,8 +75,7 @@ namespace HardwareCore
         {
             lock(this)
             {
-                // Is WritePointer up against ReadPointer?
-                return ((WritePointer + Size + 1) % Size) == ReadPointer;
+                return _isFull;
             }
         }
 
@@ -83,6 +85,7 @@ namespace HardwareCore
             {
                 WritePointer = 0;
                 ReadPointer = 0;
+                _isFull = false;
             }
         }
     }

@@ -1,4 +1,4 @@
-namespace Debugger
+namespace HardwareCore
 {
     public static class StringExtensions
     {

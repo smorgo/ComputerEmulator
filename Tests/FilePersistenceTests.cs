@@ -11,6 +11,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Debugger;
+using System.IO;
 
 namespace Tests
 {
@@ -23,7 +24,9 @@ namespace Tests
         const ushort DISPLAY_BASE_ADDR = 0xF000;
         const ushort PROG_START = 0x8000;
         const ushort DISPLAY_SIZE = 0x400;  // 1kB
-
+        private ushort _start;
+        private ushort _end;
+        private ushort _length;
         private ServiceProvider _serviceProvider;
 
         public FilePersistenceTests()
@@ -47,8 +50,8 @@ namespace Tests
                  .AddScoped<IParser, Parser>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<IRegisterTracker, NoRegisterTracker>()
-                 .AddScoped<ICpuHoldEvent,CpuDontHoldEvent>()
-                 .AddScoped<ICpuStepEvent,CpuDontStepEvent>()
+                 .AddScoped<ICpuHoldEvent,MockCpuHoldEvent>()
+                 .AddScoped<ICpuStepEvent,MockCpuStepEvent>()
                  .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper());
         }
 
@@ -155,16 +158,25 @@ namespace Tests
                 .WriteWord(0x12, DISPLAY_BASE_ADDR, "DisplayVector");
             }
 
-            var start = mem.Labels.Resolve("StartOfProgram");
-            var end = mem.Labels.Resolve("EndOfProgram");
-            var length = (ushort)(end - start);
+            _start = mem.Labels.Resolve("StartOfProgram");
+            _end = mem.Labels.Resolve("EndOfProgram");
+            _length = (ushort)(_end - _start + 1);
 
-            _persistence.Save("TestProgram.bin", start, length, mem);
+            _persistence.Save("TestProgram.bin", _start, _length, mem);
         }
 
-        [Test]
-        public void CanLoadAndRunTestProgram()
+        [TestCase("~/6502Programs")]
+        [TestCase("~6502Programs/")]
+        [TestCase("~/6502Programs/Temp", true)]
+        public void CanLoadAndRunTestProgram(string workingDirectory, bool removeDirectory = false)
         {
+            if(removeDirectory)
+            {
+                RemoveDirectory(workingDirectory);
+            }
+
+            ((MemoryFilePersistence)_persistence).WorkingDirectory = workingDirectory;
+
             Assert.IsTrue(_display.Mode.Type == DisplayMode.RenderType.Text);
 
             DoSave();
@@ -183,9 +195,40 @@ namespace Tests
             }
 
             _cpu.Reset();
+
+            if(removeDirectory)
+            {
+                RemoveDirectory(workingDirectory);
+            }
+
             Assert.AreEqual('0', mem.Read(DISPLAY_BASE_ADDR));
             var expected = (h + 9) % 10 + '0';
             Assert.AreEqual(expected, mem.Read((ushort)(DISPLAY_BASE_ADDR + (h - 1) * w)));
+        }
+
+        private void RemoveDirectory(string directory)
+        {
+            var folder = CrossPlatformPathExtensions.ResolveCrossPlatformPart(directory);
+
+            if(Directory.Exists(folder))
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+
+        [Test]
+        public void CanLoadAtDifferentAddress()
+        {
+            DoSave();
+
+            _persistence.LoadAt("TestProgram.bin", (ushort)(PROG_START + 0x100), mem);
+
+            for(var ix = _start; ix <= _end; ix++)
+            {
+                Assert.AreEqual(mem.Read((ushort)ix), mem.Read((ushort)(ix + 0x100)));
+            }
+
+            Assert.Pass();
         }
     }
 }

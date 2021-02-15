@@ -5,7 +5,6 @@ namespace HardwareCore
     public interface ILoader : IDisposable
     {
         ushort Cursor { get; set; }
-        IAddressMap Memory { get; }
         bool HasErrors { get; }
         Loader Fixup(out ILoaderLabelTable exportLabels);
         Loader Fixup();

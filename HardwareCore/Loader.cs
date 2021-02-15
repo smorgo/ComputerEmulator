@@ -95,7 +95,6 @@ namespace HardwareCore
         private Dictionary<ushort, ReferenceDescriptor> _labelReferences;
         public ushort Cursor { get; set; }
         private IAddressMap _addressMap;
-        public IAddressMap Memory => _addressMap;
         public bool HasErrors { get; private set; }
         public ILogger<Loader> _logger;
         public Loader(IAddressMap addressMap, ILoaderLabelTable labels, ILogger<Loader> logger)
@@ -105,12 +104,6 @@ namespace HardwareCore
             _labelReferences = new Dictionary<ushort, ReferenceDescriptor>();
             HasErrors = false;
             _logger = logger;
-        }
-
-        public void Clear()
-        {
-            _labels?.Clear();
-            _labelReferences = new Dictionary<ushort, ReferenceDescriptor>();
         }
         public Loader Write(ushort address, byte value, string label = null)
         {

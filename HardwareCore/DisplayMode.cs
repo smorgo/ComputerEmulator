@@ -25,7 +25,8 @@ namespace HardwareCore
                 }
 
                 // Assume character is 8x8 pixels
-                return (byte)(Math.Pow(2, ColourDepth - 1) * 8);
+                var bytesPerCharacter = 8 * (int)Math.Log2(ColourDepth);
+                return (byte)bytesPerCharacter;
             }
         }
         

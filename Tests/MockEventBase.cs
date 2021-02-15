@@ -1,3 +1,5 @@
+using System;
+
 namespace HardwareCore
 {
     public abstract class MockEventBase
@@ -27,8 +29,9 @@ namespace HardwareCore
             IsSet = true;
             SetCount++;
         }
-        public void WaitOne()
+        public bool WaitOne(TimeSpan maxDuration)
         {
+            return true;
         }
     }
 }

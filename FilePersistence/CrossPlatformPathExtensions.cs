@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using HardwareCore;
 
 namespace FilePersistence
 {
@@ -21,24 +22,17 @@ namespace FilePersistence
 
         public static string ResolveCrossPlatformPart(string part)
         {
-            if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if(!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                return part;
-            }
+                if(part.StartsWith("~/"))
+                {
+                    part = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + Path.DirectorySeparatorChar + part.After("~/");
+                }
 
-            if(part == "~" || part == "~/")
-            {
-                return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + Path.DirectorySeparatorChar;
-            }
-
-            if(part.StartsWith("~/"))
-            {
-                return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + Path.DirectorySeparatorChar + part.Substring(2);
-            }
-
-            if(part.StartsWith("~"))
-            {
-                return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + Path.DirectorySeparatorChar + part.Substring(1);
+                if(part.StartsWith("~"))
+                {
+                    part = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + Path.DirectorySeparatorChar + part.After("~");
+                }
             }
 
             return part;

@@ -8,7 +8,7 @@ namespace HardwareCore
     {
         private List<Dictionary<string, ushort>> _scopes;
         private int _currentScope;
-
+        public int CurrentScope => _currentScope;
         public LoaderLabelTable()
         {
             Clear();

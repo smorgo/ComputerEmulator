@@ -1,9 +1,12 @@
+using System;
+using System.Threading;
+
 namespace HardwareCore
 {
     public interface ICpuStepEvent
     {
         void Reset();
         void Set();
-        void WaitOne();
+        bool WaitOne(TimeSpan maxDuration);
     }
 }

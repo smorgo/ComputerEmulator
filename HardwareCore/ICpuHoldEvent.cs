@@ -1,9 +1,11 @@
+using System;
+
 namespace HardwareCore
 {
     public interface ICpuHoldEvent
     {
         void Reset();
         void Set();
-        void WaitOne();
+        bool WaitOne(TimeSpan maxDuration);
     }
 }

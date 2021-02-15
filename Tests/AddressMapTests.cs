@@ -48,8 +48,8 @@ namespace Tests
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
                  .AddScoped<IRegisterTracker, NoRegisterTracker>()
                  .AddTransient<ILoader, Loader>()
-                 .AddScoped<ICpuHoldEvent,CpuDontHoldEvent>()
-                 .AddScoped<ICpuStepEvent,CpuDontStepEvent>()
+                 .AddScoped<ICpuHoldEvent,MockCpuHoldEvent>()
+                 .AddScoped<ICpuStepEvent,MockCpuStepEvent>()
                  .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper());
         }
         [SetUp]
@@ -389,6 +389,23 @@ namespace Tests
             Assert.AreEqual(2, MemoryDebugger.Breakpoints.Count);
             Assert.IsTrue(MemoryDebugger.Breakpoints[0] is MemoryChangedBreakpoint);
             Assert.IsTrue(MemoryDebugger.Breakpoints[1] is MemoryChangedBreakpoint);
+        }
+
+        [Test]
+        public void CanReceiveMemoryChangedNotifications()
+        {
+            ushort address = 0x0000;
+            byte value = 0x00;
+
+            mem.MemoryChanged += (s,e) => {
+                address = e.Address;
+                value = e.Value;
+            };
+
+            mem.Write(0x1234, 0x56);
+
+            Assert.AreEqual(0x1234, address);
+            Assert.AreEqual(0x56, value);
         }
     }
 }
