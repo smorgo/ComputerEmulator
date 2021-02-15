@@ -609,7 +609,7 @@ namespace _6502
                 if (_cancellationToken != null && _cancellationToken.Token.IsCancellationRequested)
                 {
                     LogInternal(LogLevel.Information, "Task cancelled");
-                    _cancellationToken?.Token.ThrowIfCancellationRequested();
+                    return;
                 }
 
                 _debuggerStepEvent?.WaitOne();

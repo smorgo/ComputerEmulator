@@ -50,7 +50,7 @@ namespace Tests
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<ICpuHoldEvent,CpuDontHoldEvent>()
                  .AddScoped<ICpuStepEvent,CpuDontStepEvent>()
-                 .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
+                 .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper());
         }
         [SetUp]
         public void Setup()

@@ -28,10 +28,9 @@ namespace Tests
         const byte CarryNoOverflow = 0x01;
         const byte NoCarryOverflow = 0x40;
         const byte CarryOverflow = 0x41;
-        long _tickCount;
-        long _interruptTickInterval;
         private ServiceProvider _serviceProvider;
         private UnitTestLogger<CPU6502> _logger;
+        private CancellationTokenWrapper _cancellationTokenWrapper;
         public ComplexCpuTests()
         {
             var serviceCollection = new ServiceCollection();
@@ -53,7 +52,7 @@ namespace Tests
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<ICpuHoldEvent,MockCpuHoldEvent>()
                  .AddScoped<ICpuStepEvent,MockCpuStepEvent>()
-                 .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
+                 .AddScoped<CancellationTokenWrapper, CancellationTokenWrapper>();
         }
         [SetUp]
         public void Setup()
@@ -83,6 +82,8 @@ namespace Tests
             _cpuStepEvent = (MockCpuStepEvent)_serviceProvider.GetService<ICpuStepEvent>();
             _cpuHoldEvent.Init();
             _cpuStepEvent.Init();
+            _cancellationTokenWrapper = _serviceProvider.GetService<CancellationTokenWrapper>();
+            _cancellationTokenWrapper.Reset();
         }
 
         [Test]
@@ -122,6 +123,42 @@ namespace Tests
             Assert.AreEqual(2, _cpuStepEvent.SetCount);
             Assert.AreEqual(1, _cpuHoldEvent.ResetCount);
             Assert.AreEqual(0, _cpuStepEvent.ResetCount);
+        }
+
+        [Test]
+        public void CanCancelCpu()
+        {
+            using(var _ = mem.Load(0x8000))
+            {
+                _
+                .NOP("loop")
+                .JMP_ABSOLUTE("loop");
+            }
+
+            _cancellationTokenWrapper.Source.CancelAfter(TimeSpan.FromSeconds(5));
+            
+            _cpu.Reset(TimeSpan.FromSeconds(10));
+
+            var output = _logger.GetOutput();
+            Assert.IsTrue(output.Contains("Task cancelled"));
+        }
+
+        [Test]
+        public void CanTimeoutCpu()
+        {
+            using(var _ = mem.Load(0x8000))
+            {
+                _
+                .NOP("loop")
+                .JMP_ABSOLUTE("loop");
+            }
+
+            _cancellationTokenWrapper.Source.CancelAfter(TimeSpan.FromSeconds(10));
+            
+            _cpu.Reset(TimeSpan.FromSeconds(5));
+
+            var output = _logger.GetOutput();
+            Assert.IsTrue(output.Contains("Terminated after maximum duration"));
         }
 
     }

@@ -57,7 +57,7 @@ namespace Tests
                  .AddScoped<ICpuHoldEvent,CpuDontHoldEvent>()
                  .AddScoped<ICpuStepEvent,CpuDontStepEvent>()
                  .AddScoped<IRegisterTracker, NoRegisterTracker>()
-                 .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
+                 .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper());
         }
 
         [SetUp]

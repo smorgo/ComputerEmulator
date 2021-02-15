@@ -4,11 +4,18 @@ namespace HardwareCore
 {
     public class CancellationTokenWrapper
     {
+        public CancellationTokenSource Source {get; private set;}
         public CancellationToken Token {get; private set;}
 
-        public CancellationTokenWrapper(CancellationToken token)
+        public CancellationTokenWrapper()
         {
-            Token = token;
+            Reset();
+        }
+
+        public void Reset()
+        {
+            Source = new CancellationTokenSource();
+            Token = Source.Token;
         }
     }
 }

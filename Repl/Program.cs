@@ -16,13 +16,13 @@ namespace Repl
 {
     class Program
     {
-        private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        
         private static CancellationTokenWrapper _cancellationToken;
         private static ServiceProvider _serviceProvider;
 
         static void Main(string[] args)
         {
-            _cancellationToken = new CancellationTokenWrapper(_cancellationTokenSource.Token);
+            _cancellationToken = new CancellationTokenWrapper();
             var serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
             _serviceProvider = serviceCollection.BuildServiceProvider();

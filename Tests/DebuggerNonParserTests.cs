@@ -43,7 +43,7 @@ namespace Tests
                  .AddScoped<ICpuHoldEvent,MockCpuHoldEvent>()
                  .AddScoped<ICpuStepEvent,MockCpuStepEvent>()
                  .AddScoped<IRegisterTracker, NoRegisterTracker>()
-                 .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper(default(CancellationToken)));
+                 .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper());
         }
         [SetUp]
         public void Setup()
