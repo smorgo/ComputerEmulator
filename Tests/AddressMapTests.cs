@@ -329,6 +329,66 @@ namespace Tests
             Assert.AreEqual(3, count);
         }
 
+        [Test]
+        public void AddressMapCanReadReturnsCorrectResult()
+        {
+            Assert.IsTrue(mem.CanRead);
+        }
 
+        [Test]
+        public void AddressMapCanWriteReturnsCorrectResult()
+        {
+            Assert.IsTrue(mem.CanWrite);
+        }
+
+        [Test]
+        public void AddressMapStartAddressReturnsCorrectResult()
+        {
+            Assert.AreEqual(0x0000, mem.StartAddress);
+        }
+
+        [Test]
+        public void AddressMapReadUnmappedByteReturnsNull()
+        {
+            mem.Reset();
+            Assert.AreEqual(0, mem.Read(0x01));
+        }
+
+        [Test]
+        public void CanReadBlock()
+        {
+            mem.WriteWord(0x0000, 0x1234);
+            mem.WriteWord(0x0002, 0x2345);
+            mem.WriteWord(0x0004, 0x3456);
+            mem.WriteWord(0x0006, 0x4567);
+
+            var result = mem.ReadBlock(0x0000, 0x0007);
+
+            Assert.AreEqual(0x34, result[0]);
+            Assert.AreEqual(0x12, result[1]);
+            Assert.AreEqual(0x45, result[2]);
+            Assert.AreEqual(0x23, result[3]);
+            Assert.AreEqual(0x56, result[4]);
+            Assert.AreEqual(0x34, result[5]);
+            Assert.AreEqual(0x67, result[6]);
+            Assert.AreEqual(0x45, result[7]);
+        }
+        [Test]
+        public void CanDeleteMemoryBreakpoint()
+        {
+            var breakpoint1 = new MemoryChangedBreakpoint(0x1234, 1);
+            var breakpoint2 = new MemoryValueEqualsBreakpoint(0x2345,1,0x55);
+            var breakpoint3 = new MemoryChangedBreakpoint(0x0123, 10);
+
+            MemoryDebugger.AddBreakpoint(breakpoint1);
+            MemoryDebugger.AddBreakpoint(breakpoint2);
+            MemoryDebugger.AddBreakpoint(breakpoint3);
+
+            MemoryDebugger.DeleteBreakpoint(breakpoint2);
+
+            Assert.AreEqual(2, MemoryDebugger.Breakpoints.Count);
+            Assert.IsTrue(MemoryDebugger.Breakpoints[0] is MemoryChangedBreakpoint);
+            Assert.IsTrue(MemoryDebugger.Breakpoints[1] is MemoryChangedBreakpoint);
+        }
     }
 }

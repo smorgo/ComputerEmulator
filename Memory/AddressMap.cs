@@ -43,6 +43,12 @@ namespace Memory
             }
         }
 
+        public void Reset()
+        {
+            _installedModules.Clear();
+            RedirectionTable = new IAddressableBlock[0x10000];
+        }
+        
         public void Install(IAddressAssignment device)
         {
             _installedModules.Add(device);

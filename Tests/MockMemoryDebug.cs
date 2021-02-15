@@ -31,14 +31,17 @@ namespace Tests
         }
         public async Task Initialise()
         {
+            Reset();
+            await Task.Delay(0);
+        }
+
+        public void Reset()
+        {
             for(var ix = 0; ix < 0x10000; ix++)
             {
                 _memory[ix] = (byte)(ix & 0xFF);
             }
-
-            await Task.Delay(0);
         }
-
         public void Install(IAddressAssignment device)
         {
             throw new NotImplementedException();

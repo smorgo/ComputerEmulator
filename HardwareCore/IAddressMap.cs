@@ -5,6 +5,7 @@ namespace HardwareCore
 {
     public interface IAddressMap
     {
+        void Reset();
         bool CanRead { get; }
         bool CanWrite { get; }
         ushort StartAddress { get; }
