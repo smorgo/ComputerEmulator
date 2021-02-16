@@ -42,5 +42,19 @@ namespace HardwareCore
         }
 
         public static DisplayMode Mode7 = new DisplayMode(0x07, RenderType.Text, 1, 40, 25);
+        public static DisplayMode Mode8 = new DisplayMode(0x08, RenderType.Text, 1, 80, 50);
+
+        public static DisplayMode GetMode(byte e)
+        {
+            switch(e)
+            {
+                case 7:
+                    return Mode7;
+                case 8:
+                    return Mode8;
+                default:
+                    return null;
+            }
+        }
     }
 }

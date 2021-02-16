@@ -6,6 +6,5 @@ namespace HardwareCore
     {
         EventHandler<byte> KeyDown {get;set;}
         EventHandler<byte> KeyUp {get;set;}
-        EventHandler StatusRequest {get;}        
     }
 }

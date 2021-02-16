@@ -10,9 +10,9 @@ namespace RemoteDisplay.Hubs
         {
             await Clients.All.SendAsync("ReceiveMessage", user, message);
         }
-        public async Task SetMode(DisplayMode mode)
+        public async Task ReceiveDisplayMode(DisplayMode mode)
         {
-            await Clients.All.SendAsync("SetMode", mode.Width, mode.Height);
+            await Clients.All.SendAsync("ReceiveDisplayMode", mode.Width, mode.Height);
         }
         public async Task Write(ushort offset, byte value)
         {
@@ -33,6 +33,10 @@ namespace RemoteDisplay.Hubs
         public async Task ReceiveKeyboardControl(byte status)
         {
             await Clients.All.SendAsync("ReceiveKeyboardControl", status);
+        }
+        public async Task ReceiveCursorPosition(int x, int y)
+        {
+            await Clients.All.SendAsync("ReceiveCursorPosition", x, y);
         }
         public async Task Clear()
         {

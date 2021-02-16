@@ -33,7 +33,7 @@ namespace Tests
         public void Locate(ushort address, UInt32 size)
         {
             _videoRam = new Ram(address, size);
-            _controlBlock = new DisplayControlBlock(this, 1, DISPLAY_CONTROL_BLOCK_ADDR);
+            _controlBlock = new DisplayControlBlock(this, 1, DISPLAY_CONTROL_BLOCK_ADDR, _mode.Mode);
             _controlBlock.OnControlChanged += OnControlChanged;
             _controlBlock.OnModeChanged += OnModeChanged;
             _controlBlock.OnCursorMoved += OnCursorMoved;
@@ -70,10 +70,9 @@ namespace Tests
             await _controlBlock.Initialise();
         }
 
-        public async Task SetMode(DisplayMode mode)
+        public void SetMode(DisplayMode mode)
         {
-            _mode = mode;
-            await Task.Delay(0);
+            _controlBlock.Write(DisplayControlBlock.MODE_ADDR, mode.Mode);
         }
 
         public void Write(int blockId, ushort address, byte value)
@@ -90,10 +89,10 @@ namespace Tests
             var block = Blocks[blockId];
             return block.Read(address);
         }
-
         public void Clear()
         {
             AsyncUtil.RunSync(() => _videoRam.Initialise());
         }
+
     }
 }

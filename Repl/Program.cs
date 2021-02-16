@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using HardwareCore;
 using KeyboardConnector;
 using RemoteDisplayConnector;
+using SignalRConnection;
 
 namespace Repl
 {
@@ -43,8 +44,10 @@ namespace Repl
                  .AddScoped<IDebuggableCpu, CPU6502>()
                  .AddScoped<IAddressMap, AddressMap>()
                  .AddScoped<IEmulatorConsole, ReplConsole>()
+                 .AddTransient<ISignalRHubConnection, SignalRHubConnection>()
                  .AddScoped<IRemoteConnection, NoRemoteKeyboardConnection>()
                  .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()
+                 .AddScoped<IRemoteDisplayConnection, RemoteDisplayConnection>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<ILogSink, ReplSink>()
                  .AddScoped<ICpuHoldEvent, CpuHoldEvent>()

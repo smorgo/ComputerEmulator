@@ -9,6 +9,6 @@ namespace RemoteDisplayConnector
         void Locate(ushort address, uint size);
         DisplayMode Mode { get; }
         void Clear();
-        Task SetMode(DisplayMode mode);
+        void SetMode(DisplayMode mode);
     }
 }

@@ -7,14 +7,12 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 namespace RemoteDisplayConnector
 {
-
     public class MemoryMappedDisplay : IAddressAssignment, IMemoryMappedDisplay
     {
         public const ushort DISPLAY_CONTROL_BLOCK_ADDR = 0x80;
         private VideoRam _videoRam;
         private DisplayControlBlock _controlBlock;
-
-        HubConnection _connection;
+        private IRemoteDisplayConnection _connection;
         private DisplayMode _mode = DisplayMode.Mode7;
 
         public DisplayMode Mode
@@ -26,18 +24,19 @@ namespace RemoteDisplayConnector
         }
 
         public List<IAddressableBlock> Blocks { get; private set; }
-        public MemoryMappedDisplay()
+        public MemoryMappedDisplay(IRemoteDisplayConnection connection)
         {
+            _connection = connection;
         }
 
         public void Locate(ushort address, UInt32 size)
         {
             _videoRam = new VideoRam(this, 0, address, size);
             _videoRam.OnRender += OnRender;
-            _controlBlock = new DisplayControlBlock(this, 1, DISPLAY_CONTROL_BLOCK_ADDR);
-            _controlBlock.OnControlChanged += OnControlChanged;
-            _controlBlock.OnModeChanged += OnModeChanged;
-            _controlBlock.OnCursorMoved += OnCursorMoved;
+            _controlBlock = new DisplayControlBlock(this, 1, DISPLAY_CONTROL_BLOCK_ADDR, _mode.Mode);
+            _controlBlock.OnControlChanged += async (s,e) => { await OnControlChanged(s,e); };
+            _controlBlock.OnModeChanged += async (s,e) => { await OnModeChanged(s,e); };
+            _controlBlock.OnCursorMoved += async (s,e) => { await OnCursorMoved(s,e); };
             _controlBlock.OnClearScreen += async (s, e) => { await OnClearScreen(); };
 
             Blocks = new List<IAddressableBlock>
@@ -50,27 +49,27 @@ namespace RemoteDisplayConnector
         private async Task OnClearScreen()
         {
             Debug.WriteLine("Clear screen");
-            try
+            _videoRam.Clear();
+            await _connection.Clear();
+        }
+
+        private async Task OnCursorMoved(object sender, CursorPosition e)
+        {
+            await _connection.SendCursorPosition(e);
+        }
+
+        private async Task OnModeChanged(object sender, byte e)
+        {
+            var mode = DisplayMode.GetMode(e);
+            if(mode != null)
             {
-                _videoRam.Clear();
-                await _connection.InvokeAsync("Clear");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
+                _mode = mode;
+                await _connection.SendDisplayMode(mode);
             }
         }
-
-        private void OnCursorMoved(object sender, CursorPosition e)
+        private async Task OnControlChanged(object sender, byte e)
         {
-        }
-
-        private void OnModeChanged(object sender, byte e)
-        {
-        }
-
-        private void OnControlChanged(object sender, byte e)
-        {
+            await _connection.SendControl(e);
         }
 
         public async Task Initialise()
@@ -78,61 +77,9 @@ namespace RemoteDisplayConnector
             await _videoRam.Initialise();
             await _controlBlock.Initialise();
 
-            _connection = new HubConnectionBuilder()
-                .WithUrl("https://localhost:5001/display")
-                .Build();
-
-            _connection.Closed += async (error) =>
-            {
-                await Task.Delay(new Random().Next(0, 5) * 1000);
-                try
-                {
-                    await _connection.StartAsync();
-                    Debug.Assert(_connection.State == HubConnectionState.Connected);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                    Console.WriteLine("Unable to reach remote display");
-                }
-            };
-
-            try
-            {
-                await _connection.StartAsync();
-                Debug.Assert(_connection.State == HubConnectionState.Connected);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
-                Console.WriteLine("Unable to reach remote display");
-            }
-
-            await SendDisplayMode();
-        }
-
-        private async Task SendDisplayMode()
-        {
-            if(_connection.State == HubConnectionState.Connected)
-            {
-                var message = $"Display Mode: {_mode.Mode}";
-
-                Debug.WriteLine(message);
-                try
-                {
-                    await _connection.InvokeAsync("SetMode", _mode);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                }
-            }
-        }
-
-        public async Task SetMode(DisplayMode mode)
-        {
-            _mode = mode;
-            await SendDisplayMode();
+            await _connection.Initialise();
+            
+            await _connection.SendDisplayMode(_mode);
         }
 
         public void Write(int blockId, ushort address, byte value)
@@ -145,23 +92,12 @@ namespace RemoteDisplayConnector
 
         private void OnRender(object sender, AddressedByte data)
         {
-            Task.Run(() => RenderCharacter(data.Address, data.Value));
+            AsyncUtil.RunSync(() => RenderCharacter(data.Address, data.Value));
         }
 
         private async Task RenderCharacter(ushort address, byte value)
         {
-            if(_connection.State == HubConnectionState.Connected)
-            {
-                try
-                {
-                    await _connection.InvokeAsync("Write",
-                        address, value);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                }
-            }
+            await _connection.RenderCharacter(address, value);
         }
         public byte Read(int blockId, ushort address)
         {
@@ -173,6 +109,11 @@ namespace RemoteDisplayConnector
         public void Clear()
         {
             _videoRam.Clear();
+        }
+
+        public void SetMode(DisplayMode mode)
+        {
+            _controlBlock.Write(DisplayControlBlock.MODE_ADDR, mode.Mode);
         }
     }
 }

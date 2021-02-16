@@ -2,83 +2,48 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using HardwareCore;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using SignalRConnection;
 
 namespace KeyboardConnector
 {
 
-    public class RemoteKeyboardConnection : IRemoteConnection, IRemoteKeyboard, IDisposable
+    public class RemoteKeyboardConnection : IRemoteConnection, IRemoteKeyboard
     {
         public EventHandler<KeyPress> OnKeyUp {get; set;}
         public EventHandler<KeyPress> OnKeyDown {get; set;}
         public EventHandler OnRequestControl {get; set;}
 
-        private HubConnection _connection;
+        private ISignalRHubConnection _connection;
 
-        public bool IsConnected {get; private set;}
+        public bool IsConnected => _connection == null ? false : _connection.IsConnected;
         private ILogger _logger;
 
-        public RemoteKeyboardConnection(ILogger<RemoteKeyboardConnection> logger)
+        public RemoteKeyboardConnection(ILogger<RemoteKeyboardConnection> logger, ISignalRHubConnection connection)
         {
             _logger = logger;
+            _connection = connection;
         }
         public async Task ConnectAsync(string url)
         {
-            _connection = new HubConnectionBuilder()
-                .WithUrl(url)
-                .Build();
-        
-            _connection.Closed += async (error) =>
-            {
-                IsConnected = false;
-
-                await Task.Delay(new Random().Next(0,5) * 1000);
-                try
-                {
-                    await _connection.StartAsync();
-                    Debug.Assert(_connection.State == HubConnectionState.Connected);
-                    IsConnected = true;
-                }
-                catch(Exception)
-                {
-                    _logger.LogWarning("Unable to reach remote display");
-                }
-            };
+            await _connection.Connect(url);
 
             _connection.On<string, int>("KeyUp", (e,i) => OnKeyUp?.Invoke(this, new KeyPress(e,i))); 
             _connection.On<string, int>("KeyDown", (e,i) => OnKeyDown?.Invoke(this, new KeyPress(e,i))); 
             _connection.On("RequestControl", () => OnRequestControl?.Invoke(this, null)); 
-
-            try
-            {
-                await _connection.StartAsync();
-                Debug.Assert(_connection.State == HubConnectionState.Connected);
-                IsConnected = true;
-            }
-            catch(Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
-                _logger.LogWarning("Unable to reach remote display");
-                IsConnected = false;
-            }
         }
 
         public async Task SendControlRegister(byte value)
         {
-            if(_connection.State == HubConnectionState.Connected)
+            if(_connection.IsConnected)
             {
                 await _connection.InvokeAsync("ReceiveKeyboardControl", value);
             }
         }
 
-        public void Dispose()
-        {
-        }
-
         public async Task GenerateKeyUp(string key)
         {
-            if(_connection.State == HubConnectionState.Connected)
+            if(_connection.IsConnected)
             {
                 await _connection.InvokeAsync("KeyUp", key);
             }
@@ -86,7 +51,7 @@ namespace KeyboardConnector
 
         public async Task GenerateKeyDown(string key)
         {
-            if(_connection.State == HubConnectionState.Connected)
+            if(_connection.IsConnected)
             {
                await _connection.InvokeAsync("KeyDown", key);
             }

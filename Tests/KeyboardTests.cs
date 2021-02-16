@@ -12,6 +12,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Debugger;
+using SignalRConnection;
 
 namespace Tests
 {
@@ -53,6 +54,8 @@ namespace Tests
                  .AddScoped<IParser, Parser>()
                  .AddScoped<IRemoteConnection, MockRemoteKeyboardConnection>()
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
+                 .AddScoped<IRemoteDisplayConnection, NoRemoteDisplayConnection>()
+                 .AddTransient<ISignalRHubConnection,MockSignalRHubConnection>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<ICpuHoldEvent,MockCpuHoldEvent>()
                  .AddScoped<ICpuStepEvent,MockCpuStepEvent>()
@@ -241,5 +244,107 @@ namespace Tests
                 .TAX()
                 .PLA();
         }
+
+        [Test]
+        public void DuplicateKeyDownIsIgnored()
+        {
+            int count = 0;
+            ((IKeyboardInput)_keyboard).KeyDown += (s,e) => { count++; };
+
+            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyDown(new KeyPress("a",1));
+            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyDown(new KeyPress("a",1));
+
+            Assert.AreEqual(1, count);
+        }
+        [Test]
+        public void DuplicateKeyUpIsIgnored()
+        {
+            int count = 0;
+            ((IKeyboardInput)_keyboard).KeyUp += (s,e) => { count++; };
+
+            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyUp(new KeyPress("a",1));
+            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyUp(new KeyPress("a",1));
+
+            Assert.AreEqual(1, count);
+        }
+        [Test]
+        public void KeyDownRequestsInterrupt()
+        {
+            bool interrupted = false;
+            _keyboard.RequestInterrupt += (s,e) => { interrupted = true; };
+
+            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyDown(new KeyPress("a",1));
+
+            Assert.IsTrue(interrupted);
+        }
+        [Test]
+        public void KeyUpRequestsInterrupt()
+        {
+            bool interrupted = false;
+            _keyboard.RequestInterrupt += (s,e) => { interrupted = true; };
+
+            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyUp(new KeyPress("a",1));
+
+            Assert.IsTrue(interrupted);
+        }
+
+        [Test]
+        public void CanReadAndWriteControlRegister()
+        {
+            _keyboard.Write(MemoryMappedKeyboard.CONTROL_REGISTER, 0xff);
+            // Write only takes the lower 3 bits
+            Assert.AreEqual(0x7, _keyboard.Read(MemoryMappedKeyboard.CONTROL_REGISTER));
+        }
+
+        [Test]
+        public void ReadStatusRegisterPullsEventFromBuffer()
+        {
+            byte status;
+            byte data;
+            byte scanCode;
+
+            do
+            {
+                // Clear out anything in the buffer
+                status = _keyboard.Read(MemoryMappedKeyboard.STATUS_REGISTER);
+            }
+            while(status != 0);
+
+            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyUp(new KeyPress("a",1));
+            
+            status = _keyboard.Read(MemoryMappedKeyboard.STATUS_REGISTER);
+            Assert.AreEqual(
+                (byte)(MemoryMappedKeyboard.StatusBits.AsciiAvailable | 
+                       MemoryMappedKeyboard.StatusBits.KeyUp | 
+                       MemoryMappedKeyboard.StatusBits.ScanCodeAvailable),
+                status);
+
+            data = _keyboard.Read(MemoryMappedKeyboard.DATA_REGISTER);
+            Assert.AreEqual('a', data);
+
+            scanCode = _keyboard.Read(MemoryMappedKeyboard.SCAN_CODE_REGISTER);
+            Assert.AreEqual(data, scanCode);
+
+            status = _keyboard.Read(MemoryMappedKeyboard.STATUS_REGISTER);
+            Assert.AreEqual(0, status); 
+
+            data = _keyboard.Read(MemoryMappedKeyboard.DATA_REGISTER);
+            Assert.AreEqual(0x00, data);
+           
+            scanCode = _keyboard.Read(MemoryMappedKeyboard.SCAN_CODE_REGISTER);
+            Assert.AreEqual(0, scanCode);
+
+        }
+
+        [Test]
+        public void CanCreateEmptyKeyboardEvent()
+        {
+            // Look, I know this is pointless, but it needs an empty constructor
+            // for the FIFO buffer. And it's upsetting the code coverage.
+            var evt = new KeyboardEvent();
+            Assert.Pass();
+
+        }
+
     }
 }

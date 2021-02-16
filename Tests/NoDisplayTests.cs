@@ -10,15 +10,17 @@ using Microsoft.Extensions.Logging;
 
 using Microsoft.Extensions.DependencyInjection;
 using Debugger;
+using System.Collections.Generic;
+using KeyboardConnector;
 using SignalRConnection;
 
 namespace Tests
 {
-    public class CpuEventTests
+    public class NoDisplayTests
     {
         private CPU6502 _cpu;
-        private ICpuHoldEvent _cpuHoldEvent;
-        private ICpuStepEvent _cpuStepEvent;
+        private MockCpuHoldEvent _cpuHoldEvent;
+        private MockCpuStepEvent _cpuStepEvent;
 
         private IMemoryMappedDisplay _display;
         private IAddressMap mem;
@@ -32,7 +34,7 @@ namespace Tests
         private ServiceProvider _serviceProvider;
         private UnitTestLogger<CPU6502> _logger;
         private CancellationTokenWrapper _cancellationTokenWrapper;
-        public CpuEventTests()
+        public NoDisplayTests()
         {
             var serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
@@ -48,13 +50,13 @@ namespace Tests
                  .AddSingleton<ILoaderLabelTable>(new LoaderLabelTable())
                  .AddTransient<IDebuggableCpu, CPU6502>()
                  .AddScoped<IAddressMap, AddressMap>()
-                 .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
+                 .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()
                  .AddScoped<IRemoteDisplayConnection, NoRemoteDisplayConnection>()
                  .AddTransient<ISignalRHubConnection,MockSignalRHubConnection>()
-                 .AddScoped<IRegisterTracker, NoRegisterTracker>()
+                 .AddScoped<IRegisterTracker, DebugRegisterTracker>()
                  .AddTransient<ILoader, Loader>()
-                 .AddScoped<ICpuHoldEvent,CpuHoldEvent>()
-                 .AddScoped<ICpuStepEvent,CpuStepEvent>()
+                 .AddScoped<ICpuHoldEvent,MockCpuHoldEvent>()
+                 .AddScoped<ICpuStepEvent,MockCpuStepEvent>()
                  .AddScoped<CancellationTokenWrapper, CancellationTokenWrapper>();
         }
         [SetUp]
@@ -81,73 +83,52 @@ namespace Tests
             mem.Labels.Add("RESET_VECTOR", _cpu.RESET_VECTOR);
             mem.Labels.Add("IRQ_VECTOR", _cpu.IRQ_VECTOR);
             mem.Labels.Add("NMI_VECTOR", _cpu.NMI_VECTOR);
-            _cpuHoldEvent = _serviceProvider.GetService<ICpuHoldEvent>();
-            _cpuStepEvent = _serviceProvider.GetService<ICpuStepEvent>();
+            _cpuHoldEvent = (MockCpuHoldEvent)_serviceProvider.GetService<ICpuHoldEvent>();
+            _cpuStepEvent = (MockCpuStepEvent)_serviceProvider.GetService<ICpuStepEvent>();
+            _cpuHoldEvent.Init();
+            _cpuStepEvent.Init();
             _cancellationTokenWrapper = _serviceProvider.GetService<CancellationTokenWrapper>();
             _cancellationTokenWrapper.Reset();
         }
 
         [Test]
-        public void CanTimeoutStepEvent()
+        public async Task CanClearNoDisplayConnection()
         {
-            _cpuStepEvent.Reset();
-            Assert.IsFalse(_cpuStepEvent.WaitOne(TimeSpan.FromSeconds(2)));
+            var connection = _serviceProvider.GetService<IRemoteDisplayConnection>();
+            await connection.Clear();
         }
 
         [Test]
-        public void CanTimeoutHoldEvent()
+        public async Task CanInitialiseNoDisplayConnection()
         {
-            _cpuHoldEvent.Reset();
-            Assert.IsFalse(_cpuHoldEvent.WaitOne(TimeSpan.FromSeconds(2)));
+            var connection = _serviceProvider.GetService<IRemoteDisplayConnection>();
+            await connection.Initialise();
         }
 
         [Test]
-        public void CpuFailsOnHoldEventTimeout()
+        public async Task CanRenderToNoDisplayConnection()
         {
-            using(var _ = mem.Load(0x8000))
-            {
-                _
-                .NOP("loop")
-                .JMP_ABSOLUTE("loop");
-            }
-
-            _cpu.MaxEventDuration = TimeSpan.FromSeconds(2);
-            _cpuHoldEvent.Reset();
-            _cpuStepEvent.Set();
-
-            try
-            {
-                _cpu.Reset(TimeSpan.FromSeconds(30));
-            }
-            catch(TimeoutException)
-            {
-                Assert.Pass();
-            }
-            Assert.Fail();
+            var connection = _serviceProvider.GetService<IRemoteDisplayConnection>();
+            await connection.RenderCharacter(0x7000, (byte)' ');
         }
         [Test]
-        public void CpuFailsOnStepEventTimeout()
+        public void CanMoveCursorViaMemoryMappedDisplayYPositionWithNoDisplayConnection()
         {
-            using(var _ = mem.Load(0x8000))
-            {
-                _
-                .NOP("loop")
-                .JMP_ABSOLUTE("loop");
-            }
+            var address = (ushort)(MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR + DisplayControlBlock.CURSOR_Y_ADDR);
 
-            _cpu.MaxEventDuration = TimeSpan.FromSeconds(2);
-            _cpuHoldEvent.Set();
-            _cpuStepEvent.Reset();
-            
-            try
-            {
-                _cpu.Reset(TimeSpan.FromSeconds(30));
-            }
-            catch(TimeoutException)
-            {
-                Assert.Pass();
-            }
-            Assert.Fail();
+            mem.Write(address, 20);
+            Assert.Pass();
         }
+
+        [Test]
+        public void CanControlDisplayViaMemoryMappedDisplayNoDisplayConnection()
+        {
+            var address = (ushort)(MemoryMappedDisplay.DISPLAY_CONTROL_BLOCK_ADDR + DisplayControlBlock.CONTROL_ADDR);
+
+            mem.Write(address, 0xff);
+
+            Assert.Pass();            
+        }
+
     }
 }

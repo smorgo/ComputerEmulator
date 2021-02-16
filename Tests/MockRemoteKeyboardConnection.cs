@@ -5,7 +5,7 @@ using KeyboardConnector;
 
 namespace Tests
 {
-    public class MockRemoteKeyboardConnection : IRemoteConnection, IRemoteKeyboard, IDisposable
+    public class MockRemoteKeyboardConnection : IRemoteConnection, IRemoteKeyboard
     {
         private int _lastKeyPressId = 0;
         public bool IsConnected {get; private set;}
@@ -20,10 +20,14 @@ namespace Tests
             await Task.Delay(0);
         }
 
-        public void Dispose()
+        public void InjectKeyDown(KeyPress keyPress)
         {
+            OnKeyDown?.Invoke(this, keyPress);
         }
-
+        public void InjectKeyUp(KeyPress keyPress)
+        {
+            OnKeyUp?.Invoke(this, keyPress);
+        }
         public void KeyUp(string key)
         {
             OnKeyUp?.Invoke(this, new KeyPress(key, _lastKeyPressId++));

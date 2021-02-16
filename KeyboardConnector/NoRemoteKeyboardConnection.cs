@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace KeyboardConnector
 {
 
-    public class NoRemoteKeyboardConnection : IRemoteConnection, IRemoteKeyboard, IDisposable
+    public class NoRemoteKeyboardConnection : IRemoteConnection, IRemoteKeyboard
     {
         public EventHandler<KeyPress> OnKeyUp {get; set;}
         public EventHandler<KeyPress> OnKeyDown {get; set;}
@@ -29,10 +29,6 @@ namespace KeyboardConnector
         public async Task SendControlRegister(byte value)
         {
             await Task.Delay(0);
-        }
-
-        public void Dispose()
-        {
         }
 
         public async Task GenerateKeyUp(string key)

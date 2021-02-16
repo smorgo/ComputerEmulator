@@ -9,23 +9,6 @@ namespace KeyboardConnector
 {
     public class MemoryMappedKeyboard : IAddressAssignment, IAddressableBlock, IKeyboardInput
     {
-        public class KeyboardEvent
-        {
-            public byte Status {get; private set;}
-            public byte Data {get; private set;}
-            public byte ScanCode {get; private set;}
-
-            public KeyboardEvent()
-            {
-            }
-
-            public KeyboardEvent(byte status, byte data, byte scanCode)
-            {
-                Status = status;
-                Data = data;
-                ScanCode = scanCode;
-            }
-        }
         public EventHandler RequestInterrupt {get; set;}
         public const ushort STATUS_REGISTER = 0x0000;
         public const ushort CONTROL_REGISTER = 0x0001;
@@ -63,10 +46,6 @@ namespace KeyboardConnector
 
         public EventHandler<byte> KeyDown { get; set; }
         public EventHandler<byte> KeyUp { get; set; }
-
-        public EventHandler StatusRequest {get; set;}
-
-        public IKeyboardOutput Transmitter {get; set;}
 
         public List<IAddressableBlock> Blocks {get; private set;}
 
@@ -173,14 +152,7 @@ namespace KeyboardConnector
 
         private async Task SendControlRegister()
         {
-            try
-            {
-                await _keyboard.SendControlRegister(_controlRegister);
-            }
-            catch (Exception ex)
-            {                
-                Debug.WriteLine(ex.Message);
-            }
+            await _keyboard.SendControlRegister(_controlRegister);
         }
         public byte Read(ushort address)
         {
@@ -230,7 +202,7 @@ namespace KeyboardConnector
                         break;
                     case CONTROL_REGISTER:
                         _controlRegister = (byte)(value & 0x7);
-                        Task.Run(SendControlRegister);
+                        AsyncUtil.RunSync(SendControlRegister);
                         break;
                 }
             }

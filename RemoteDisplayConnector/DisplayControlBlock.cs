@@ -36,12 +36,13 @@ namespace RemoteDisplayConnector
         public uint Size => 4;
         public Byte[] Memory {get; private set;}
 
-        public DisplayControlBlock(IAddressAssignment device, int blockId, ushort startAddress)
+        public DisplayControlBlock(IAddressAssignment device, int blockId, ushort startAddress, byte initialMode)
         {
             Device = device;
             BlockId = blockId;
             StartAddress = startAddress;
             Memory = new byte[Size];
+            Memory[MODE_ADDR] = initialMode;
         }
 
         public void Write(ushort address, byte value)
@@ -51,11 +52,9 @@ namespace RemoteDisplayConnector
                 switch(address)
                 {
                     case CONTROL_ADDR:
-                        if(!HandleClearScreen(value))
-                        {
-                            Memory[address] = value;
-                            OnControlChanged?.Invoke(this, value);
-                        }
+                        value = HandleClearScreen(value);
+                        Memory[address] = value;
+                        OnControlChanged?.Invoke(this, value);
                         break;
                     case MODE_ADDR:
                         Memory[address] = value;
@@ -74,15 +73,18 @@ namespace RemoteDisplayConnector
             return Memory[address];
         }
 
-        private bool HandleClearScreen(byte value)
+        private byte HandleClearScreen(byte value)
         {
+            var mask = 0xff ^ ControlBits.CLEAR_SCREEN;
+
             if((value & ControlBits.CLEAR_SCREEN) == ControlBits.CLEAR_SCREEN)
             {
                 OnClearScreen?.Invoke(this, null);
-                return true;
+                value = (byte)(value & mask);
+                return value;
             }
 
-            return false;
+            return value;
         }
 
         public async Task Initialise()

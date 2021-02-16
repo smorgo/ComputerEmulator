@@ -11,6 +11,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Debugger;
 using System.Collections.Generic;
+using KeyboardConnector;
+using SignalRConnection;
 
 namespace Tests
 {
@@ -49,6 +51,8 @@ namespace Tests
                  .AddTransient<IDebuggableCpu, CPU6502>()
                  .AddScoped<IAddressMap, AddressMap>()
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
+                 .AddScoped<IRemoteDisplayConnection, NoRemoteDisplayConnection>()
+                 .AddTransient<ISignalRHubConnection,MockSignalRHubConnection>()
                  .AddScoped<IRegisterTracker, DebugRegisterTracker>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<ICpuHoldEvent,MockCpuHoldEvent>()
@@ -192,8 +196,8 @@ namespace Tests
         [Test]
         public void PeekEmptyFifoReturnsFalse()
         {
-            var fifo = new FifoBuffer<int>(5);
-            int result;
+            var fifo = new FifoBuffer<KeyboardEvent>(5);
+            KeyboardEvent result;
             Assert.IsFalse(fifo.Peek(out result));
 
         }
@@ -209,9 +213,10 @@ namespace Tests
         [Test]
         public void ReadEmptyFifoReturnsFalse()
         {
-            var fifo = new FifoBuffer<int>(5);
-            int result;
+            var fifo = new FifoBuffer<KeyboardEvent>(5);
+            KeyboardEvent result;
             Assert.IsFalse(fifo.Read(out result));
+            Assert.IsNull(result);
         }
         [Test]
         public void ReadOneValueEmptiesFifo()
@@ -225,7 +230,7 @@ namespace Tests
         [Test]
         public void EmptyFifoReturnIsEmpty()
         {
-            var fifo = new FifoBuffer<int>(5);
+            var fifo = new FifoBuffer<KeyboardEvent>(5);
             Assert.IsTrue(fifo.IsEmpty());
         }   
         [Test]
@@ -546,6 +551,5 @@ namespace Tests
 
             Assert.IsNotNull(table);
         }
-
     }
 }
