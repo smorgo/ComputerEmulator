@@ -271,7 +271,7 @@ var assemblies = [
       { "name": "HardwareCore.MemoryChangedEventArgs", "rp": "HardwareCore_MemoryChangedEventArgs.html", "cl": 7, "ucl": 0, "cal": 7, "tl": 14, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
       { "name": "HardwareCore.NoRegisterTracker", "rp": "HardwareCore_NoRegisterTracker.html", "cl": 3, "ucl": 0, "cal": 3, "tl": 14, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
       { "name": "HardwareCore.RegisterUpdatedEventArgs", "rp": "HardwareCore_RegisterUpdatedEventArgs.html", "cl": 7, "ucl": 0, "cal": 7, "tl": 14, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
-      { "name": "HardwareCore.ServiceProviderLocator", "rp": "HardwareCore_ServiceProviderLocator.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 9, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
+      { "name": "HardwareCore.ServiceProviderLocator", "rp": "HardwareCore_ServiceProviderLocator.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 10, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
       { "name": "HardwareCore.StringExtensions", "rp": "HardwareCore_StringExtensions.html", "cl": 14, "ucl": 0, "cal": 14, "tl": 28, "ct": "LineCoverage", "mc": "-", "cb": 6, "tb": 6, "lch": [], "bch": [], "hc": [] },
     ]},
   {

@@ -23,19 +23,9 @@ namespace Repl
     {
         public static ManualResetEventSlim CanStartEvent = new ManualResetEventSlim(false);
 
-        // private static CancellationTokenWrapper _cancellationToken;
-        // private static IServiceProvider _serviceProvider;
-
         static async Task Main(string[] args)
         {
-            //_cancellationToken = new CancellationTokenWrapper();
             var host = CreateHostBuilder(args).Build();
-
-//            var serviceCollection = new ServiceCollection();
-//            ConfigureServices(serviceCollection);
-//            _serviceProvider = serviceCollection.BuildServiceProvider();
-            // ServiceProviderLocator.ServiceProvider = _serviceProvider;
-            //ServiceProviderLocator.ServiceProvider = host.Services;
             var scope = host.Services.CreateScope();
             ServiceProviderLocator.ServiceProvider = scope.ServiceProvider;
             Run();
@@ -43,34 +33,7 @@ namespace Repl
             await host.RunAsync();
 
             scope.Dispose();
-            Debug.WriteLine("Here I am");
         }
-
-        // private static void ConfigureServices(IServiceCollection services)
-        // {
-        //     services.AddLogging(
-        //          configure => configure.AddDebuggerLogger())
-        //          .AddSingleton<ILoaderLabelTable>(new LoaderLabelTable())
-        //          .AddScoped<IEmulatorHost, ReplHost>()
-        //          .AddScoped<IDebugger, ConsoleDebugger>()
-        //          .AddScoped<ILogFormatter, DebugLogFormatter>()
-        //          .AddScoped<IParser, Parser>()
-        //          .AddScoped<ILabelMap, LabelMap>()
-        //          .AddScoped<IDebuggableCpu, CPU6502>()
-        //          .AddScoped<IAddressMap, AddressMap>()
-        //          .AddScoped<IEmulatorConsole, ReplConsole>()
-        //          .AddTransient<ISignalRHubConnection, SignalRHubConnection>()
-        //          .AddScoped<IRemoteConnection, NoRemoteKeyboardConnection>()
-        //          .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()
-        //          .AddScoped<IRemoteDisplayConnection, RemoteDisplayConnection>()
-        //          .AddTransient<ILoader, Loader>()
-        //          .AddScoped<ILogSink, ReplSink>()
-        //          .AddScoped<ICpuHoldEvent, CpuHoldEvent>()
-        //          .AddScoped<ICpuStepEvent, CpuStepEvent>()
-        //          .AddScoped<IRegisterTracker, DebugRegisterTracker>()
-        //          .AddSingleton<CancellationTokenWrapper>(_cancellationToken)
-        //          ;
-        // }
 
         static void Run()
         {
@@ -120,6 +83,7 @@ namespace Repl
                 {
                     configLogging.ClearProviders();
                     configLogging.AddDebug();
+                    configLogging.AddDebuggerLogger();
                 })
                 .ConfigureHostConfiguration(configHost =>
                 {

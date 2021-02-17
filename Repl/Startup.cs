@@ -29,9 +29,6 @@ namespace Repl
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
-
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -68,8 +65,7 @@ namespace Repl
             services.AddControllersWithViews();
             services.AddSignalR();
 
-            services.AddLogging(
-                 configure => configure.AddDebuggerLogger())
+            services
                  .AddSingleton<ILoaderLabelTable>(new LoaderLabelTable())
                  .AddScoped<IEmulatorHost, ReplHost>()
                  .AddScoped<IDebugger, ConsoleDebugger>()
@@ -84,7 +80,7 @@ namespace Repl
                  .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()
                  .AddScoped<IRemoteDisplayConnection, RemoteDisplayConnection>()
                  .AddTransient<ILoader, Loader>()
-                 .AddScoped<ILogSink, ReplSink>()
+                 .AddSingleton<ILogSink>(new ReplSink())
                  .AddScoped<ICpuHoldEvent, CpuHoldEvent>()
                  .AddScoped<ICpuStepEvent, CpuStepEvent>()
                  .AddScoped<IRegisterTracker, DebugRegisterTracker>()
