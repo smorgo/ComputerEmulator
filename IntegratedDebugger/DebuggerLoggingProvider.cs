@@ -39,9 +39,12 @@ namespace IntegratedDebugger
             return Result;
         }
 
-        public override void WriteLog(LogEntry Info)
+        public override void WriteLog(LogEntry info)
         {
-            _sink?.WriteLog(Info);
+            // if(!info.Category.Contains("Microsoft"))
+            // {
+                _sink?.WriteLog(info);
+            // }
         }
 
     }

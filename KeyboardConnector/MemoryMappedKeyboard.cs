@@ -7,8 +7,9 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 namespace KeyboardConnector
 {
-    public class MemoryMappedKeyboard : IAddressAssignment, IAddressableBlock, IKeyboardInput
+    public class MemoryMappedKeyboard : IAddressAssignment, IAddressableBlock, IMemoryMappedKeyboard
     {
+        private int _nextKeyPressId = 1;
         public EventHandler RequestInterrupt {get; set;}
         public const ushort STATUS_REGISTER = 0x0000;
         public const ushort CONTROL_REGISTER = 0x0001;
@@ -18,6 +19,7 @@ namespace KeyboardConnector
         private FifoBuffer<KeyboardEvent> _eventBuffer;
         private KeyboardEvent _current;
         private byte _controlRegister = 0x00;
+        private IKeyboardHub _hub;
 
         [Flags]
         public enum StatusBits
@@ -40,7 +42,7 @@ namespace KeyboardConnector
 
         public bool CanWrite => true;
 
-        public ushort StartAddress { get; private set; }
+        public ushort StartAddress { get; set; }
 
         public uint Size => 0x04;
 
@@ -53,14 +55,9 @@ namespace KeyboardConnector
 
         public int BlockId => 0;
 
-        private IRemoteConnection _connection;
-        private IRemoteKeyboard _keyboard;
-
-        public MemoryMappedKeyboard(ushort startAddress, IRemoteConnection connection)
+        public MemoryMappedKeyboard(IKeyboardHub hub)
         {
-            StartAddress = startAddress;
-            _connection = connection;
-            _keyboard = (IRemoteKeyboard)connection;
+            _hub = hub;
             _eventBuffer = new FifoBuffer<KeyboardEvent>(16);
              Blocks = new List<IAddressableBlock> {this};
         }
@@ -69,19 +66,12 @@ namespace KeyboardConnector
         {
             _eventBuffer.Clear();
             _controlRegister = 0x00;
-
+            _nextKeyPressId = 0;
             _current = null;
-
-            _keyboard.OnKeyUp += async (s,e) => {await OnKeyUp(e);}; 
-            _keyboard.OnKeyDown += async (s,e) => {await OnKeyDown(e);}; 
-            _keyboard.OnRequestControl += async (s,e) => {await SendControlRegister();}; 
-
-            await _connection.ConnectAsync("https://localhost:5001/display");
-            Debug.Assert(_connection.IsConnected);
 
             await SendControlRegister();
         }
-        private async Task OnKeyUp(KeyPress keyPress)
+        public async Task OnKeyUp(KeyPress keyPress)
         {
             lock(this)
             {
@@ -115,7 +105,7 @@ namespace KeyboardConnector
             await Task.Delay(0);
         }
 
-        private async Task OnKeyDown(KeyPress keyPress)
+        public async Task OnKeyDown(KeyPress keyPress)
         {
             lock(this)
             {
@@ -150,10 +140,15 @@ namespace KeyboardConnector
             await Task.Delay(0);
         }
 
-        private async Task SendControlRegister()
+        public async Task SendControlRegister()
         {
-            await _keyboard.SendControlRegister(_controlRegister);
+            await SendControlRegister(_controlRegister);
         }
+        public async Task SendControlRegister(byte value)
+        {
+            await _hub.SendKeyboardControl(value);
+        }
+
         public byte Read(ushort address)
         {
             lock(this)
@@ -216,6 +211,25 @@ namespace KeyboardConnector
         public byte Read(int blockId, ushort address)
         {
             return Read(address);
+        }
+
+        public void GenerateKeyUp(string key)
+        {
+            InjectKeyUp(new KeyPress(key, _nextKeyPressId++));
+        }
+
+        public void GenerateKeyDown(string key)
+        {
+            InjectKeyDown(new KeyPress(key, _nextKeyPressId++));
+        }
+
+        public void InjectKeyUp(KeyPress keyPress)
+        {
+            AsyncUtil.RunSync(() => OnKeyUp(keyPress));
+        }
+        public void InjectKeyDown(KeyPress keyPress)
+        {
+            AsyncUtil.RunSync(() => OnKeyDown(keyPress));
         }
     }
 }

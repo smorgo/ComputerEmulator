@@ -3,58 +3,42 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using HardwareCore;
 using Microsoft.AspNetCore.SignalR.Client;
-using SignalRConnection;
+using Microsoft.AspNetCore.SignalR;
 
 namespace RemoteDisplayConnector
 {
 
     public class RemoteDisplayConnection : IRemoteDisplayConnection
     {
-        public bool IsConnected => _connection.IsConnected;
-        private ISignalRHubConnection _connection;
-        public RemoteDisplayConnection(ISignalRHubConnection connection)
+        private IDisplayHub _hub;
+        public bool IsConnected => true;
+        public RemoteDisplayConnection(IDisplayHub hub)
         {
-            _connection = connection;
+            _hub = hub;
         }
         public async Task Clear()
         {
-            if(_connection.IsConnected)
-            {
-                await _connection.InvokeAsync("Clear");
-            }
+            await _hub.Clear();
         }
         public async Task Initialise()
         {
-            await _connection.Connect("https://localhost:5001/display");
+            await Task.Delay(0);
         }
         public async Task SendDisplayMode(DisplayMode mode)
         {
-            if (_connection.IsConnected)
-            {
-                await _connection.InvokeAsync("ReceiveDisplayMode", mode);
-            }
+            await _hub.ReceiveDisplayMode(mode);
         }
         public async Task RenderCharacter(ushort address, byte value)
         {
-            if (_connection.IsConnected)
-            {
-                await _connection.InvokeAsync("Write",
-                        address, value);
-            }
+            await _hub.Write(address, value);
         }
         public async Task SendCursorPosition(CursorPosition position)
         {
-            if (_connection.IsConnected)
-            {
-                await _connection.InvokeAsync("ReceiveCursorPosition", position.X, position.Y);
-            }
+            await _hub.ReceiveCursorPosition(position.X, position.Y);
         }
-        public async Task SendControl(byte control)
+        public async Task SendControl(byte value)
         {
-            if (_connection.IsConnected)
-            {
-                await _connection.InvokeAsync("ReceiveKeyboardControl", control);
-            }
+            await _hub.SendControl(value);
         }
     }
 }

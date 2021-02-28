@@ -266,22 +266,20 @@ var assemblies = [
       { "name": "HardwareCore.CpuStepEvent", "rp": "HardwareCore_CpuStepEvent.html", "cl": 10, "ucl": 0, "cal": 10, "tl": 25, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
       { "name": "HardwareCore.DisplayMode", "rp": "HardwareCore_DisplayMode.html", "cl": 29, "ucl": 0, "cal": 29, "tl": 60, "ct": "LineCoverage", "mc": "-", "cb": 6, "tb": 6, "lch": [], "bch": [], "hc": [] },
       { "name": "HardwareCore.FifoBuffer`1", "rp": "HardwareCore_FifoBuffer_1.html", "cl": 62, "ucl": 0, "cal": 62, "tl": 92, "ct": "LineCoverage", "mc": "-", "cb": 6, "tb": 6, "lch": [], "bch": [], "hc": [] },
+      { "name": "HardwareCore.KeyPress", "rp": "HardwareCore_KeyPress.html", "cl": 7, "ucl": 0, "cal": 7, "tl": 16, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
       { "name": "HardwareCore.Loader", "rp": "HardwareCore_Loader.html", "cl": 229, "ucl": 0, "cal": 229, "tl": 346, "ct": "LineCoverage", "mc": "-", "cb": 38, "tb": 40, "lch": [], "bch": [], "hc": [] },
       { "name": "HardwareCore.LoaderLabelTable", "rp": "HardwareCore_LoaderLabelTable.html", "cl": 51, "ucl": 0, "cal": 51, "tl": 94, "ct": "LineCoverage", "mc": "-", "cb": 10, "tb": 10, "lch": [], "bch": [], "hc": [] },
       { "name": "HardwareCore.MemoryChangedEventArgs", "rp": "HardwareCore_MemoryChangedEventArgs.html", "cl": 7, "ucl": 0, "cal": 7, "tl": 14, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
       { "name": "HardwareCore.NoRegisterTracker", "rp": "HardwareCore_NoRegisterTracker.html", "cl": 3, "ucl": 0, "cal": 3, "tl": 14, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
       { "name": "HardwareCore.RegisterUpdatedEventArgs", "rp": "HardwareCore_RegisterUpdatedEventArgs.html", "cl": 7, "ucl": 0, "cal": 7, "tl": 14, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
-      { "name": "HardwareCore.ServiceProviderLocator", "rp": "HardwareCore_ServiceProviderLocator.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 9, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
+      { "name": "HardwareCore.ServiceProviderLocator", "rp": "HardwareCore_ServiceProviderLocator.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 10, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
       { "name": "HardwareCore.StringExtensions", "rp": "HardwareCore_StringExtensions.html", "cl": 14, "ucl": 0, "cal": 14, "tl": 28, "ct": "LineCoverage", "mc": "-", "cb": 6, "tb": 6, "lch": [], "bch": [], "hc": [] },
     ]},
   {
     "name": "KeyboardConnector",
     "classes": [
       { "name": "KeyboardConnector.KeyboardEvent", "rp": "KeyboardConnector_KeyboardEvent.html", "cl": 12, "ucl": 0, "cal": 12, "tl": 19, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
-      { "name": "KeyboardConnector.KeyPress", "rp": "KeyboardConnector_KeyPress.html", "cl": 7, "ucl": 0, "cal": 7, "tl": 16, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
-      { "name": "KeyboardConnector.MemoryMappedKeyboard", "rp": "KeyboardConnector_MemoryMappedKeyboard.html", "cl": 124, "ucl": 0, "cal": 124, "tl": 221, "ct": "LineCoverage", "mc": "-", "cb": 29, "tb": 31, "lch": [], "bch": [], "hc": [] },
-      { "name": "KeyboardConnector.NoRemoteKeyboardConnection", "rp": "KeyboardConnector_NoRemoteKeyboardConnection.html", "cl": 20, "ucl": 0, "cal": 20, "tl": 44, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
-      { "name": "KeyboardConnector.RemoteKeyboardConnection", "rp": "KeyboardConnector_RemoteKeyboardConnection.html", "cl": 33, "ucl": 0, "cal": 33, "tl": 60, "ct": "LineCoverage", "mc": "-", "cb": 7, "tb": 14, "lch": [], "bch": [], "hc": [] },
+      { "name": "KeyboardConnector.MemoryMappedKeyboard", "rp": "KeyboardConnector_MemoryMappedKeyboard.html", "cl": 134, "ucl": 0, "cal": 134, "tl": 235, "ct": "LineCoverage", "mc": "-", "cb": 27, "tb": 31, "lch": [], "bch": [], "hc": [] },
     ]},
   {
     "name": "Memory",
@@ -298,13 +296,8 @@ var assemblies = [
       { "name": "RemoteDisplayConnector.DisplayControlBlock", "rp": "RemoteDisplayConnector_DisplayControlBlock.html", "cl": 51, "ucl": 0, "cal": 51, "tl": 96, "ct": "LineCoverage", "mc": "-", "cb": 12, "tb": 16, "lch": [], "bch": [], "hc": [] },
       { "name": "RemoteDisplayConnector.MemoryMappedDisplay", "rp": "RemoteDisplayConnector_MemoryMappedDisplay.html", "cl": 69, "ucl": 0, "cal": 69, "tl": 119, "ct": "LineCoverage", "mc": "-", "cb": 2, "tb": 2, "lch": [], "bch": [], "hc": [] },
       { "name": "RemoteDisplayConnector.NoRemoteDisplayConnection", "rp": "RemoteDisplayConnector_NoRemoteDisplayConnection.html", "cl": 20, "ucl": 0, "cal": 20, "tl": 42, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
-      { "name": "RemoteDisplayConnector.RemoteDisplayConnection", "rp": "RemoteDisplayConnector_RemoteDisplayConnection.html", "cl": 39, "ucl": 0, "cal": 39, "tl": 60, "ct": "LineCoverage", "mc": "-", "cb": 10, "tb": 10, "lch": [], "bch": [], "hc": [] },
+      { "name": "RemoteDisplayConnector.RemoteDisplayConnection", "rp": "RemoteDisplayConnector_RemoteDisplayConnection.html", "cl": 23, "ucl": 0, "cal": 23, "tl": 44, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
       { "name": "RemoteDisplayConnector.VideoRam", "rp": "RemoteDisplayConnector_VideoRam.html", "cl": 30, "ucl": 0, "cal": 30, "tl": 54, "ct": "LineCoverage", "mc": "-", "cb": 2, "tb": 2, "lch": [], "bch": [], "hc": [] },
-    ]},
-  {
-    "name": "SignalRConnection",
-    "classes": [
-      { "name": "SignalRConnection.SignalRHubConnection", "rp": "SignalRConnection_SignalRHubConnection.html", "cl": 0, "ucl": 52, "cal": 52, "tl": 76, "ct": "LineCoverage", "mc": "-", "cb": 0, "tb": 0, "lch": [], "bch": [], "hc": [] },
     ]},
 ];
 

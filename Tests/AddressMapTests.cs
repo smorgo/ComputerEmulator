@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Debugger;
 using System.Collections;
-using SignalRConnection;
 
 namespace Tests
 {
@@ -48,7 +47,6 @@ namespace Tests
                  .AddScoped<IAddressMap, AddressMap>()
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
                  .AddScoped<IRemoteDisplayConnection, NoRemoteDisplayConnection>()
-                 .AddTransient<ISignalRHubConnection,MockSignalRHubConnection>()
                  .AddScoped<IRegisterTracker, NoRegisterTracker>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<ICpuHoldEvent,MockCpuHoldEvent>()

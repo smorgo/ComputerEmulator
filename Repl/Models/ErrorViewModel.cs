@@ -1,6 +1,6 @@
 using System;
 
-namespace RemoteDisplay.Models
+namespace Repl.Models
 {
     public class ErrorViewModel
     {

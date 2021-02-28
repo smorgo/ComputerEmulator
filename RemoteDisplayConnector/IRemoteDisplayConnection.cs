@@ -11,6 +11,6 @@ namespace RemoteDisplayConnector
         Task RenderCharacter(ushort address, byte value);
         Task SendDisplayMode(DisplayMode mode);
         Task SendCursorPosition(CursorPosition position);
-        Task SendControl(byte control);
+        Task SendControl(byte value);
     }
 }

@@ -1,11 +1,19 @@
 using HardwareCore;
+using KeyboardConnector;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
 
-namespace RemoteDisplay.Hubs
+namespace Repl.Hubs
 {
+
     public class DisplayHub : Hub
     {
+        private IMemoryMappedKeyboard _keyboard;
+
+        public DisplayHub(IMemoryMappedKeyboard keyboard)
+        {
+            _keyboard = keyboard;
+        }
         public async Task SendMessage(string user, string message)
         {
             await Clients.All.SendAsync("ReceiveMessage", user, message);
@@ -18,17 +26,21 @@ namespace RemoteDisplay.Hubs
         {
             await Clients.All.SendAsync("Write", offset, value);
         }
-        public async Task KeyDown(string key, int id)
+        public void KeyDown(string key, int id)
         {
-            await Clients.All.SendAsync("KeyDown", key, id);
+            _keyboard?.OnKeyDown(new KeyPress(key, id));
         }
-        public async Task KeyUp(string key, int id)
+        public void KeyUp(string key, int id)
         {
-            await Clients.All.SendAsync("KeyUp", key, id);
+            _keyboard?.OnKeyUp(new KeyPress(key, id));
         }
-        public async Task RequestControl()
+        public void RequestControl()
         {
-            await Clients.All.SendAsync("RequestControl");
+            _keyboard?.SendControlRegister();
+        }
+        public async Task ReceiveDisplayControl(byte status)
+        {
+            await Clients.All.SendAsync("ReceiveDisplayControl", status);
         }
         public async Task ReceiveKeyboardControl(byte status)
         {

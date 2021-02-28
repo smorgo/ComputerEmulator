@@ -1,9 +1,10 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HardwareCore
 {
     public static class ServiceProviderLocator
     {
-        public static ServiceProvider ServiceProvider {get; set;}
+        public static IServiceProvider ServiceProvider {get; set;}
     }
 }

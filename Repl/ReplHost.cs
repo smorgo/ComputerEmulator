@@ -18,8 +18,7 @@ namespace Repl
         private CPU6502 _cpu;
         public IDebuggableCpu Cpu => _cpu;
         private IMemoryMappedDisplay _display;
-        private MemoryMappedKeyboard _keyboard;
-        private IRemoteConnection _keyboardConnection;
+        private IMemoryMappedKeyboard _keyboard;
         private IAddressMap mem;
         public IAddressMap Memory => mem;
         public ILabelMap Labels {get; private set;}
@@ -41,7 +40,7 @@ namespace Repl
             // CpuHoldEvent debuggerSyncEvent, 
             IDebuggableCpu cpu,
             IAddressMap addressMap,
-            IRemoteConnection remoteKeyboardConnection,
+            IMemoryMappedKeyboard keyboard,
             IMemoryMappedDisplay memoryMappedDisplay)
         {
             Labels = labels;
@@ -49,7 +48,7 @@ namespace Repl
             // _debuggerSyncEvent = debuggerSyncEvent;
             _cpu = (CPU6502)cpu;
             mem = addressMap;
-            _keyboardConnection = remoteKeyboardConnection;
+            _keyboard = keyboard;
             _display = memoryMappedDisplay;
         }
 
@@ -58,10 +57,9 @@ namespace Repl
             mem.Install(new Ram(0x0000, 0x10000));
             _display.Locate(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
-
+            
             // This is interactive, so we want the RemoteKeyboardConnection
-            _keyboard = new MemoryMappedKeyboard(KEYBOARD_BASE_ADDR, _keyboardConnection);
-            mem.Install(_keyboard);
+            mem.Install((IAddressAssignment)_keyboard);
             AsyncUtil.RunSync(() => mem.Initialise());
             _display.Clear();
             _cpu.LogLevel = LogLevel.Trace;
