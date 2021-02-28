@@ -8,7 +8,6 @@
     <ProjectReference Include="..\IntegratedDebugger\IntegratedDebugger.csproj" />
     <ProjectReference Include="..\Memory\Memory.csproj" />
     <ProjectReference Include="..\gui.cs\Terminal.Gui\Terminal.Gui.csproj" />
-    <ProjectReference Include="..\SignalRConnection\SignalRConnection.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <OutputType>Exe</OutputType>

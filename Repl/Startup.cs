@@ -16,7 +16,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RemoteDisplayConnector;
 using Repl.Hubs;
-using SignalRConnection;
 
 namespace Repl
 {
@@ -75,8 +74,7 @@ namespace Repl
                  .AddScoped<IDebuggableCpu, CPU6502>()
                  .AddScoped<IAddressMap, AddressMap>()
                  .AddScoped<IEmulatorConsole, ReplConsole>()
-                 .AddTransient<ISignalRHubConnection, SignalRHubConnection>()
-                 .AddScoped<IRemoteConnection, NoRemoteKeyboardConnection>()
+                 .AddScoped<IMemoryMappedKeyboard, MemoryMappedKeyboard>()
                  .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()
                  .AddScoped<IRemoteDisplayConnection, RemoteDisplayConnection>()
                  .AddTransient<ILoader, Loader>()
@@ -85,6 +83,8 @@ namespace Repl
                  .AddScoped<ICpuStepEvent, CpuStepEvent>()
                  .AddScoped<IRegisterTracker, DebugRegisterTracker>()
                  .AddSingleton<CancellationTokenWrapper>(new CancellationTokenWrapper())
+                 .AddScoped<IDisplayHub, DisplayHubProxy>()
+                 .AddScoped<IKeyboardHub, KeyboardHubProxy>()
                  ;
 
             Program.CanStartEvent.Set();

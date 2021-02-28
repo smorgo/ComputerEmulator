@@ -11,11 +11,11 @@ using Microsoft.Extensions.Logging;
 using HardwareCore;
 using KeyboardConnector;
 using RemoteDisplayConnector;
-using SignalRConnection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 using Microsoft.AspNetCore.Hosting;
+using Repl;
 
 namespace Repl
 {

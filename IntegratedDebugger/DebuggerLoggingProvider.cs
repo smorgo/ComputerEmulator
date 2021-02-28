@@ -41,10 +41,10 @@ namespace IntegratedDebugger
 
         public override void WriteLog(LogEntry info)
         {
-            if(!info.Category.StartsWith("Microsoft.Hosting.Lifetime"))
-            {
+            // if(!info.Category.Contains("Microsoft"))
+            // {
                 _sink?.WriteLog(info);
-            }
+            // }
         }
 
     }

@@ -1,4 +1,4 @@
-namespace KeyboardConnector
+namespace HardwareCore
 {
     public class KeyPress
     {

@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\HardwareCore\HardwareCore.csproj" />
-    <ProjectReference Include="..\SignalRConnection\SignalRConnection.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="*" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
   </ItemGroup>
   <PropertyGroup>

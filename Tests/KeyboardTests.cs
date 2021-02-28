@@ -12,7 +12,6 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Debugger;
-using SignalRConnection;
 
 namespace Tests
 {
@@ -20,9 +19,7 @@ namespace Tests
     {
         private CPU6502 _cpu;
         private IMemoryMappedDisplay _display;
-        private MemoryMappedKeyboard _keyboard;
-        private IRemoteConnection _keyboardConnection;
-        private SignalRIntegration _signalr;
+        private IMemoryMappedKeyboard _keyboard;
         private IAddressMap mem;
         const ushort DISPLAY_BASE_ADDR = 0xF000;
         const ushort KEYBOARD_BASE_ADDR = 0x84;
@@ -52,10 +49,10 @@ namespace Tests
                  .AddScoped<ILabelMap, LabelMap>()
                  .AddScoped<ILogFormatter, DebugLogFormatter>()
                  .AddScoped<IParser, Parser>()
-                 .AddScoped<IRemoteConnection, MockRemoteKeyboardConnection>()
+                 .AddTransient<IKeyboardHub, MockKeyboardHubProxy>()
+                 .AddScoped<IMemoryMappedKeyboard, MemoryMappedKeyboard>()
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
                  .AddScoped<IRemoteDisplayConnection, NoRemoteDisplayConnection>()
-                 .AddTransient<ISignalRHubConnection,MockSignalRHubConnection>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<ICpuHoldEvent,MockCpuHoldEvent>()
                  .AddScoped<ICpuStepEvent,MockCpuStepEvent>()
@@ -71,9 +68,9 @@ namespace Tests
             _display = _serviceProvider.GetService<IMemoryMappedDisplay>();
             _display.Locate(DISPLAY_BASE_ADDR, DISPLAY_SIZE);
             mem.Install(_display);
-            _keyboardConnection = _serviceProvider.GetService<IRemoteConnection>();
-            _keyboard = new MemoryMappedKeyboard(KEYBOARD_BASE_ADDR, _keyboardConnection);
-            mem.Install(_keyboard);
+            _keyboard = _serviceProvider.GetService<IMemoryMappedKeyboard>();
+            _keyboard.StartAddress = KEYBOARD_BASE_ADDR;
+            mem.Install((IAddressAssignment)_keyboard);
             await mem.Initialise();
             _display.Clear();
             _cpu = (CPU6502)_serviceProvider.GetService<IDebuggableCpu>();
@@ -92,9 +89,6 @@ namespace Tests
             mem.Labels.Add("RESET_VECTOR", _cpu.RESET_VECTOR);
             mem.Labels.Add("IRQ_VECTOR", _cpu.IRQ_VECTOR);
             mem.Labels.Add("NMI_VECTOR", _cpu.NMI_VECTOR);
-
-            _signalr = new SignalRIntegration(_keyboardConnection);
-            await _signalr.Initialise();
         }
 
         [Test]
@@ -116,7 +110,7 @@ namespace Tests
                 Debug.WriteLine($"KeyDown({e})");
                 Console.WriteLine($"KeyDown({e})");
                 await Task.Delay(10);
-                await _signalr.KeyUp(new string((char)(e),1));
+                _keyboard.GenerateKeyUp(new string((char)(e),1));
              };
 
             _keyboard.KeyUp += async (s, e) => {
@@ -141,7 +135,7 @@ namespace Tests
 
                 if(!triggered)
                 {
-                    await _signalr.KeyDown("a");
+                    _keyboard.GenerateKeyDown("a");
                     triggered = true;
                 }
 
@@ -208,9 +202,9 @@ namespace Tests
                 AutoReset = false
             };
 
-            timer.Elapsed += async (s,e) => 
+            timer.Elapsed += (s,e) => 
             {
-                await _signalr.KeyUp("a");
+                _keyboard.GenerateKeyUp("a");
             };
 
             _cpu.OnStarted += (s,e) => {timer.Start();};
@@ -249,10 +243,10 @@ namespace Tests
         public void DuplicateKeyDownIsIgnored()
         {
             int count = 0;
-            ((IKeyboardInput)_keyboard).KeyDown += (s,e) => { count++; };
+            _keyboard.KeyDown += (s,e) => { count++; };
 
-            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyDown(new KeyPress("a",1));
-            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyDown(new KeyPress("a",1));
+            ((MemoryMappedKeyboard)_keyboard).InjectKeyDown(new KeyPress("a",1));
+            ((MemoryMappedKeyboard)_keyboard).InjectKeyDown(new KeyPress("a",1));
 
             Assert.AreEqual(1, count);
         }
@@ -260,10 +254,10 @@ namespace Tests
         public void DuplicateKeyUpIsIgnored()
         {
             int count = 0;
-            ((IKeyboardInput)_keyboard).KeyUp += (s,e) => { count++; };
+            _keyboard.KeyUp += (s,e) => { count++; };
 
-            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyUp(new KeyPress("a",1));
-            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyUp(new KeyPress("a",1));
+            ((MemoryMappedKeyboard)_keyboard).InjectKeyUp(new KeyPress("a",2));
+            ((MemoryMappedKeyboard)_keyboard).InjectKeyUp(new KeyPress("a",2));
 
             Assert.AreEqual(1, count);
         }
@@ -273,7 +267,7 @@ namespace Tests
             bool interrupted = false;
             _keyboard.RequestInterrupt += (s,e) => { interrupted = true; };
 
-            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyDown(new KeyPress("a",1));
+            ((MemoryMappedKeyboard)_keyboard).InjectKeyDown(new KeyPress("a",1));
 
             Assert.IsTrue(interrupted);
         }
@@ -283,7 +277,7 @@ namespace Tests
             bool interrupted = false;
             _keyboard.RequestInterrupt += (s,e) => { interrupted = true; };
 
-            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyUp(new KeyPress("a",1));
+            ((MemoryMappedKeyboard)_keyboard).InjectKeyUp(new KeyPress("a",2));
 
             Assert.IsTrue(interrupted);
         }
@@ -310,7 +304,7 @@ namespace Tests
             }
             while(status != 0);
 
-            ((MockRemoteKeyboardConnection)_keyboardConnection).InjectKeyUp(new KeyPress("a",1));
+            ((MemoryMappedKeyboard)_keyboard).InjectKeyUp(new KeyPress("a",1));
             
             status = _keyboard.Read(MemoryMappedKeyboard.STATUS_REGISTER);
             Assert.AreEqual(

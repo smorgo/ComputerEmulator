@@ -12,7 +12,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Debugger;
 using System.IO;
-using SignalRConnection;
 
 namespace Tests
 {
@@ -49,7 +48,6 @@ namespace Tests
                  .AddScoped<ILogFormatter, DebugLogFormatter>()
                  .AddScoped<IMemoryMappedDisplay, MockMemoryMappedDisplay>()
                  .AddScoped<IRemoteDisplayConnection, NoRemoteDisplayConnection>()
-                 .AddTransient<ISignalRHubConnection,MockSignalRHubConnection>()
                  .AddScoped<IParser, Parser>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<IRegisterTracker, NoRegisterTracker>()

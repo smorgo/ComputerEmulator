@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "6502", "Cpu\6502\6502.cspro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{550BBB95-2FE1-4742-AC56-10311761C56F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoteDisplay", "RemoteDisplay\RemoteDisplay.csproj", "{B6A18D33-B718-4380-9D3B-042446F8446A}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HardwareCore", "HardwareCore\HardwareCore.csproj", "{D0ABE2B3-6F61-41D9-B775-EC6B0B0ED704}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoteDisplayConnector", "RemoteDisplayConnector\RemoteDisplayConnector.csproj", "{CAA93B19-F0E8-47A4-87C1-81F0472104D9}"
@@ -30,8 +28,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "gui.cs", "gui.cs", "{6A575F68-8BE0-4BCD-B804-C8AA0A43D42E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Terminal.Gui", "gui.cs\Terminal.Gui\Terminal.Gui.csproj", "{C9D8104E-93E1-44E0-B765-586C506EC8BA}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalRConnection", "SignalRConnection\SignalRConnection.csproj", "{723DCD80-C141-4EC3-85AC-5C3DF2EB3E2A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

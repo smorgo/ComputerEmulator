@@ -12,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Debugger;
 using System.Collections.Generic;
 using KeyboardConnector;
-using SignalRConnection;
 
 namespace Tests
 {
@@ -52,11 +51,11 @@ namespace Tests
                  .AddScoped<IAddressMap, AddressMap>()
                  .AddScoped<IMemoryMappedDisplay, MemoryMappedDisplay>()
                  .AddScoped<IRemoteDisplayConnection, RemoteDisplayConnection>()
-                 .AddTransient<ISignalRHubConnection,MockSignalRHubConnection>()
                  .AddScoped<IRegisterTracker, DebugRegisterTracker>()
                  .AddTransient<ILoader, Loader>()
                  .AddScoped<ICpuHoldEvent,MockCpuHoldEvent>()
                  .AddScoped<ICpuStepEvent,MockCpuStepEvent>()
+                 .AddTransient<IDisplayHub, MockDisplayHubProxy>()
                  .AddScoped<CancellationTokenWrapper, CancellationTokenWrapper>();
         }
         [SetUp]
