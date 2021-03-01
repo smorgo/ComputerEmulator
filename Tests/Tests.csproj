@@ -24,5 +24,6 @@
     <ProjectReference Include="..\KeyboardConnector\KeyboardConnector.csproj" />
     <ProjectReference Include="..\Debugger\Debugger.csproj" />
     <ProjectReference Include="..\Memory\Memory.csproj" />
+    <ProjectReference Include="..\Assembler6502\Assembler6502.csproj" />
   </ItemGroup>
 </Project>
