@@ -21,7 +21,8 @@ namespace Assembler6502
             Comment,
             HexNumber,
             Number,
-            StringLiteral
+            StringLiteral,
+            CharLiteral
         }
 
         private enum Event 
@@ -34,7 +35,8 @@ namespace Assembler6502
             Comma,
             OpenParen,
             CloseParen,
-            Quote,
+            DoubleQuote,
+            SingleQuote,
             Equals,
             Whitespace,
             LineEnd,
@@ -58,7 +60,8 @@ namespace Assembler6502
                             { Event.Comma, YieldIndexerDelimiter },
                             { Event.OpenParen, YieldIndirectStart },
                             { Event.CloseParen, YieldIndirectEnd },
-                            { Event.Quote, StartStringLiteral },
+                            { Event.DoubleQuote, StartStringLiteral },
+                            { Event.SingleQuote, StartCharLiteral },
                             { Event.Equals, YieldAssignmentOperator },
                             { Event.LineEnd, YieldLineEnd},
                             { Event.Semicolon, StartComment },
@@ -103,12 +106,20 @@ namespace Assembler6502
                     State.StringLiteral,
                         new Dictionary<Event, Action>()
                         {
-                            { Event.Quote, YieldCurrentAndConsume },
+                            { Event.DoubleQuote, YieldCurrentAndConsume },
+                            { Event.LineEnd, ErrorUnterminatedStringLiteral },
+                            { Event.Anything, Append }
+                        }
+                },
+                {
+                    State.CharLiteral,
+                        new Dictionary<Event, Action>()
+                        {
+                            { Event.SingleQuote, YieldCurrentAndConsume },
                             { Event.LineEnd, ErrorUnterminatedStringLiteral },
                             { Event.Anything, Append }
                         }
                 }
-
             };
         }
 
@@ -170,7 +181,8 @@ namespace Assembler6502
             if(_currentChar == ',') return Event.Comma;
             if(_currentChar == '=') return Event.Equals;
             if(_currentChar == '$') return Event.Dollar;
-            if(_currentChar == '"') return Event.Quote;
+            if(_currentChar == '"') return Event.DoubleQuote;
+            if(_currentChar == '\'') return Event.SingleQuote;
             if(_currentChar == '(') return Event.OpenParen;
             if(_currentChar == ')') return Event.CloseParen;
             if(_currentChar == '#') return Event.Hash;
@@ -298,6 +310,14 @@ namespace Assembler6502
         {
             Yield();
             _currentState = State.StringLiteral;
+            _currentToken = new StringLiteralToken(_lineNumber, _lineOffset);
+            ConsumeCurrentCharacter();
+        }
+        private void StartCharLiteral()
+        {
+            Yield();
+            _currentState = State.CharLiteral;
+            _currentToken = new CharLiteralToken(_lineNumber, _lineOffset);
             ConsumeCurrentCharacter();
         }
         private void YieldAssignmentOperator()

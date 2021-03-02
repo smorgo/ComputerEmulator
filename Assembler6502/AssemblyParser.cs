@@ -309,6 +309,10 @@ namespace Assembler6502
                     {
                         outputTokens.Add(new ImmediateDecimalToken((DecimalNumberToken)token));
                     }
+                    else if(token is CharLiteralToken)
+                    {
+                        outputTokens.Add(new ImmediateCharToken((CharLiteralToken)token));
+                    }
                     else if(token is IdentifierToken)
                     {
                         outputTokens.Add(new ImmediateLabelToken((IdentifierToken)token));
