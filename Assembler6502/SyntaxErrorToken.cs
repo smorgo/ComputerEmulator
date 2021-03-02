@@ -8,5 +8,10 @@ namespace Assembler6502
             Value = value;
             Error = error;
         }
+
+        public SyntaxErrorToken(Token token, string error) : 
+            this(token.LineNumber, token.LineOffset, token.Value, error)
+        {
+        }
     }
 }

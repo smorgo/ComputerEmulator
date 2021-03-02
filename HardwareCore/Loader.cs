@@ -335,6 +335,11 @@ namespace HardwareCore
             return this;
         }
 
+        public bool TryResolveLabel(string label, out ushort address)
+        {
+            return _labels.TryResolve(label, out address);
+        }
+        
         public void Dispose()
         {
             if (_fixupRequired)

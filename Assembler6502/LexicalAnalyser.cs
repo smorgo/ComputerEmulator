@@ -40,6 +40,7 @@ namespace Assembler6502
             LineEnd,
             Semicolon,
             HexDigit,
+            Asterisk,
             Other,
             Anything
         }
@@ -61,6 +62,7 @@ namespace Assembler6502
                             { Event.Equals, YieldAssignmentOperator },
                             { Event.LineEnd, YieldLineEnd},
                             { Event.Semicolon, StartComment },
+                            { Event.Asterisk, YieldAsterisk },
                             { Event.Whitespace, Ignore }
                         }
                 },
@@ -172,9 +174,11 @@ namespace Assembler6502
             if(_currentChar == '(') return Event.OpenParen;
             if(_currentChar == ')') return Event.CloseParen;
             if(_currentChar == '#') return Event.Hash;
+            if(_currentChar == '*') return Event.Asterisk;
             if(_currentChar == ';') return Event.Semicolon;
             if(char.IsDigit(_currentChar)) return Event.DecimalDigit;
             if(char.IsLetter(_currentChar)) return Event.Letter;
+            if(_currentChar == '_') return Event.Letter;
             if(_currentChar == Environment.NewLine[0]) return Event.LineEnd;
             if(char.IsWhiteSpace(_currentChar)) return Event.Whitespace;
             return Event.Other;
@@ -278,6 +282,11 @@ namespace Assembler6502
             Yield();
             _currentState = State.Comment;
             _currentToken = new CommentToken(_lineNumber, _lineOffset);
+            ConsumeCurrentCharacter();
+        }
+        private void YieldAsterisk()
+        {
+            Yield(new AsteriskToken(_lineNumber, _lineOffset));
             ConsumeCurrentCharacter();
         }
         private void YieldIndexerDelimiter()

@@ -1,15 +1,18 @@
 namespace Assembler6502
 {
-    public class HexadecimalNumberToken : Token
+    public class ImmediateHexadecimalToken : ImmediateToken
     {
         public override bool ProvidesByte => true;
         public override bool ProvidesWord => true;
-        public HexadecimalNumberToken(int lineNumber, int lineOffset) : base(lineNumber, lineOffset)
+        public ImmediateHexadecimalToken(HexadecimalNumberToken sourceToken) :
+            base(sourceToken)
         {
         }
+
         public override ushort AsWord()
         {
             return (ushort)int.Parse(Value, System.Globalization.NumberStyles.HexNumber);
         }
     }
+
 }

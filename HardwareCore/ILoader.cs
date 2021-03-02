@@ -32,5 +32,6 @@ namespace HardwareCore
         Loader WriteWord(ushort value, string label = null);
         Loader ZeroPageRef(string label, int offset = 0);
         Loader ZeroPageRef(ushort address, string label, int offset = 0);
+        bool TryResolveLabel(string label, out ushort address);
     }
 }
