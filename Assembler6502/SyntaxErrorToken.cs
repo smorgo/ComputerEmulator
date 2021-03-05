@@ -13,5 +13,7 @@ namespace Assembler6502
             this(token.LineNumber, token.LineOffset, token.Value, error)
         {
         }
+
+        public override bool IsValid { get => false; }
     }
 }

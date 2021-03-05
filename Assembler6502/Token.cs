@@ -11,12 +11,16 @@ namespace Assembler6502
         {
             LineNumber = lineNumber;
             LineOffset = lineOffset;
+            IsValid = true;
         }
 
-        public virtual bool IsValid => true;
+        public virtual bool DefaultToAccumulatorOperand => false;
+
+        public virtual bool IsValid {get; protected set;}
         public virtual void Emit(ILoader loader)
         {
             // Do nothing
+            DidNotEmit();
         }
 
         public virtual bool ProvidesByte => false;
@@ -33,7 +37,18 @@ namespace Assembler6502
         }
         public virtual string AsString()
         {
-            return Value;
+            // Override this if you don't want it in uppercase
+            return Value.ToUpper();
+        }
+
+        protected virtual void DidNotEmit()
+        {
+            IsValid = false;
+        }
+
+        public override string ToString()
+        {
+            return $"Line {LineNumber} column {LineOffset} {this.GetType().Name}";
         }
     }
 }

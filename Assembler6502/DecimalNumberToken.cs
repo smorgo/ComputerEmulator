@@ -1,9 +1,7 @@
 namespace Assembler6502
 {
-    public class DecimalNumberToken : Token
+    public class DecimalNumberToken : NumberToken
     {
-        public override bool ProvidesByte => true;
-        public override bool ProvidesWord => true;
         public DecimalNumberToken(int lineNumber, int lineOffset) : base(lineNumber, lineOffset)
         {
             

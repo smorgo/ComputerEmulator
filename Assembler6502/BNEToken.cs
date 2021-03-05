@@ -11,14 +11,6 @@ namespace Assembler6502
         {
         }
 
-        public override bool IsValid 
-        {
-            get
-            {
-                return false;
-            }
-        }
-
         public override void Emit(ILoader loader)
         {
             if(OperandToken.ProvidesByte)
@@ -28,6 +20,10 @@ namespace Assembler6502
             else if(OperandToken.ProvidesLabel)
             {
                 loader.BNE(OperandToken.AsString());
+            }
+            else
+            {
+                DidNotEmit();
             }
         }
     }

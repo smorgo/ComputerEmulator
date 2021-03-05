@@ -22,7 +22,8 @@ namespace Assembler6502
             HexNumber,
             Number,
             StringLiteral,
-            CharLiteral
+            CharLiteral,
+            Pragma
         }
 
         private enum Event 
@@ -43,6 +44,9 @@ namespace Assembler6502
             Semicolon,
             HexDigit,
             Asterisk,
+            DecimalPoint,
+            Plus,
+            Minus,
             Other,
             Anything
         }
@@ -65,7 +69,10 @@ namespace Assembler6502
                             { Event.Equals, YieldAssignmentOperator },
                             { Event.LineEnd, YieldLineEnd},
                             { Event.Semicolon, StartComment },
+                            { Event.Plus, YieldPlus },
+                            { Event.Minus, YieldMinus },
                             { Event.Asterisk, YieldAsterisk },
+                            { Event.DecimalPoint, StartPragma },
                             { Event.Whitespace, Ignore }
                         }
                 },
@@ -118,6 +125,14 @@ namespace Assembler6502
                             { Event.SingleQuote, YieldCurrentAndConsume },
                             { Event.LineEnd, ErrorUnterminatedStringLiteral },
                             { Event.Anything, Append }
+                        }
+                },
+                {
+                    State.Pragma,
+                        new Dictionary<Event, Action>()
+                        {
+                            { Event.Letter, Append },
+                            { Event.Anything, YieldCurrent }
                         }
                 }
             };
@@ -188,6 +203,9 @@ namespace Assembler6502
             if(_currentChar == '#') return Event.Hash;
             if(_currentChar == '*') return Event.Asterisk;
             if(_currentChar == ';') return Event.Semicolon;
+            if(_currentChar == '.') return Event.DecimalPoint;
+            if(_currentChar == '+') return Event.Plus;
+            if(_currentChar == '-') return Event.Minus;
             if(char.IsDigit(_currentChar)) return Event.DecimalDigit;
             if(char.IsLetter(_currentChar)) return Event.Letter;
             if(_currentChar == '_') return Event.Letter;
@@ -301,6 +319,16 @@ namespace Assembler6502
             Yield(new AsteriskToken(_lineNumber, _lineOffset));
             ConsumeCurrentCharacter();
         }
+        private void YieldPlus()
+        {
+            Yield(new PlusToken(_lineNumber, _lineOffset));
+            ConsumeCurrentCharacter();
+        }
+        private void YieldMinus()
+        {
+            Yield(new MinusToken(_lineNumber, _lineOffset));
+            ConsumeCurrentCharacter();
+        }
         private void YieldIndexerDelimiter()
         {
             Yield(new IndexerDelimiterToken(_lineNumber, _lineOffset));
@@ -320,7 +348,15 @@ namespace Assembler6502
             _currentToken = new CharLiteralToken(_lineNumber, _lineOffset);
             ConsumeCurrentCharacter();
         }
-        private void YieldAssignmentOperator()
+         private void StartPragma()
+        {
+            Yield();
+            _currentState = State.Pragma;
+            _currentToken = new PragmaToken(_lineNumber, _lineOffset);
+            ConsumeCurrentCharacter();
+        }
+
+       private void YieldAssignmentOperator()
         {
             Yield(new AssignmentOperatorToken(_lineNumber, _lineOffset));
             ConsumeCurrentCharacter();

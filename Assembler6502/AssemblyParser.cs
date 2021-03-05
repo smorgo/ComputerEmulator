@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using HardwareCore;
+using Microsoft.Extensions.Logging;
 
 namespace Assembler6502
 {
@@ -11,11 +12,13 @@ namespace Assembler6502
         private IAddressMap _map;
         private LexicalAnalyser _analyser;
         private TokenList _tokens;
-        public AssemblyParser(IAddressMap map, LexicalAnalyser analyser)
+        private ILogger<AssemblyParser> _logger;
+        public AssemblyParser(IAddressMap map, LexicalAnalyser analyser, ILogger<AssemblyParser> logger)
         {
             _map = map;
             _analyser = analyser;
             _analyser.TokenParsed += AnalyserTokenParsed;
+            _logger = logger;
         }
 
         private void AnalyserTokenParsed(object sender, Token e)
@@ -37,8 +40,10 @@ namespace Assembler6502
             _tokens = new TokenList();
             _analyser.Parse(code);
             _tokens = RemoveComments(_tokens);
+            _tokens = ResolvePragmas(_tokens);
             _tokens = ResolveAssignments(_tokens);
             _tokens = FindOpcodes(_tokens);
+            _tokens = ResolveLabelReferences(_tokens);
             _tokens = ResolveImmediates(_tokens);
             _tokens = ResolveIndirects(_tokens);
             _tokens = ResolveAbsolutes(_tokens);
@@ -51,8 +56,92 @@ namespace Assembler6502
                 foreach(var token in _tokens)
                 {
                     token.Emit(loader);
+                    if(!token.IsValid)
+                    {
+                        var log = token.ToString();
+                        _logger.LogError(log);
+                    }
                 }
             }
+        }
+
+        private TokenList ResolveLabelReferences(TokenList tokens)
+        {
+            // Look for an Opcode followed by an Identifier.
+            // Then, check if there are any modifiers (specifically, offsets)
+            var outputTokens = new TokenList();
+
+            var current = tokens.Take();
+
+            while(!(current is EofToken))
+            {
+                if(current is OpcodeToken)
+                {
+                    outputTokens.Add(current);
+                    var nextToken = tokens.Take();
+                    if(nextToken is IdentifierToken)
+                    {
+                        // This should be a label
+                        var delimToken = tokens.Peek();
+                        if(delimToken is PlusToken || delimToken is MinusToken)
+                        {
+                            tokens.Take();
+                            var offset = tokens.Take();
+                            outputTokens.Add(new AbsoluteToken(nextToken, delimToken, offset));
+                        }
+                        else
+                        {
+                            outputTokens.Add(new AbsoluteToken(nextToken));
+                        }
+                    }
+                    else
+                    {
+                        outputTokens.Add(nextToken);
+                    }
+                }
+                else
+                {
+                    outputTokens.Add(current);
+                }
+
+                current = tokens.Take();
+            }
+
+            return outputTokens;
+        }
+        private TokenList ResolvePragmas(TokenList tokens)
+        {
+            var outputTokens = new TokenList();
+
+            var current = tokens.Take();
+
+            while(!(current is EofToken))
+            {
+                if(current is PragmaToken)
+                {
+                    var pragma = (PragmaToken)current;
+                    
+                    // Take parameters up to end-of-line
+                    current = tokens.Take();
+                    while(!(current is LineEndToken || current is EofToken))
+                    {
+                        if(!(current is IndexerDelimiterToken))
+                        {
+                            pragma.Parameters.Add(current);
+                        }
+                        current = tokens.Take();
+                    }
+
+                    outputTokens.Add(pragma);
+                }
+                else
+                {
+                    outputTokens.Add(current);
+                    current = tokens.Take();
+                }
+            }
+
+            return outputTokens;
         }
         private TokenList ResolveAssignments(TokenList tokens)
         {
@@ -94,17 +183,19 @@ namespace Assembler6502
 
             while(!(current is EofToken))
             {
-                if(!(current is HexadecimalNumberToken || current is DecimalNumberToken))
+                if(current is HexadecimalNumberToken || current is DecimalNumberToken || current is AbsoluteToken)
                 {
-                    if(tokens.Peek() is IndexerDelimiterToken)
+                    var nextToken = tokens.Peek();
+
+                    if(nextToken is IndexerDelimiterToken)
                     {
                         tokens.Take();
                         var indexer = tokens.Take();
-                        if(indexer.Value == "X")
+                        if(indexer.Value.ToUpper() == "X")
                         {
                             outputTokens.Add(new AbsoluteXToken(current));
                         }
-                        else if(indexer.Value == "Y")
+                        else if(indexer.Value.ToUpper() == "Y")
                         {
                             outputTokens.Add(new AbsoluteYToken(current));
                         }
@@ -158,8 +249,18 @@ namespace Assembler6502
 
                     if(opcode.HasOperand)
                     {
-                        var operand = tokens.Take();
-                        opcode.OperandToken = operand;
+                        if(opcode.DefaultToAccumulatorOperand && (tokens.Peek() is LineEndToken))
+                        {
+                            opcode.OperandToken = new IdentifierToken(opcode.LineNumber, opcode.LineNumber)
+                            {
+                                Value = "A"
+                            };
+                        }
+                        else
+                        {
+                            var operand = tokens.Take();
+                            opcode.OperandToken = operand;
+                        }
                     }
                 }
                 outputTokens.Add(current);
@@ -228,7 +329,7 @@ namespace Assembler6502
                             {
                                 // (address),Y?
                                 nextToken = tokens.Peek();
-                                if(nextToken is IdentifierToken && nextToken.Value == "Y")
+                                if(nextToken is IdentifierToken && nextToken.Value.ToUpper() == "Y")
                                 {
                                     outputTokens.Add(new IndirectYToken(addressToken));
                                     tokens.Take(); // Take the ,
@@ -249,7 +350,7 @@ namespace Assembler6502
                         {
                             nextToken = tokens.Peek();
 
-                            if(nextToken is IdentifierToken && nextToken.Value == "X" &&
+                            if(nextToken is IdentifierToken && nextToken.Value.ToUpper() == "X" &&
                                 tokens.Peek() is IndirectEndToken)
                             {
                                 outputTokens.Add(new IndirectXToken(addressToken));

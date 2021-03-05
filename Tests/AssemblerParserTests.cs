@@ -32,6 +32,7 @@ namespace Tests
         {
             services
                 .AddScoped(typeof(ILogger<Loader>), typeof(UnitTestLogger<Loader>))
+                .AddScoped(typeof(ILogger<AssemblyParser>), typeof(UnitTestLogger<AssemblyParser>))
                 .AddScoped<IAddressMap, AddressMap>()
                 .AddScoped<ILoaderLabelTable, LoaderLabelTable>()
                 .AddTransient<ILoader, Loader>()
@@ -60,6 +61,18 @@ CLRM1   STA (TOPNT),Y   ;Clear memory location
         INY             ;Advance index pointer
         DEX             ;Decrement counter
         BNE CLRM1       ;Not zero, continue checking
+        RTS             ;Return
+";
+
+            _parser.Parse(code);
+        }
+
+        [Test]
+        public void CanParseASLAccumulator()
+        {
+            var code = @"
+        * = $1000       ;Start address of program
+		ASL A
         RTS             ;Return
 ";
 
@@ -773,7 +786,7 @@ TYPE
 		AND	#$01		; strip LSB
 		CLC 			;
 		ADC TEMP		; combine row & col to determine
-SQUARE COLOR
+SQUARECOLOR
 		AND	#$01		; is board square white or blk?
 		BNE POUT25 		; white, print space
 		LDA #'*'		; black, print *
@@ -820,7 +833,7 @@ POUT6	JSR SYSCHOUT	; PRINT ONE ASCII CHR - '-'
 		JSR	POUT9
 		RTS
 
-POUT8	JST POUT10		;
+POUT8	JSR POUT10		;
 		LDA $FB
 		JSR SYSHEXOUT	; PRINT 1 BYTE AS 2 HEX CHRS
         LDA #$20
@@ -871,8 +884,7 @@ KIN     LDA #'?'
 ;
 Init_6551   lda   #$1F               ; 19.2K/8/1
             sta   ACIActl            ; control reg
-            lda   #$0B               ; N parity/echo off/rx int off/
-dtr active low
+            lda   #$0B               ; N parity/echo off/rx int off/dtr active low
             sta   ACIAcmd            ; command reg
             rts                      ; done
 ;
@@ -901,11 +913,17 @@ syshexout   PHA                     ;  prints AA hex digits
             LSR                     ;
             JSR   PrintDig          ;
             PLA                     ;
-PrintDig    PHY                     ;  prints A hex nibble (low 4 bits)
+PrintDig    STA temp                ;  prints A hex nibble (low 4 bits)
+			TYA
+			PHA
+			LDA temp
             AND   #$0F              ;
             TAY                     ;
             LDA   Hexdigdata,Y      ;
-            PLY                     ;
+            STA temp
+			PLA		                ;
+			TAY
+			LDA temp
             jmp   syschout          ;
 
 Hexdigdata	.byte	""0123456789ABCDEF""

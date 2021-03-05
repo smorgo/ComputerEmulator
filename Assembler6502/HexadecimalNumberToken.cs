@@ -1,9 +1,9 @@
 namespace Assembler6502
 {
-    public class HexadecimalNumberToken : Token
+
+    public class HexadecimalNumberToken : NumberToken
     {
-        public override bool ProvidesByte => true;
-        public override bool ProvidesWord => true;
+
         public HexadecimalNumberToken(int lineNumber, int lineOffset) : base(lineNumber, lineOffset)
         {
         }

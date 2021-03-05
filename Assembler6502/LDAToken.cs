@@ -34,7 +34,7 @@ namespace Assembler6502
             else if(OperandToken is AbsoluteXToken && OperandToken.ProvidesLabel)
             {
                 ushort address;
-                var label = OperandToken.ToString();
+                var label = OperandToken.AsString();
 
                 if(loader.TryResolveLabel(label, out address))
                 {
@@ -52,7 +52,7 @@ namespace Assembler6502
                     loader.LDA_ABSOLUTE_X(label);
                 }
             }
-            else if(OperandToken is AbsoluteToken && OperandToken.ProvidesWord)
+            else if((OperandToken is AbsoluteToken || OperandToken is NumberToken) && OperandToken.ProvidesWord)
             {
                 if(OperandToken.AsWord() < 0x100)
                 {
@@ -63,10 +63,10 @@ namespace Assembler6502
                     loader.LDA_ABSOLUTE(OperandToken.AsWord());
                 }
             }
-            else if(OperandToken is AbsoluteToken && OperandToken.ProvidesLabel)
+            else if((OperandToken is AbsoluteToken  || OperandToken is IdentifierToken) && OperandToken.ProvidesLabel)
             {
                 ushort address;
-                var label = OperandToken.ToString();
+                var label = OperandToken.AsString();
 
                 if(loader.TryResolveLabel(label, out address))
                 {
@@ -99,6 +99,10 @@ namespace Assembler6502
             else if(OperandToken is IndirectYToken && OperandToken.ProvidesLabel)
             {
                 loader.LDA_INDIRECT_Y(OperandToken.AsString());
+            }
+            else
+            {
+                DidNotEmit();
             }
         }   
     }

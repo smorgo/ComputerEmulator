@@ -29,7 +29,7 @@ namespace Assembler6502
                 }
                 else if(OperandToken.ProvidesLabel)
                 {
-                    var label = OperandToken.ToString();
+                    var label = OperandToken.AsString();
                     ushort address;
                     if(loader.TryResolveLabel(label, out address))
                     {
@@ -59,7 +59,7 @@ namespace Assembler6502
                     loader.STA_ABSOLUTE_Y(OperandToken.AsString());
                 }
             }
-            else if(OperandToken is AbsoluteToken)
+            else if(OperandToken is AbsoluteToken || OperandToken is IdentifierToken || OperandToken is NumberToken)
             {
                 if(OperandToken.ProvidesWord)
                 {
@@ -75,7 +75,7 @@ namespace Assembler6502
                 }
                 else if(OperandToken.ProvidesLabel)
                 {
-                    var label = OperandToken.ToString();
+                    var label = OperandToken.AsString();
                     ushort address;
                     if(loader.TryResolveLabel(label, out address))
                     {
@@ -116,7 +116,10 @@ namespace Assembler6502
                     loader.STA_INDIRECT_Y(OperandToken.AsString());
                 }
             }
+            else
+            {
+                DidNotEmit();
+            }
         }
     }
-
 }
